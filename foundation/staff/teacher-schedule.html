@@ -6,81 +6,58 @@
   <title>Rock Solid - Teacher Availability</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
-    :root{
-      --navy:#3D2A8A;
-      --lilacSoft:#EDE9FA;
-      --gold:#F5A623;
-      --ink:#1E1535;
-      --muted:#7C6FA0;
-      --border:#E8E6F0;
+    /* Page layout */
+    .wrap  { padding: 24px; }
+    .p     { padding: 14px; }
+    .mb    { margin-bottom: 12px; }
+    @media (max-width: 980px) {
+      .wrap { padding: 14px 12px; }
     }
-    *{box-sizing:border-box}
-    body{margin:0;background:#F7F6FB;color:var(--ink);font-family:'Manrope',system-ui,-apple-system,sans-serif}
-    .rs-nav{
-      position:sticky;top:0;z-index:70;background:#fff;border-bottom:1px solid var(--border)
+
+    /* Page headings */
+    .title  { font-size: 26px; font-weight: 800; margin: 6px 0 2px; color: var(--navy, var(--primary)); }
+    .sub    { font-size: 13px; color: var(--muted); }
+    label   { font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px; }
+    strong  { color: var(--navy, var(--primary)); }
+
+    /* Pill badge counter (inside campus selector pills) */
+    .badge { padding: 1px 5px; border-radius: 4px; font-size: 10px; background: var(--lilacSoft, #EDE9FA); color: var(--navy, var(--primary)); font-weight: 700; }
+    .pill.active .badge { background: rgba(255,255,255,.2); color: #fff; }
+
+    /* Weekly availability grid */
+    .days { display: grid; grid-template-columns: 80px repeat(7,1fr); background: var(--bg, #F7F6FB); border-bottom: 1px solid var(--border); }
+    .days div { padding: 7px; text-align: center; font-size: 11px; font-weight: 700; border-left: 1px solid var(--border); color: var(--navy, var(--primary)); }
+    .days div:first-child { text-align: left; border-left: 0; color: var(--muted); }
+    .slot { display: grid; grid-template-columns: 80px repeat(7,1fr); border-bottom: 1px solid var(--border); }
+    .time { padding: 8px; background: var(--bg, #F7F6FB); font-size: 11px; color: var(--muted); font-weight: 600; }
+    .cell {
+      min-height: 38px;
+      border-left: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      transition: background .1s;
     }
-    .rs-nav__inner{max-width:1240px;margin:0 auto;padding:10px 24px;display:flex;gap:8px;align-items:center}
-    .rs-nav__link{
-      display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;
-      border:1px solid transparent;text-decoration:none;font-size:12px;font-weight:700;color:var(--muted)
-    }
-    .rs-nav__link:hover{background:var(--lilacSoft);color:var(--navy)}
-    .rs-nav__link.is-active{background:var(--lilacSoft);border-color:var(--lilacMid);color:var(--navy)}
-    .rs-nav__icon{font-size:14px;line-height:1}
-    @media(max-width:600px){
-      .rs-nav__label{display:none}
-      .rs-nav__inner{padding:10px 12px}
-      .rs-nav__link{padding:8px 10px}
-    }
-    .wrap{max-width:1240px;margin:0 auto;padding:24px}
-    .title{font-size:26px;font-weight:800;margin:6px 0 2px;color:var(--navy)}
-    .sub{font-size:13px;color:var(--muted)}
-    .card{background:#fff;border:1px solid var(--border);border-radius:10px}
-    .p{padding:14px}.mb{margin-bottom:12px}
-    .grid{display:grid;grid-template-columns:1fr 320px;gap:12px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    input,select,button{font:inherit}
-    input,select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--ink);outline:none;transition:border-color .15s}
-    input:focus,select:focus{border-color:var(--navy)}
-    .btn{padding:9px 16px;border:0;border-radius:8px;background:var(--navy);color:#fff;font-weight:700;cursor:pointer}
-    .btn:disabled{opacity:.4;cursor:not-allowed}
-    .pill{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:var(--ink)}
-    .pill:hover{border-color:var(--navy);color:var(--navy)}
-    .pill.active{background:var(--navy);color:#fff;border-color:var(--navy)}
-    .badge{padding:1px 5px;border-radius:4px;font-size:10px;background:#EDE9FA;color:var(--navy);font-weight:700}
-    .pill.active .badge{background:rgba(255,255,255,.2);color:#fff}
-    .days{display:grid;grid-template-columns:80px repeat(7,1fr);background:#F7F6FB;border-bottom:1px solid var(--border)}
-    .days div{padding:7px;text-align:center;font-size:11px;font-weight:700;border-left:1px solid var(--border);color:var(--navy)}
-    .days div:first-child{text-align:left;border-left:0;color:var(--muted)}
-    .slot{display:grid;grid-template-columns:80px repeat(7,1fr);border-bottom:1px solid var(--border)}
-    .time{padding:8px;background:#F7F6FB;font-size:11px;color:var(--muted);font-weight:600}
-    .cell{min-height:38px;border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-size:12px;transition:background .1s}
-    .cell:hover{background:var(--lilacSoft)}
-    .cell.on{background:#FEF6E4;color:#7A5A00;font-weight:700;border-left-color:var(--gold)}
-    .warn,.err,.ok{padding:10px;border-radius:8px;font-size:13px}
-    .warn{background:#FEF6E4;border:1px solid #F5D78A;color:#7A5A00}
-    .err{background:#FFF0F0;border:1px solid #F2B2B2;color:#8C1F1F}
-    .ok{background:#ECFDF3;border:1px solid #9AE6B4;color:#276749}
-    .modal{position:fixed;inset:0;background:rgba(30,21,53,.4);display:none;align-items:center;justify-content:center;padding:16px}
-    .modal.open{display:flex}
-    .modal-card{width:100%;max-width:600px;max-height:90vh;overflow:auto}
-    .suggestions{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
-    label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
-    strong{color:var(--navy)}
-    @media(max-width:980px){.grid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
-    .rs-nav, .nav, .topbar { display: none !important; }
-    .card, .modal-card {
-      border-radius: 14px !important;
-      box-shadow: var(--shadow-soft) !important;
-    }
-    .btn, .pill, input, select { border-radius: 12px !important; }
+    .cell:hover { background: var(--lilacSoft, var(--soft-lavender)); }
+    .cell.on    { background: #FEF6E4; color: #7A5A00; font-weight: 700; border-left-color: var(--gold, #F5A623); }
+
+    /* Teacher name match suggestions */
+    .suggestions { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+
+    /* Review / submit modal */
+    .modal { position: fixed; inset: 0; background: rgba(30,21,53,.4); display: none; align-items: center; justify-content: center; padding: 16px; }
+    .modal.open { display: flex; }
+    .modal-card { width: 100%; max-width: 600px; max-height: 90vh; overflow: auto; }
   </style>
   <link rel="stylesheet" href="../ui/premium-theme.css" />
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
 </head>
 <body>
-<main class="wrap fs-page">
+<main class="wrap fs-page fs-wrap-xl">
   <div class="pill" style="background:var(--lilacSoft);border-color:transparent;color:var(--navy);font-weight:700;margin-bottom:6px">Rock Solid Scheduler</div>
   <h1 class="title">Teacher Availability</h1>
   <div class="sub mb">Select times in your timezone. We automatically convert them for each campus timezone.</div>
@@ -88,10 +65,10 @@
   <div id="error" class="err mb" style="display:none"></div>
   <div id="ok" class="ok mb" style="display:none"></div>
 
-  <div class="grid">
+  <div class="grid fs-grid-main-aside">
     <section>
       <div class="card p mb">
-        <div class="grid2">
+        <div class="grid2 fs-grid-two">
           <div>
             <label>Teacher Name</label>
             <input id="teacherName" placeholder="Type your full name" />

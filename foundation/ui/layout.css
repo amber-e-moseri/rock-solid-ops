@@ -1,12 +1,88 @@
+/* ================================================
+   PAGE SHELL
+   ================================================ */
 .fs-page {
   max-width: 1240px;
   margin: 0 auto;
   padding: 20px 16px 60px;
 }
 
-.fs-stack { display: grid; gap: 12px; }
-.fs-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+/* Narrow wrap used by teacher portal pages */
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 22px 16px 60px;
+}
 
+/* Teacher portal width variants */
+.fs-wrap-narrow { max-width: 680px; }
+.fs-wrap-wide   { max-width: 1100px; }
+.fs-wrap-xl     { max-width: 1240px; }
+
+/* Teacher portal grid helpers */
+.fs-grid-main-aside { display: grid; grid-template-columns: 1fr 320px; gap: 12px; }
+.fs-grid-two        { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+
+/* ================================================
+   STRUCTURAL UTILITIES
+   ================================================ */
+.fs-stack { display: grid; gap: 12px; }
+.fs-row   { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.row,
+.btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 18px;
+}
+.spacer { flex: 1; }
+
+
+/* ================================================
+   HERO SECTION
+   ================================================ */
+.hero { margin-bottom: 22px; padding: 8px 4px; }
+.hero-title {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--ink, var(--text));
+  line-height: 1.02;
+}
+.hero-sub {
+  margin-top: 10px;
+  max-width: 720px;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+
+/* ================================================
+   STICKY FAB ROW (bottom of scrollable sections)
+   ================================================ */
+.fab-row {
+  position: sticky;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  z-index: 20;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+}
+
+
+/* ================================================
+   SPLIT LAYOUT  (main content + sidebar)
+   ================================================ */
+.split { display: grid; grid-template-columns: 1fr 320px; gap: 14px; }
+
+
+/* ================================================
+   SHELL NAV (teacher portal shared nav)
+   ================================================ */
 .fs-shell-nav {
   position: sticky;
   top: 8px;
@@ -18,11 +94,8 @@
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-soft);
 }
-
 .fs-shell-nav,
-.fs-shell-nav * {
-  box-sizing: border-box;
-}
+.fs-shell-nav * { box-sizing: border-box; }
 
 .fs-shell-inner {
   max-width: 1240px;
@@ -32,14 +105,12 @@
   align-items: center;
   padding: 10px 14px;
 }
-
 .fs-shell-links {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   flex: 1;
 }
-
 .fs-shell-brand {
   width: 32px;
   height: 32px;
@@ -52,7 +123,6 @@
   align-items: center;
   justify-content: center;
 }
-
 .fs-shell-link {
   text-decoration: none;
   color: var(--muted);
@@ -62,19 +132,13 @@
   padding: 8px 11px;
   border: 1px solid transparent;
 }
-
-.fs-shell-link-icon {
-  display: inline-flex;
-  align-items: center;
-}
-
+.fs-shell-link-icon { display: inline-flex; align-items: center; }
 .fs-shell-link:hover,
 .fs-shell-link.active {
   color: var(--primary);
   background: var(--soft-lavender);
   border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
 }
-
 .fs-shell-theme-btn {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -86,8 +150,35 @@
   font-size: 16px;
 }
 
+
+/* ================================================
+   RESPONSIVE HELPERS
+   ================================================ */
+@media (max-width: 900px) {
+  .split { grid-template-columns: 1fr; }
+  .fs-grid-main-aside { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .wrap       { padding: 14px 12px 60px; }
+  .fs-wrap-narrow { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+  .stats,
+  .action-grid { grid-template-columns: 1fr; }
+  .hero-title  { font-size: 2rem; }
+  .btn         { width: 100%; justify-content: center; }
+  .spacer      { display: none; }
+  .toolbar .btn    { width: auto; }
+  .fab-row .btn    { width: auto; flex: 1; }
+  .fab-row .spacer { display: block; }
+  .fs-grid-two { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 680px) {
   .fs-page { padding: 14px 10px 50px; }
   .fs-shell-link span:not(.fs-shell-link-icon) { display: none; }
   .fs-shell-nav { top: 4px; margin: 0 8px 8px; }
+}
+
+@media (max-width: 600px) {
+  .stats-strip { gap: 7px; }
 }

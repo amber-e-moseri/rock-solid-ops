@@ -16,6 +16,15 @@
   --shadow: 0 10px 30px rgba(23, 19, 39, 0.06);
   --shadow-soft: 0 4px 18px rgba(23, 19, 39, 0.05);
   --radius: 20px;
+
+  /* Legacy teacher-portal tokens (backward-compatible aliases) */
+  --navy: #3D2A8A;
+  --ink: #1E1535;
+  --lilacSoft: #EDE9FA;
+  --success-soft: #ECFDF3;
+  --success-text: #276749;
+  --danger-soft: #FFF0F0;
+  --danger-text: #8C1F1F;
 }
 
 html[data-theme="dark"] {
@@ -35,6 +44,15 @@ html[data-theme="dark"] {
   --border: rgba(255,255,255,0.08);
   --shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
   --shadow-soft: 0 6px 22px rgba(0, 0, 0, 0.22);
+
+  /* Legacy dark-mode overrides */
+  --navy: #8B6BFF;
+  --ink: #F8F7FC;
+  --lilacSoft: #2A2140;
+  --success-soft: #173625;
+  --success-text: #9be5b5;
+  --danger-soft: #462224;
+  --danger-text: #ffb2b2;
 }
 
 * { box-sizing: border-box; }
