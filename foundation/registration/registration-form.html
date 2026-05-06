@@ -1064,11 +1064,12 @@
   </div>
 </div>
 
+<script src="../js/config.js"></script>
 <script>
 const CONFIG = {
   // ── Supabase ──────────────────────────────────────────────
-  SUPABASE_URL:     'https://xelpsttqhrcqmttmjory.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhlbHBzdHRxaHJjcW10dG1qb3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4ODcxMTMsImV4cCI6MjA5MzQ2MzExM30.7a5yGvkaxxUBMOZl-_nZjjDCVYYvf4FrmwwhrzYd9zQ',   // ← paste your anon key
+  SUPABASE_URL: String(window.FS_CONFIG?.SUPABASE_URL || ''),
+  SUPABASE_ANON_KEY: String(window.FS_CONFIG?.SUPABASE_ANON_KEY || ''),
 
   // ── Legacy (no longer used) ───────────────────────────────
   APPS_SCRIPT_URL:   '',
@@ -2535,6 +2536,7 @@ window.addEventListener('load', async () => {
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
 
 
 

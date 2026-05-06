@@ -1,0 +1,350 @@
+review-findings.md
+
+# Foundation School Platform — Review Findings
+
+Date: 2026-05-06
+
+This document captures accepted findings, architecture decisions, migration direction, and operational priorities identified during platform review.
+
+Purpose:
+
+* prevent repeated architecture debates
+* guide future AI-assisted development
+* define canonical standards
+* track migration direction
+* preserve engineering intent
+
+---
+
+# OVERALL ASSESSMENT
+
+Current project state:
+
+```txt
+Strong operational platform architecture
++
+migration-stage inconsistency
++
+needs consolidation + hardening
+```
+
+The project is NOT an early prototype anymore.
+
+The platform has:
+
+* registration systems
+* attendance systems
+* teacher scheduling
+* batch management
+* Supabase migrations
+* notifications
+* Moodle integration scaffolding
+* Mailchimp integration
+* retry-safe patterns
+* role systems
+* admin systems
+
+The main weaknesses are:
+
+* architectural consistency
+* shared infrastructure
+* backend ambiguity
+* security hardening
+* duplicated UI systems
+
+---
+
+# ACCEPTED FINDINGS
+
+## 1. Batch Management is the canonical UI benchmark
+
+Accepted.
+
+batch-management.html is now the official design reference.
+
+Reasons:
+
+* strongest UX consistency
+* best dark mode implementation
+* best responsive behavior
+* shared token direction
+* skeleton loading
+* toast system
+* polished cards/layout
+* retry-safe patterns
+* strongest operational feel
+
+Future pages should align visually and architecturally with this page.
+
+---
+
+## 2. Multiple design systems exist
+
+Accepted.
+
+Current systems:
+
+1. legacy custom CSS
+2. Tailwind CDN pages
+3. premium Manrope-based batch-management system
+
+This causes:
+
+* inconsistent UX
+* inconsistent spacing
+* inconsistent navs
+* inconsistent typography
+* duplicated components
+
+Decision:
+Standardize around the Batch Management design system.
+
+---
+
+## 3. Large inline JS/CSS is a maintenance risk
+
+Accepted.
+
+Large files:
+
+* admin-portal.html
+* admin-review.html
+* registration-form.html
+* applicant-directory.html
+
+Issues:
+
+* difficult testing
+* duplicated utilities
+* hard debugging
+* fragile refactors
+
+Decision:
+Incrementally extract:
+
+* API helpers
+* UI helpers
+* modals
+* toasts
+* layouts
+* shell/navigation
+* tables/cards
+
+into shared modules.
+
+---
+
+## 4. Shared shell architecture is required
+
+Accepted.
+
+Current issue:
+Each page independently recreates:
+
+* nav
+* topbar
+* auth handling
+* theme toggle
+* layout
+* spacing
+
+Decision:
+Use:
+
+* teacher-shell.js
+* future admin-shell.js
+* shared layout.css/components.css
+
+---
+
+## 5. Dual backend mode is dangerous long-term
+
+Accepted.
+
+Current state:
+Apps Script + Supabase coexist.
+
+Risk:
+
+* invisible backend switching
+* inconsistent auth
+* inconsistent data flow
+* hidden bugs
+* migration confusion
+
+Current temporary decision:
+Maintain compatibility layer during migration only.
+
+Long-term goal:
+Supabase becomes sole source of truth.
+
+---
+
+## 6. Security hardening is now priority-level work
+
+Accepted.
+
+Current concerns:
+
+* hardcoded anon keys
+* client-side role checks
+* unclear RLS coverage
+* placeholder auth fallbacks
+
+Decision:
+Move toward:
+
+* env injection
+* strict RLS
+* edge-function enforcement
+* server-side authorization
+* removal of committed credentials
+
+---
+
+# REJECTED / PARTIALLY ACCEPTED FINDINGS
+
+## Functionality score too low
+
+Partially rejected.
+
+While maintainability concerns are valid, the operational scope is already substantial:
+
+* registration
+* attendance
+* scheduling
+* notifications
+* batch management
+* migration scaffolding
+* retry patterns
+* role systems
+
+Assessment:
+Functionality is stronger than maintainability.
+
+---
+
+# CANONICAL UI DIRECTION
+
+Use:
+
+* warm premium SaaS feel
+* Manrope typography
+* soft shadows
+* rounded cards
+* compact layouts
+* smooth transitions
+* moon emoji theme toggle
+* responsive card/table swaps
+
+Reference page:
+
+* batch-management.html
+
+Avoid:
+
+* generic Tailwind dashboards
+* duplicated navs
+* excessive gradients
+* inconsistent fonts
+* AI-looking layouts
+
+---
+
+# BACKEND SOURCE OF TRUTH DECISION
+
+CURRENT:
+Hybrid migration state.
+
+LONG-TERM:
+Supabase becomes canonical backend.
+
+Apps Script should eventually become:
+
+* legacy compatibility layer
+* transitional service only
+
+---
+
+# APPROVED MIGRATION ORDER
+
+## Phase 1 — UI Consolidation
+
+* shared shells
+* shared components
+* shared CSS
+* nav consistency
+* remove duplicated layouts
+
+## Phase 2 — Supabase Completion
+
+Migrate:
+
+* applicants
+* attendance
+* notifications
+* scheduling
+* dashboards
+* audit systems
+
+## Phase 3 — Security Hardening
+
+* RLS audit
+* env injection
+* edge auth enforcement
+* remove committed credentials
+
+## Phase 4 — Operational Expansion
+
+* waitlist system
+* dashboards
+* retry center
+* system health
+* analytics
+* reporting
+
+---
+
+# KNOWN HIGH PRIORITY RISKS
+
+1. Hidden backend ambiguity
+2. Duplicated directory structures
+3. Inline JS sprawl
+4. Role checks primarily client-side
+5. Inconsistent mobile responsiveness
+6. Unfinished stub pages
+7. Shared shell conflicts during refactor
+
+---
+
+# CANONICAL ENGINEERING PRINCIPLES
+
+* Incremental migration only
+* Preserve working flows
+* Avoid giant rewrites
+* Stability over speed
+* Shared infrastructure preferred
+* Retry-safe writes preferred
+* Soft-delete/archive preferred
+* Modular utilities preferred
+
+---
+
+# FUTURE AI INSTRUCTIONS
+
+Before implementing:
+
+1. Read /ai/*.md
+2. Preserve architecture direction
+3. Preserve canonical statuses
+4. Preserve shared shell direction
+5. Preserve Supabase migration strategy
+6. Use Batch Management as visual benchmark
+
+AI should:
+
+* avoid reintroducing duplicated navs
+* avoid creating new isolated design systems
+* avoid hidden backend switching
+* avoid giant inline-script pages
+* avoid breaking migration compatibility

@@ -1,0 +1,89 @@
+statuses.md
+
+# REGISTRATION STATUSES
+
+PENDING
+ASSIGNED
+WAITLISTED
+DUPLICATE
+REVIEW
+INACTIVE
+COMPLETED
+
+---
+
+# AVAILABILITY / ASSIGNMENT STATUSES
+
+CLASS_ASSIGNED
+CLASS_FULL
+NO_MATCHING_TIME
+MANUAL_REVIEW_REQUIRED
+
+---
+
+# BATCH STATUSES
+
+DRAFT
+ACTIVE
+UPCOMING
+COMPLETED
+ARCHIVED
+
+---
+
+# TEACHER AVAILABILITY STATUSES
+
+PENDING
+APPROVED
+REJECTED
+RESET
+
+---
+
+# EMAIL QUEUE TYPES
+
+foundation_welcome
+duplicate_registration
+waitlist_confirmation
+registration_under_review
+no_suitable_times
+no_class_available
+
+---
+
+# WAITLIST RULES
+
+WAITLISTED means:
+
+* pending placement
+* pending capacity
+* pending admin review
+* pending future batch assignment
+
+WAITLISTED does NOT mean rejected.
+
+---
+
+# DUPLICATE RULES
+
+DUPLICATE means:
+
+* prior registration exists
+* avoid duplicate onboarding
+* avoid duplicate Moodle enrollment
+* avoid duplicate class assignment
+
+---
+
+# REVIEW RULES
+
+REVIEW means:
+
+* manual admin intervention required
+* conflicting data
+* suspicious duplicate
+* invalid assignment state
+* migration inconsistency
+
+```
+```

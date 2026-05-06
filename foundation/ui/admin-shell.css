@@ -1,0 +1,217 @@
+.fs-admin-shell {
+  position: sticky;
+  top: 8px;
+  z-index: 250;
+  margin: 0 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-soft);
+}
+
+.fs-admin-shell *,
+.fs-admin-shell *::before,
+.fs-admin-shell *::after {
+  box-sizing: border-box;
+}
+
+.fs-admin-shell__inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+}
+
+.fs-admin-shell__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.fs-admin-shell__logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(145deg, var(--primary), color-mix(in srgb, var(--primary) 72%, var(--gold)));
+}
+
+.fs-admin-shell__meta {
+  display: grid;
+  line-height: 1.1;
+}
+
+.fs-admin-shell__title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.fs-admin-shell__crumbs {
+  font-size: 11px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fs-admin-shell__sep {
+  opacity: .55;
+}
+
+.fs-admin-shell__nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.fs-admin-shell__link {
+  border: 1px solid transparent;
+  border-radius: 11px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 10px;
+  white-space: nowrap;
+  transition: background .2s ease, color .2s ease, border-color .2s ease, transform .18s ease;
+}
+
+.fs-admin-shell__link:hover {
+  color: var(--primary);
+  background: var(--soft-lavender);
+  border-color: color-mix(in srgb, var(--primary) 20%, var(--border));
+  transform: translateY(-1px);
+}
+
+.fs-admin-shell__link.is-active {
+  color: var(--primary);
+  background: var(--soft-lavender);
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+}
+
+.fs-admin-shell__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fs-admin-shell__icon-btn {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 11px;
+  height: 38px;
+  min-width: 38px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.fs-admin-shell__profile {
+  position: relative;
+}
+
+.fs-admin-shell__profile-btn {
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-2);
+  color: var(--text);
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.fs-admin-shell__avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 18%, var(--surface));
+  color: var(--primary);
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fs-admin-shell__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 8px;
+  display: none;
+}
+
+.fs-admin-shell__menu.open {
+  display: block;
+}
+
+.fs-admin-shell__menu-item {
+  display: block;
+  width: 100%;
+  border: 0;
+  text-align: left;
+  border-radius: 8px;
+  padding: 8px 9px;
+  font: inherit;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.fs-admin-shell__menu-item:hover {
+  background: var(--soft-lavender);
+}
+
+@media (max-width: 1040px) {
+  .fs-admin-shell__inner {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "brand actions"
+      "nav nav";
+    row-gap: 8px;
+  }
+  .fs-admin-shell__brand { grid-area: brand; }
+  .fs-admin-shell__actions { grid-area: actions; justify-self: end; }
+  .fs-admin-shell__nav { grid-area: nav; }
+}
+
+@media (max-width: 680px) {
+  .fs-admin-shell {
+    top: 4px;
+    margin: 0 8px 10px;
+    border-radius: 14px;
+  }
+  .fs-admin-shell__meta {
+    display: none;
+  }
+  .fs-admin-shell__link {
+    padding: 8px 9px;
+    font-size: 11px;
+  }
+}

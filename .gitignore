@@ -2,3 +2,8 @@ supabase.exe
 supabase/.temp/
 .claude/
 .vscode/
+foundation/js/config.js
+foundation/js/runtime-config*.js
+.env
+.env.local
+.env.*.local

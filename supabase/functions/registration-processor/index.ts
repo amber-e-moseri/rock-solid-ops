@@ -24,6 +24,7 @@ Deno.serve(async (req) => {
     );
 
     const body = await req.json();
+    const nowIso = new Date().toISOString();
 
     const full_name = String(body.full_name || "").trim();
 
@@ -88,6 +89,109 @@ const availability =
       isDuplicate,
     });
 
+    type RegistrationStatus =
+      | "PENDING"
+      | "ASSIGNED"
+      | "WAITLISTED"
+      | "DUPLICATE"
+      | "REVIEW"
+      | "INACTIVE"
+      | "COMPLETED";
+
+    type AvailabilityStatus =
+      | "CLASS_ASSIGNED"
+      | "NO_MATCHING_TIME"
+      | "CLASS_FULL"
+      | "MANUAL_REVIEW_REQUIRED"
+      | "NO_CLASS_AVAILABLE";
+
+    const normalizeBool = (v: unknown) =>
+      v === true || String(v ?? "").toLowerCase() === "true";
+
+    const canAutoAssign = !normalizeBool(body.assignment_deferred) && !normalizeBool(body.manual_review_required);
+
+    let registrationStatus: RegistrationStatus = "PENDING";
+    let availabilityStatus: AvailabilityStatus = "MANUAL_REVIEW_REQUIRED";
+    let classIsFull = false;
+    let assignedAt: string | null = null;
+    let waitlistedAt: string | null = null;
+    let reviewedAt: string | null = null;
+    let reviewNotes: string | null = null;
+
+    if (isDuplicate) {
+      registrationStatus = "DUPLICATE";
+      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+      reviewedAt = nowIso;
+      reviewNotes = `Duplicate registration detected. This email has submitted ${duplicateCount} times.`;
+    } else if (!canAutoAssign) {
+      registrationStatus = "REVIEW";
+      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+      reviewedAt = nowIso;
+      reviewNotes = "Auto-assignment deferred for manual review.";
+    } else if (class_option_id) {
+      const { data: classOptionRow, error: classOptionError } = await db
+        .from("class_options")
+        .select("class_option_id,max_capacity,active,enrollment_open")
+        .eq("class_option_id", class_option_id)
+        .maybeSingle();
+
+      if (classOptionError) {
+        console.error("REGISTRATION_PROCESSOR_CLASS_OPTION_LOAD_ERROR", classOptionError);
+        registrationStatus = "REVIEW";
+        availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+        reviewedAt = nowIso;
+        reviewNotes = "Could not safely validate selected class option.";
+      } else if (!classOptionRow) {
+        registrationStatus = "REVIEW";
+        availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+        reviewedAt = nowIso;
+        reviewNotes = "Selected class option no longer exists.";
+      } else {
+        const maxCapacity = Number(classOptionRow.max_capacity || 0);
+        const { count: assignedCount, error: assignedCountError } = await db
+          .from("applicants")
+          .select("*", { count: "exact", head: true })
+          .eq("class_option_id", class_option_id)
+          .eq("registration_status", "ASSIGNED");
+
+        if (assignedCountError) {
+          console.error("REGISTRATION_PROCESSOR_CAPACITY_COUNT_ERROR", assignedCountError);
+          registrationStatus = "REVIEW";
+          availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+          reviewedAt = nowIso;
+          reviewNotes = "Could not validate class capacity safely.";
+        } else {
+          classIsFull = maxCapacity > 0 && Number(assignedCount || 0) >= maxCapacity;
+          if (classIsFull) {
+            registrationStatus = "WAITLISTED";
+            availabilityStatus = "CLASS_FULL";
+            waitlistedAt = nowIso;
+          } else {
+            registrationStatus = "ASSIGNED";
+            availabilityStatus = "CLASS_ASSIGNED";
+            assignedAt = nowIso;
+          }
+        }
+      }
+    } else if (availability) {
+      registrationStatus = "WAITLISTED";
+      availabilityStatus = "NO_MATCHING_TIME";
+      waitlistedAt = nowIso;
+    } else {
+      registrationStatus = "WAITLISTED";
+      availabilityStatus = "NO_CLASS_AVAILABLE";
+      waitlistedAt = nowIso;
+    }
+
+    const legacyStatus =
+      registrationStatus === "ASSIGNED"
+        ? "Enrolled"
+        : registrationStatus === "COMPLETED"
+        ? "Approved"
+        : registrationStatus === "INACTIVE"
+        ? "Rejected"
+        : "Pending";
+
     const applicantInsertBase = {
       full_name,
       first_name,
@@ -98,7 +202,15 @@ const availability =
       class_option_id: class_option_id || null,
       batch_id: batch_id || null,
       availability,
-      status: "Pending",
+      status: legacyStatus,
+      registration_status: registrationStatus,
+      availability_status: availabilityStatus,
+      assigned_at: assignedAt,
+      waitlisted_at: waitlistedAt,
+      reviewed_at: reviewedAt,
+      review_notes: reviewNotes,
+      retry_assignment: registrationStatus === "WAITLISTED",
+      assignment_attempts: 1,
       source: "registration_processor",
       raw_payload: body,
     };
@@ -106,10 +218,8 @@ const availability =
     const applicantInsertWithDuplicateFlags = {
       ...applicantInsertBase,
       duplicate_count: duplicateCount,
-      needs_admin_review: isDuplicate,
-      admin_note: isDuplicate
-        ? `Duplicate registration detected. This email has submitted ${duplicateCount} times.`
-        : null,
+      needs_admin_review: isDuplicate || registrationStatus === "REVIEW",
+      admin_note: reviewNotes,
     };
 
     let applicant: Record<string, unknown> | null = null;
@@ -206,12 +316,17 @@ const availability =
       }
     }
 
-    const templateKey = isDuplicate
-      ? "duplicate_registration"
-      : "foundation_welcome";
+    let templateKey = "waitlist_confirmation";
+    if (registrationStatus === "ASSIGNED") templateKey = "foundation_welcome";
+    if (registrationStatus === "DUPLICATE") templateKey = "duplicate_registration";
+    if (registrationStatus === "REVIEW") templateKey = "registration_under_review";
+    if (registrationStatus === "WAITLISTED" && availabilityStatus === "NO_MATCHING_TIME") templateKey = "no_suitable_times";
+    if (registrationStatus === "WAITLISTED" && (availabilityStatus === "CLASS_FULL" || availabilityStatus === "NO_CLASS_AVAILABLE")) templateKey = "no_class_available";
+
     console.log("EMAIL_TEMPLATE_SELECTED", {
       email,
-      isDuplicate,
+      registrationStatus,
+      availabilityStatus,
       templateKey,
     });
 
@@ -222,9 +337,17 @@ const availability =
         recipient_name: full_name,
         template_key: templateKey,
         subject:
-          isDuplicate
+          templateKey === "foundation_welcome"
+            ? "Welcome to Foundation School"
+            : templateKey === "duplicate_registration"
             ? "We received your additional registration"
-            : "Welcome to Foundation School",
+            : templateKey === "registration_under_review"
+            ? "Your registration is under review"
+            : templateKey === "no_suitable_times"
+            ? "We are working on a class time for you"
+            : templateKey === "no_class_available"
+            ? "We are preparing your class placement"
+            : "Your Foundation School registration update",
         status: "Pending",
         payload: {
           first_name,
@@ -233,6 +356,8 @@ const availability =
           email,
           phone,
           duplicate_count: duplicateCount,
+          registration_status: registrationStatus,
+          availability_status: availabilityStatus,
           fellowship_code,
           class_option_id,
           batch_id,
@@ -261,9 +386,39 @@ const availability =
             "",
           availability:
             body.availability || "",
+          waitlist_message:
+            "We received your registration and are actively working on your placement. You are on our waitlist, and we will update you as soon as a suitable class opens.",
           template_key: templateKey,
         },
       });
+
+    if (registrationStatus === "ASSIGNED") {
+      try {
+        await db
+          .from("scheduled_notifications")
+          .upsert(
+            {
+              dedupe_key: `moodle-sync:${String(insertedApplicant?.id || "")}`,
+              recipient_email: email,
+              applicant_id: insertedApplicant?.id || null,
+              event_type: "MOODLE_SYNC_REQUESTED",
+              template_key: "class_assigned",
+              status: "PENDING",
+              scheduled_for: nowIso,
+              payload: {
+                applicant_id: insertedApplicant?.id,
+                email,
+                batch_id,
+                class_option_id,
+                registration_status: registrationStatus,
+              },
+            },
+            { onConflict: "dedupe_key" },
+          );
+      } catch (moodleQueueErr) {
+        console.error("REGISTRATION_PROCESSOR_MOODLE_QUEUE_ERROR", moodleQueueErr);
+      }
+    }
 
     await db
       .from("audit_logs")
@@ -290,6 +445,9 @@ const availability =
           class_option_id,
           batch_id,
           availability,
+          registration_status: registrationStatus,
+          availability_status: availabilityStatus,
+          class_is_full: classIsFull,
           template_key: templateKey,
         },
       });
@@ -298,6 +456,9 @@ const availability =
       JSON.stringify({
         ok: true,
         applicant_id: applicant.id,
+        registration_status: registrationStatus,
+        availability_status: availabilityStatus,
+        template_key: templateKey,
         message:
           "Registration processed",
       }),

@@ -112,6 +112,7 @@
     </div>
   </main>
 
+<script src="../js/config.js"></script>
 <script type="module">
 import { CONFIG, supabase } from "../auth/auth-client.js";
 import { requireAuth } from "../auth/auth-guards.js";
@@ -227,7 +228,7 @@ async function loadFellowshipMap(){
 }
 
 function hydrateFilters(){
-  const statuses = [...new Set(state.applicants.map(a => a.status).filter(Boolean))];
+  const statuses = [...new Set(state.applicants.map(a => a.registration_status || a.status).filter(Boolean))];
   const fellowships = [...new Set(state.applicants.map(a => a.fellowship_code || a.fellowship).filter(Boolean))];
   $('statusFilter').innerHTML = '<option value="">All Status</option>' + statuses.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
   $('fellowshipFilter').innerHTML = '<option value="">All Fellowship</option>' + fellowships.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
@@ -239,7 +240,7 @@ function filteredApplicants(){
   return state.applicants.filter(a => {
     const text = `${a.full_name || ''} ${a.email || ''}`.toLowerCase();
     if (state.filters.search && !text.includes(state.filters.search.toLowerCase())) return false;
-    if (state.filters.status && String(a.status || '') !== state.filters.status) return false;
+    if (state.filters.status && String(a.registration_status || a.status || '') !== state.filters.status) return false;
     if (state.filters.fellowship && String(a.fellowship_code || a.fellowship || '') !== state.filters.fellowship) return false;
     if (state.filters.duplicate === 'yes' && !isDuplicate(a)) return false;
     if (state.filters.duplicate === 'no' && isDuplicate(a)) return false;
@@ -251,6 +252,9 @@ function filteredApplicants(){
 function renderStats(){
   const cards = [
     ['Applicants', state.applicants.length],
+    ['Waitlisted', state.applicants.filter(a => String(a.registration_status || '').toUpperCase() === 'WAITLISTED').length],
+    ['Pending Review', state.applicants.filter(a => String(a.registration_status || '').toUpperCase() === 'REVIEW').length],
+    ['Assigned', state.applicants.filter(a => String(a.registration_status || '').toUpperCase() === 'ASSIGNED').length],
     ['Duplicates', state.applicants.filter(isDuplicate).length],
     ['Needs Review', state.applicants.filter(a => Boolean(a.needs_admin_review)).length],
     ['Pending Emails', state.emailQueue.filter(r => String(r.status||'').toLowerCase()==='pending').length],
@@ -273,7 +277,36 @@ function renderApplicants(){
   $('nextBtn').disabled = state.page >= totalPages;
 
   if (!pageRows.length) { wrap.innerHTML = emptyState('No applicants found for current filters.'); return; }
-  wrap.innerHTML = `<table class="min-w-full text-sm"><thead class="bg-fsLilac text-fsPurple"><tr><th class="px-3 py-2 text-left">Name</th><th class="px-3 py-2 text-left">Email</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Fellowship</th><th class="px-3 py-2 text-left">Dupes</th><th class="px-3 py-2 text-left">Review</th><th class="px-3 py-2 text-left">Created</th></tr></thead><tbody>${pageRows.map(a=>`<tr class="border-t border-fsPurple/10 ${isDuplicate(a)?'bg-red-50/40':''}"><td class="px-3 py-2 font-semibold">${esc(a.full_name || '—')}</td><td class="px-3 py-2">${esc(a.email || '—')}</td><td class="px-3 py-2">${badge(a.status)}</td><td class="px-3 py-2">${esc(a.fellowship_code || a.fellowship || '—')}</td><td class="px-3 py-2">${esc(a.duplicate_count || 1)}</td><td class="px-3 py-2">${a.needs_admin_review ? '<span class="text-xs px-2 py-1 rounded bg-amber-100 text-amber-700 font-bold">Yes</span>' : 'No'}</td><td class="px-3 py-2">${fmt(a.created_at)}</td></tr>`).join('')}</tbody></table>`;
+  wrap.innerHTML = `<table class="min-w-full text-sm"><thead class="bg-fsLilac text-fsPurple"><tr><th class="px-3 py-2 text-left">Name</th><th class="px-3 py-2 text-left">Email</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Availability</th><th class="px-3 py-2 text-left">Fellowship</th><th class="px-3 py-2 text-left">Dupes</th><th class="px-3 py-2 text-left">Review</th><th class="px-3 py-2 text-left">Created</th><th class="px-3 py-2 text-left">Actions</th></tr></thead><tbody>${pageRows.map(a=>`<tr class="border-t border-fsPurple/10 ${isDuplicate(a)?'bg-red-50/40':''}"><td class="px-3 py-2 font-semibold">${esc(a.full_name || '—')}</td><td class="px-3 py-2">${esc(a.email || '—')}</td><td class="px-3 py-2">${badge(a.registration_status || a.status)}</td><td class="px-3 py-2">${badge(a.availability_status || '—')}</td><td class="px-3 py-2">${esc(a.fellowship_code || a.fellowship || '—')}</td><td class="px-3 py-2">${esc(a.duplicate_count || 1)}</td><td class="px-3 py-2">${a.needs_admin_review ? '<span class="text-xs px-2 py-1 rounded bg-amber-100 text-amber-700 font-bold">Yes</span>' : 'No'}</td><td class="px-3 py-2">${fmt(a.created_at)}</td><td class="px-3 py-2"><div class="flex gap-2"><button class="px-2 py-1 rounded bg-fsPurple text-white text-xs font-bold js-retry" data-id="${esc(a.id)}">Retry</button><button class="px-2 py-1 rounded bg-fsGold text-fsPurple text-xs font-bold js-note" data-id="${esc(a.id)}">Note</button><button class="px-2 py-1 rounded bg-green-600 text-white text-xs font-bold js-resolve" data-id="${esc(a.id)}">Resolve</button></div></td></tr>`).join('')}</tbody></table>`;
+
+  wrap.querySelectorAll('.js-retry').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      const id = btn.getAttribute('data-id');
+      const now = new Date().toISOString();
+      await state.supabase.from('applicants').update({ retry_assignment: true, assignment_attempts: 1, reviewed_at: now, review_notes: 'Retry requested by admin', updated_at: now }).eq('id', id);
+      await loadAll();
+    });
+  });
+  wrap.querySelectorAll('.js-note').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const note = prompt('Add review note');
+      if (note == null) return;
+      const now = new Date().toISOString();
+      await state.supabase.from('applicants').update({ review_notes: note, reviewed_at: now, updated_at: now }).eq('id', id);
+      await loadAll();
+    });
+  });
+  wrap.querySelectorAll('.js-resolve').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      const id = btn.getAttribute('data-id');
+      const now = new Date().toISOString();
+      await state.supabase.from('applicants').update({ retry_assignment: false, needs_admin_review: false, registration_status: 'PENDING', reviewed_at: now, updated_at: now }).eq('id', id);
+      await loadAll();
+    });
+  });
 }
 
 function renderEmailQueue(){

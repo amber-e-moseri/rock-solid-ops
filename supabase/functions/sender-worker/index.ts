@@ -9,13 +9,15 @@ const corsHeaders = {
 
 const TRACKED_TEMPLATES = new Set([
   "foundation_welcome",
+  "waitlist_confirmation",
+  "registration_under_review",
+  "duplicate_registration",
   "no_suitable_times",
   "no_class_available",
+  "class_assigned",
 ]);
 
 const UNSUPPORTED_TEMPLATES = new Set([
-  "duplicate_registration",
-  "class_assigned",
   "class_reminder_7_day",
   "class_reminder_1_day",
   "class_reminder_2_hour",

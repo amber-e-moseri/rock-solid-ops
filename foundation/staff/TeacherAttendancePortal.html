@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="api-url" content="https://script.google.com/macros/s/AKfycbwQQhGZvLcX689zhC6kL9RgbubHGbh8FFMCoO2zSXBrNn21WIUGmPP_xPXa06QOHb00nA/exec" />
   <title>Teacher Attendance Portal</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
   <style>
   :root {
@@ -25,7 +24,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Manrope', sans-serif;
     background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
@@ -204,7 +203,7 @@
     color: var(--ink);
     transition: all .18s ease;
     outline: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Manrope', sans-serif;
   }
   input::placeholder { color: var(--muted); }
   input:focus, select:focus, textarea:focus {
@@ -230,7 +229,7 @@
     cursor: pointer;
     transition: all .18s ease;
     box-shadow: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Manrope', sans-serif;
   }
   .btn:hover { opacity: .92; border-color: #D8D4E8; }
   .btn:active { opacity: .92; }
@@ -472,6 +471,12 @@
     .fab-row .btn { width: auto; flex: 1; }
     .fab-row .spacer { display: block; }
   }
+  .rs-nav, .nav, .topbar { display: none !important; }
+  .card, .panel, .item, .action-tile, .fab-row, .context-bar {
+    border-radius: 14px !important;
+    box-shadow: var(--shadow-soft) !important;
+  }
+  .btn { border-radius: 12px !important; }
 </style>
   <link rel="stylesheet" href="../ui/premium-theme.css" />
   <link rel="stylesheet" href="../ui/components.css" />
@@ -496,37 +501,37 @@
     </div>
 
     <section class="card" id="s1">
-      <div class="card-header"><div class="card-icon">👤</div><div><div class="card-title">Find Teacher</div><div class="card-sub">Search by teacher ID, name, or email.</div></div></div>
+      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Find Teacher</div><div class="card-sub">Search by teacher ID, name, or email.</div></div></div>
       <div class="field"><label>Teacher Search</label><input id="teacherQuery" placeholder="Search by teacher ID, name, or email" oninput="onTeacherInput()" autocomplete="off" /></div>
       <div id="teacherList"></div>
       <div class="btn-row"><div class="spacer"></div><button class="btn primary" id="to2" onclick="toClass()" disabled>Continue</button></div>
     </section>
 
     <section class="card hidden" id="s2">
-      <div class="card-header"><div class="card-icon">📚</div><div><div class="card-title">Select Class</div><div class="card-sub">Choose your active class assignment.</div></div></div>
+      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Select Class</div><div class="card-sub">Choose your active class assignment.</div></div></div>
       <div id="classList"></div>
       <div class="btn-row"><button class="btn" onclick="show(1)">Back</button><div class="spacer"></div><button class="btn primary" id="to3" onclick="toAction()" disabled>Continue</button></div>
     </section>
 
     <section class="card hidden" id="s3">
-      <div class="card-header"><div class="card-icon">✨</div><div><div class="card-title">Choose Action</div><div class="card-sub">Mark attendance or review student progress.</div></div></div>
+      <div class="card-header"><div class="card-icon">?</div><div><div class="card-title">Choose Action</div><div class="card-sub">Mark attendance or review student progress.</div></div></div>
       <div class="action-grid">
-        <div class="action-tile" onclick="chooseAction('attendance')"><div class="action-icon">✅</div><div class="action-title">Mark Attendance</div><div class="action-sub">Record today’s attendance and outcomes.</div></div>
-        <div class="action-tile" onclick="chooseAction('progress')"><div class="action-icon">📊</div><div class="action-title">View Student Progress</div><div class="action-sub">Open StudentProgressView.</div></div>
+        <div class="action-tile" onclick="chooseAction('attendance')"><div class="action-icon">?</div><div class="action-title">Mark Attendance</div><div class="action-sub">Record today’s attendance and outcomes.</div></div>
+        <div class="action-tile" onclick="chooseAction('progress')"><div class="action-icon">??</div><div class="action-title">View Student Progress</div><div class="action-sub">Open StudentProgressView.</div></div>
       </div>
       <div id="actionMsg" class="muted" style="margin-top:12px"></div>
       <div class="btn-row"><button class="btn" onclick="show(2)">Back</button></div>
     </section>
 
     <section class="card hidden" id="s4">
-      <div class="card-header"><div class="card-icon">🗓️</div><div><div class="card-title">Attendance Session</div><div class="card-sub">Select the class session and date.</div></div></div>
+      <div class="card-header"><div class="card-icon">???</div><div><div class="card-title">Attendance Session</div><div class="card-sub">Select the class session and date.</div></div></div>
       <div class="row" style="margin-top:0"><div style="flex:2;min-width:280px"><label>Session(s)</label><div id="sessionSel"></div></div><div style="flex:1;min-width:220px"><label>Class Date</label><input type="date" id="classDate" /></div></div>
       <div id="already"></div>
       <div class="btn-row"><button class="btn" onclick="show(3)">Back</button><div class="spacer"></div><button class="btn primary" onclick="loadRoster()">Load Roster</button></div>
     </section>
 
     <section class="card hidden" id="s5">
-      <div class="card-header"><div class="card-icon">🙋</div><div><div class="card-title">Mark Attendance</div><div class="card-sub">Tap a person to toggle present or absent.</div></div></div>
+      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Mark Attendance</div><div class="card-sub">Tap a person to toggle present or absent.</div></div></div>
       <div id="attendance-context" class="context-bar hidden"></div>
       <div class="toolbar"><input id="rosterSearch" placeholder="Search roster" oninput="renderRoster()" autocomplete="off" /><button class="btn success" onclick="markAll(true)">All Present</button><button class="btn danger" onclick="markAll(false)">Clear</button><button class="btn" onclick="openAdd()">Add Existing Person</button></div>
       <div id="roster"></div>
@@ -535,14 +540,14 @@
     </section>
 
     <section class="card hidden" id="s6">
-      <div class="card-header"><div class="card-icon">📝</div><div><div class="card-title">Review & Submit</div><div class="card-sub">Confirm the attendance summary before submitting.</div></div></div>
+      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Review & Submit</div><div class="card-sub">Confirm the attendance summary before submitting.</div></div></div>
       <div id="reviewBox"></div>
       <div id="submitMsg"></div>
       <div class="btn-row fab-row"><button class="btn" onclick="show(5)">Back</button><div class="spacer"></div><button class="btn primary" id="submitBtn" onclick="submitTeacherAttendance()">Submit</button></div>
     </section>
 
     <section class="card hidden" id="s8">
-      <div class="card-header"><div class="card-icon">🌱</div><div><div class="card-title">Session Outcomes</div><div class="card-sub">Record configured milestones for present participants.</div></div></div>
+      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Session Outcomes</div><div class="card-sub">Record configured milestones for present participants.</div></div></div>
       <div id="outcomesBox"></div>
       <div id="outcomeMsg"></div>
       <div class="btn-row"><button class="btn" onclick="show(6)">Back</button><div class="spacer"></div><button class="btn" onclick="submitSessionOutcomes(false)">Skip / Flag Follow-up</button><button class="btn primary" onclick="submitSessionOutcomes(true)">Submit Outcomes</button></div>
@@ -550,7 +555,7 @@
 
     <div id="addBackdrop" class="modal-backdrop hidden" onclick="closeAdd()"></div>
     <section class="card hidden" id="addModal">
-      <div class="card-header"><div class="card-icon">➕</div><div><div class="card-title">Add Existing Person</div><div class="card-sub" id="addSubtitle">Search by name or email.</div></div></div>
+      <div class="card-header"><div class="card-icon">?</div><div><div class="card-title">Add Existing Person</div><div class="card-sub" id="addSubtitle">Search by name or email.</div></div></div>
       <div class="field"><label>Search</label><input id="addQ" placeholder="Search by name or email" oninput="searchAttendancePerson()" autocomplete="off" /></div>
       <div id="addList"></div>
       <div id="enrollBox" class="hidden">
@@ -565,17 +570,30 @@
   </main>
 
   <script>
-    const API_URL = (document.querySelector('meta[name="api-url"]')?.content || '').trim();
+    const SUPABASE_URL = String(window.FS_CONFIG?.SUPABASE_URL || '').trim();
+    const SUPABASE_ANON_KEY = String(window.FS_CONFIG?.SUPABASE_ANON_KEY || '').trim();
     const SESSIONS = ['Class1','Class2','Class3','Class4A','Class4B','Class5','Class6','Class7'];
     const state = { teacher:null, teachers:[], classes:[], classOption:null, action:'', sessions:['Class1'], session:'Class1', classDate:'', roster:[], attendance:{}, addResults:[], fellowships:[], milestones:[], attendanceSubmitted:false, lastRecords:[], gridRows:[] };
 
-    if (!API_URL || API_URL === '__TEACHER_ATTENDANCE_API_URL__') alert('API URL placeholder is not configured.');
+    if(!window.supabase || typeof window.supabase.createClient !== "function"){
+      alert("Supabase client library is not loaded.");
+    } else {
+      window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
 
     function esc(s){ return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-    async function apiGet(action, params = {}) { return window.FSApi.get(action, params); }
+    async function apiGet(action, params = {}) {
+      const res = await window.FSApi.invokeEdge("teacher-portal-api", { action, params });
+      if(!res?.ok) throw new Error(res?.error || "Request failed");
+      return res;
+    }
 
-    async function apiPost(action, body) { return window.FSApi.post(action, body); }
+    async function apiPost(action, body) {
+      const res = await window.FSApi.invokeEdge("teacher-portal-api", { action, params: body });
+      if(!res?.ok) throw new Error(res?.error || "Request failed");
+      return res;
+    }
 
     function stepFor(n){ return ({1:1,2:2,3:3,4:4,5:5,6:5,7:3,8:5})[n] || 1; }
     function updateStepper(n){ const active = stepFor(n); [1,2,3,4,5].forEach(i => { const el = document.getElementById('step-' + i); if(!el) return; el.className = 'step' + (i < active ? ' done' : i === active ? ' active' : ''); }); }
@@ -764,6 +782,8 @@
 
     show(1);
   </script>
+  <script src="../js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api-client.js"></script>
   <script src="../js/ui.js"></script>
@@ -773,6 +793,8 @@
   <script>window.FSTeacherShell.mount({ active: 'attendance' });</script>
 </body>
 </html>
+
+
 
 
 

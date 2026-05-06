@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="api-url" content="https://script.google.com/macros/s/AKfycbwQQhGZvLcX689zhC6kL9RgbubHGbh8FFMCoO2zSXBrNn21WIUGmPP_xPXa06QOHb00nA/exec" />
   <title>Student Progress</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
   :root {
     --navy:         #3D2A8A;
@@ -23,7 +22,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Manrope', sans-serif;
     background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
@@ -142,7 +141,7 @@
     font-size: .9rem;
     color: var(--ink);
     outline: none;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Manrope', sans-serif;
     transition: all .15s;
   }
   input:focus, select:focus {
@@ -193,7 +192,7 @@
     font-weight: 700;
     font-size: .84rem;
     cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Manrope', sans-serif;
     transition: all .15s;
     display: inline-flex;
     align-items: center;
@@ -443,6 +442,12 @@
     .card { padding: 16px; border-radius: 10px; }
     .stats-strip { gap: 7px; }
   }
+  .rs-nav, .nav, .topbar { display: none !important; }
+  .card, .tbl-outer, .stat-chip {
+    border-radius: 14px !important;
+    box-shadow: var(--shadow-soft) !important;
+  }
+  .btn { border-radius: 12px !important; }
 </style>
   <link rel="stylesheet" href="../ui/premium-theme.css" />
   <link rel="stylesheet" href="../ui/components.css" />
@@ -454,7 +459,7 @@
   <!-- SETUP -->
   <div class="card">
     <div class="card-head">
-      <div class="card-icon">📊</div>
+      <div class="card-icon">??</div>
       <div>
         <div class="card-title">Student Class Progress</div>
         <div class="card-sub">Class attendance checkboxes — read-only view from student records</div>
@@ -490,11 +495,11 @@
 
     <div class="toolbar">
       <div class="search-wrap">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">??</span>
         <input id="studentSearch" placeholder="Filter students…" oninput="filterTable()" autocomplete="off" />
       </div>
       <div style="display:flex;gap:6px;margin-left:auto">
-        <button class="btn" onclick="exportCSV()">↓ Export</button>
+        <button class="btn" onclick="exportCSV()">? Export</button>
       </div>
     </div>
 
@@ -518,7 +523,8 @@
 </main>
 
 <script>
-  const API_URL = (document.querySelector('meta[name="api-url"]')?.content || '').trim();
+  const SUPABASE_URL = String(window.FS_CONFIG?.SUPABASE_URL || '').trim();
+  const SUPABASE_ANON_KEY = String(window.FS_CONFIG?.SUPABASE_ANON_KEY || '').trim();
   // Only Class columns (not Work columns, not EXAM)
   const CLASS_COLS = ['1_Class','2_Class','3_Class','4A_Class','4B_Class','5_Class','6_Class','7_Class'];
   const COL_LABELS = {'1_Class':'1','2_Class':'2','3_Class':'3','4A_Class':'4A','4B_Class':'4B','5_Class':'5','6_Class':'6','7_Class':'7'};
@@ -527,9 +533,16 @@
 
   function esc(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-  async function apiGet(action, params={}) { return window.FSApi.get(action, params); }
+  if (window.supabase && typeof window.supabase.createClient === "function") {
+    window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  async function apiGet(action, params={}) {
+    const res = await window.FSApi.invokeEdge("teacher-portal-api", { action, params });
+    if(!res?.ok) throw new Error(res?.error || "Request failed");
+    return res;
+  }
 
-  // ── TEACHER SEARCH ──
+  // -- TEACHER SEARCH --
   let tmr = null;
   function onTeacherInput() {
     clearTimeout(tmr);
@@ -581,7 +594,7 @@
     }
   }
 
-  // ── LOAD GRID ──
+  // -- LOAD GRID --
   async function loadGrid() {
     state.classOptionId = document.getElementById('classSelect').value;
     if (!state.teacher || !state.classOptionId) {
@@ -612,7 +625,7 @@
     }
   }
 
-  // ── RENDER ──
+  // -- RENDER --
   function renderTable() {
     const rows = state.filtered;
 
@@ -680,7 +693,7 @@
     `;
   }
 
-  // ── FILTER ──
+  // -- FILTER --
   function filterTable() {
     const q = document.getElementById('studentSearch').value.toLowerCase();
     state.filtered = q
@@ -689,7 +702,7 @@
     renderTable();
   }
 
-  // ── EXPORT CSV ──
+  // -- EXPORT CSV --
   function exportCSV() {
     const headers = ['StudentID','Name', ...CLASS_COLS.map(c => 'Class '+COL_LABELS[c]), 'Attended','Total','Pct'];
     const rows = state.filtered.map(s => {
@@ -704,6 +717,8 @@
     a.click();
   }
 </script>
+  <script src="../js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api-client.js"></script>
   <script src="../js/ui.js"></script>
@@ -713,6 +728,8 @@
   <script>window.FSTeacherShell.mount({ active: 'progress' });</script>
 </body>
 </html>
+
+
 
 
 

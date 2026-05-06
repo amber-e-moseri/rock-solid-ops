@@ -113,10 +113,10 @@ tr:hover td{background:#faf9ff}
 
 <script>
 const SUPABASE_URL =
-  window.FS_SUPABASE_URL || "https://xelpsttqhrcqmttmjory.supabase.co";
+  (window.FS_CONFIG && window.FS_CONFIG.SUPABASE_URL) || "";
 
 const SUPABASE_ANON_KEY =
-  window.FS_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhlbHBzdHRxaHJjcW10dG1qb3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4ODcxMTMsImV4cCI6MjA5MzQ2MzExM30.7a5yGvkaxxUBMOZl-_nZjjDCVYYvf4FrmwwhrzYd9zQ";
+  (window.FS_CONFIG && window.FS_CONFIG.SUPABASE_ANON_KEY) || "";
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -262,6 +262,8 @@ loadEmails();
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
 
 
 

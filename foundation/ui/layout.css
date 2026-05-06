@@ -33,6 +33,13 @@
   padding: 10px 14px;
 }
 
+.fs-shell-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
 .fs-shell-brand {
   width: 32px;
   height: 32px;
@@ -56,6 +63,11 @@
   border: 1px solid transparent;
 }
 
+.fs-shell-link-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
 .fs-shell-link:hover,
 .fs-shell-link.active {
   color: var(--primary);
@@ -63,11 +75,19 @@
   border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
 }
 
+.fs-shell-theme-btn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  min-width: 38px;
+  height: 38px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
 @media (max-width: 680px) {
   .fs-page { padding: 14px 10px 50px; }
-  .fs-shell-inner span { display: none; }
+  .fs-shell-link span:not(.fs-shell-link-icon) { display: none; }
   .fs-shell-nav { top: 4px; margin: 0 8px 8px; }
 }
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;

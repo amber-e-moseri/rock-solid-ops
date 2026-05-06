@@ -1,0 +1,99 @@
+constraints.md
+
+# CORE ENGINEERING CONSTRAINTS
+
+* Do not break existing Apps Script flows
+* Preserve existing API action names unless explicitly migrating
+* Preserve Supabase auth/profile flows
+* Preserve mobile responsiveness
+* Preserve existing attendance workflows
+* Preserve existing registration flows
+* Preserve existing teacher scheduling logic
+* Preserve existing role restrictions
+
+---
+
+# DATA SAFETY
+
+* Use retry-safe writes
+* Use optimistic updates carefully
+* Avoid destructive deletes
+* Prefer soft-delete/archive
+* Preserve historical data
+* Add migrations safely
+* Never silently overwrite duplicates
+* Queue failed writes where possible
+
+---
+
+# MOODLE RULES
+
+* Moodle enrollment ONLY for ASSIGNED students
+* WAITLISTED students must NOT receive Moodle enrollment
+* Duplicate users must NOT trigger Moodle sync
+* Preserve Moodle compatibility layer
+
+---
+
+# MAILCHIMP RULES
+
+Mailchimp is:
+
+* notification layer
+* onboarding layer
+* campaign layer
+
+Mailchimp is NOT:
+
+* assignment engine
+* registration source of truth
+* availability engine
+
+---
+
+# UI RULES
+
+Use:
+
+* warm premium SaaS feel
+* Manrope typography
+* soft shadows
+* rounded cards
+* compact spacing
+* smooth transitions
+* moon emoji theme toggle
+* responsive mobile layouts
+
+Canonical visual reference:
+
+* batch-management.html
+
+Avoid:
+
+* generic AI-looking layouts
+* duplicated navbars
+* inconsistent themes
+* excessive gradients
+* cluttered dashboards
+
+---
+
+# ARCHITECTURE RULES
+
+* Shared shell architecture preferred
+* Shared CSS preferred
+* Shared utility modules preferred
+* Avoid duplicated API helpers
+* Avoid duplicated nav systems
+* Avoid massive inline CSS duplication
+* Prefer modular utilities
+
+---
+
+# SECURITY
+
+* Never commit secrets
+* Never commit .env files
+* Never hardcode production keys
+* Preserve auth guards
+* Preserve role checks
