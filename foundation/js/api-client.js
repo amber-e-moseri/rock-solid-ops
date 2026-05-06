@@ -68,6 +68,20 @@
     }
   };
 
+  API.delete = async function (table, match) {
+    try {
+      const client = API._requireSupabase();
+      let q = client.from(table).delete();
+      Object.entries(match || {}).forEach(([k, v]) => {
+        q = q.eq(k, v);
+      });
+      const { error } = await q;
+      if (error) throw error;
+    } catch (err) {
+      throw formatError(err, `Failed to delete from ${table}`);
+    }
+  };
+
   API.rpc = async function (fn, params = {}) {
     try {
       const client = API._requireSupabase();
