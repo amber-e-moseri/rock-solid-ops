@@ -1,427 +1,500 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Foundation School - Notification Center</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root{--navy:#4C2A92;--navy-d:#3b2080;--gold:#F4BE41;--bg:#f5f3fb;--border:#e2ddf0;--text:#1a1230;--muted:#6b7280;--success:#166534;--success-bg:#dcfce7;--danger:#991b1b;--danger-bg:#fee2e2;--warn:#92400e;--warn-bg:#fef3c7;--info:#1e40af;--info-bg:#dbeafe}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px}
-header{background:var(--navy);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-.header-inner{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}
-.brand{display:flex;align-items:center;gap:12px}.logo{width:38px;height:38px;border-radius:10px;background:var(--gold);color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:900}
-.brand h1{margin:0;font-size:17px}.brand p{margin:2px 0 0;opacity:.78;font-size:12px}
-main{max-width:1200px;margin:0 auto;padding:28px 24px 60px;display:flex;flex-direction:column;gap:18px}
-.card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 8px 28px rgba(76,42,146,.06)}
-.card h2{margin:0 0 14px;color:var(--navy);font-size:16px}
-.toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.actions{display:flex;gap:8px;flex-wrap:wrap}
-button,.btn{border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer;background:var(--navy);color:#fff;text-decoration:none;display:inline-block;font-size:13px}
-button.secondary{background:#fff;color:var(--text);border:1px solid var(--border)}
-button.warn{background:var(--warn-bg);color:var(--warn);border:1px solid #fcd34d}
-button.danger{background:var(--danger-bg);color:var(--danger);border:1px solid #fca5a5}
-button.sm{padding:6px 10px;font-size:12px}
-button:disabled{opacity:.55;cursor:not-allowed}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
-.metric{background:#f8f6ff;border:1px solid var(--border);border-radius:12px;padding:14px}
-.metric strong{display:block;font-size:28px;color:var(--navy);line-height:1}
-.metric span{display:block;font-size:12px;color:var(--muted);margin-top:4px}
-.table-wrap{overflow:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;background:#f8f6ff;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;white-space:nowrap}
-td{border-top:1px solid var(--border);padding:10px 12px;vertical-align:top}
-tr:hover td{background:#faf9ff}
-.badge{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:700}
-.ok{background:var(--success-bg);color:var(--success)}
-.bad{background:var(--danger-bg);color:var(--danger)}
-.wait{background:var(--warn-bg);color:var(--warn)}
-.info{background:var(--info-bg);color:var(--info)}
-.muted{color:var(--muted)}
-.error{background:var(--danger-bg);border:1px solid #fca5a5;color:var(--danger);padding:12px;border-radius:10px}
-.empty{color:var(--muted);padding:10px 0}
-.pre{max-width:360px;white-space:pre-wrap;word-break:break-word;font-size:12px;color:var(--muted)}
-.section-loading{color:var(--muted);padding:8px 0}
-.skeleton{height:14px;background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:6px}
-.skeleton-row{display:grid;gap:8px}.skeleton-row .skeleton:nth-child(1){width:100%}.skeleton-row .skeleton:nth-child(2){width:80%}.skeleton-row .skeleton:nth-child(3){width:60%}
-@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-#toast{position:fixed;bottom:20px;right:20px;opacity:0;pointer-events:none;transition:.2s;padding:12px 16px;border-radius:10px;font-weight:700;font-size:13px;z-index:1000}
-#toast.show{opacity:1}#toast.ok{background:var(--success-bg);color:var(--success);border:1px solid #86efac}#toast.err{background:var(--danger-bg);color:var(--danger);border:1px solid #fca5a5}
-#access{display:none;max-width:580px;margin:64px auto;background:#fff;border:1px solid var(--border);border-radius:16px;padding:28px}
-#access h2{margin-top:0;color:var(--danger)}
-@media (max-width:720px){main{padding:16px 12px 40px}.header-inner{padding:14px 12px}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foundation School - Notification Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@500;700;800;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            fsPurple: '#4C2A92',
+            fsGold:   '#F4BE41',
+            fsCream:  '#F4EFE3',
+            fsInk:    '#1E1630',
+            fsMuted:  '#7A6E90',
+            fsDanger: '#B42318',
+            fsSuccess:'#157347',
+            fsLilac:  '#F3ECFB'
+          },
+          fontFamily: {
+            heading: ['League Spartan','sans-serif'],
+            body:    ['Nunito','sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .skeleton {
+      background: linear-gradient(90deg,rgba(76,42,146,.08) 25%,rgba(76,42,146,.18) 40%,rgba(76,42,146,.08) 60%);
+      background-size: 200% 100%;
+      animation: sh 1.2s linear infinite;
+    }
+    @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .table-wrap { overflow-x: auto; }
+    th { white-space: nowrap; }
+  </style>
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
 </head>
-<body>
-<header>
-  <div class="header-inner">
-    <div class="brand">
-      <div class="logo">FS</div>
-      <div>
-        <h1>Foundation School - Notification Center</h1>
-        <p>Events, queue, failures, and applicant notification states</p>
+<body class="bg-fsCream text-fsInk font-body min-h-screen">
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-fsPurple/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-fsGold text-fsPurple font-heading font-black grid place-items-center text-lg">FS</div>
+        <div>
+          <h1 class="font-heading text-2xl text-fsPurple leading-none">Foundation School</h1>
+          <p class="text-xs text-fsMuted">Notification Center</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap justify-end">
+        <span id="whoami" class="text-xs text-fsMuted"></span>
+        <button id="refreshBtn" class="px-4 py-2 rounded-lg bg-fsPurple text-white text-sm font-bold hover:opacity-90 transition-opacity">Refresh</button>
+        <button id="logoutBtn"  class="px-4 py-2 rounded-lg bg-fsLilac text-fsPurple text-sm font-bold hover:opacity-90 transition-opacity">Logout</button>
       </div>
     </div>
-    <div class="actions">
-      <a class="btn" href="admin-portal.html">Admin Portal</a>
-      <button class="secondary" onclick="manualRefresh()">Refresh Now</button>
-      <button class="secondary" onclick="signOut()">Sign Out</button>
-    </div>
-  </div>
-</header>
+  </header>
 
-<div id="access">
-  <h2>Access Denied</h2>
-  <p id="accessMsg">You are not authorized to use Notification Center.</p>
-</div>
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
-<main id="app" style="display:none">
-  <section class="card">
-    <h2>Overview</h2>
-    <div class="grid" id="statsGrid">
-      <div class="metric"><strong id="m-pending">-</strong><span>Pending Notifications</span></div>
-      <div class="metric"><strong id="m-failed">-</strong><span>Failed Notifications</span></div>
-      <div class="metric"><strong id="m-sent-today">-</strong><span>Sent Today</span></div>
-      <div class="metric"><strong id="m-wait-classes">-</strong><span>Waiting For Classes</span></div>
-      <div class="metric"><strong id="m-wait-times">-</strong><span>Waiting For More Times</span></div>
-    </div>
-  </section>
+    <!-- ROLE NAV -->
+    <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
+      <h2 class="font-heading text-xl text-fsPurple mb-3">Role Navigation</h2>
+      <div id="roleSidebar" class="flex flex-wrap gap-2"></div>
+    </section>
 
-  <section class="card">
-    <div class="toolbar"><h2>Recent Notification Events</h2></div>
-    <div id="events"></div>
-  </section>
+    <!-- ERROR DIAGNOSTICS -->
+    <section id="diagPanel" class="hidden bg-red-50 border border-red-200 rounded-2xl p-4">
+      <h2 class="font-heading text-lg text-red-700 mb-2">Error</h2>
+      <div id="diagBody" class="text-sm text-red-700"></div>
+    </section>
 
-  <section class="card">
-    <div class="toolbar"><h2>Scheduled Notifications Queue</h2></div>
-    <div id="queue"></div>
-  </section>
+    <!-- OVERVIEW STAT CARDS -->
+    <section id="statsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3"></section>
 
-  <section class="card">
-    <div class="toolbar"><h2>Failed Notifications</h2></div>
-    <div id="failed"></div>
-  </section>
+    <!-- FILTERS -->
+    <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
+      <h2 class="font-heading text-xl text-fsPurple mb-3">Filters</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Search recipient email..."
+          class="px-3 py-2 rounded-lg border border-fsPurple/20 text-sm focus:outline-none focus:ring-2 focus:ring-fsPurple/30"
+        />
+        <select id="statusFilter" class="px-3 py-2 rounded-lg border border-fsPurple/20 text-sm focus:outline-none focus:ring-2 focus:ring-fsPurple/30">
+          <option value="">All Statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="SENT">Sent</option>
+          <option value="FAILED">Failed</option>
+        </select>
+        <select id="templateFilter" class="px-3 py-2 rounded-lg border border-fsPurple/20 text-sm focus:outline-none focus:ring-2 focus:ring-fsPurple/30">
+          <option value="">All Templates</option>
+        </select>
+        <input
+          id="dateFilter"
+          type="date"
+          class="px-3 py-2 rounded-lg border border-fsPurple/20 text-sm focus:outline-none focus:ring-2 focus:ring-fsPurple/30"
+        />
+      </div>
+    </section>
 
-  <section class="card">
-    <div class="toolbar"><h2>Applicant Notification State</h2></div>
-    <div id="states"></div>
-  </section>
-</main>
+    <!-- MAIN NOTIFICATIONS TABLE -->
+    <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h2 class="font-heading text-xl text-fsPurple">Scheduled Notifications</h2>
+        <span id="rowCount" class="text-xs text-fsMuted"></span>
+      </div>
+      <div id="tableError"></div>
+      <div id="tableWrap" class="table-wrap"></div>
+      <div class="mt-4 flex items-center justify-between gap-2">
+        <button id="prevBtn" class="px-4 py-2 rounded-lg bg-fsLilac text-fsPurple text-sm font-bold hover:opacity-90 disabled:opacity-40 transition-opacity" disabled>â† Prev</button>
+        <span id="pageInfo" class="text-sm text-fsMuted"></span>
+        <button id="nextBtn" class="px-4 py-2 rounded-lg bg-fsLilac text-fsPurple text-sm font-bold hover:opacity-90 disabled:opacity-40 transition-opacity" disabled>Next â†’</button>
+      </div>
+    </section>
 
-<div id="toast"></div>
+    <!-- FAILED NOTIFICATIONS PANEL -->
+    <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <h2 class="font-heading text-xl text-fsPurple">Failed Notifications</h2>
+        <span id="failedCount" class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold"></span>
+      </div>
+      <div id="failedError"></div>
+      <div id="failedWrap" class="table-wrap"></div>
+    </section>
 
-<script>
-const SUPABASE_URL = window.FS_SUPABASE_URL || 'https://xelpsttqhrcqmttmjory.supabase.co';
-const SUPABASE_ANON_KEY = window.FS_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhlbHBzdHRxaHJjcW10dG1qb3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4ODcxMTMsImV4cCI6MjA5MzQ2MzExM30.7a5yGvkaxxUBMOZl-_nZjjDCVYYvf4FrmwwhrzYd9zQ';
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let refreshTimer = null;
+  </main>
 
-const $ = id => document.getElementById(id);
-const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const fmt = v => { if(!v) return '�'; try { return new Date(v).toLocaleString(); } catch { return String(v); } };
+  <!-- RETRY TOAST -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 hidden px-5 py-3 rounded-xl shadow-lg text-sm font-bold"></div>
 
-function badge(v){
-  const s = String(v || '').toLowerCase();
-  const cls = s.includes('fail') ? 'bad' : s.includes('pending') || s.includes('processing') ? 'wait' : s.includes('sent') || s.includes('active') || s.includes('ok') ? 'ok' : 'info';
-  return `<span class="badge ${cls}">${esc(v || '�')}</span>`;
+<script type="module">
+import { CONFIG, supabase } from "../auth/auth-client.js";
+import { requireAuth }      from "../auth/auth-guards.js";
+import { logout }           from "../auth/logout.js";
+import { renderRoleSidebar } from "../auth/role-sidebar.js";
+
+/* â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+const PAGE_SIZE = 20;
+
+/* â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+const state = {
+  notifications: [],
+  templates: [],
+  filters: { search: '', status: '', template: '', date: '' },
+  page: 1,
+  retrying: new Set(),
+  errors: { notifications: null, templates: null }
+};
+
+/* â”€â”€ DOM helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+const $   = id => document.getElementById(id);
+const esc = v  => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const fmt = v  => v ? new Date(v).toLocaleString('en-ZA', { dateStyle: 'short', timeStyle: 'short' }) : 'â€”';
+const ymd = v  => v ? new Date(v).toISOString().slice(0, 10) : '';
+
+function badge(s) {
+  const t = String(s || '').toUpperCase();
+  const cls =
+    t === 'FAILED'  ? 'bg-red-100 text-red-700'    :
+    t === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+    t === 'SENT'    ? 'bg-green-100 text-green-700' :
+                      'bg-fsLilac text-fsPurple';
+  return `<span class="px-2 py-0.5 rounded-full text-xs font-bold ${cls}">${esc(s || 'â€”')}</span>`;
 }
 
-function showToast(msg, ok=true){
-  const t = $('toast');
-  t.textContent = msg;
-  t.className = (ok ? 'ok' : 'err') + ' show';
-  setTimeout(() => t.className = '', 2500);
+function sectionError(msg) {
+  return `<div class="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">${esc(msg)}</div>`;
+}
+function emptyState(msg) {
+  return `<div class="py-10 text-center text-fsMuted text-sm">${esc(msg)}</div>`;
+}
+function skeletonRows(n = 6) {
+  return `<div class="space-y-2">${Array.from({ length: n }).map(() =>
+    '<div class="h-9 rounded-lg skeleton"></div>').join('')}</div>`;
 }
 
-function setSectionLoading(id){
-  $(id).innerHTML = `<div class="section-loading"><div class="skeleton-row"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></div>`;
+function classifyError(err) {
+  const raw = String(err?.message || err || 'Unknown error');
+  if (!CONFIG.SUPABASE_ANON_KEY || CONFIG.SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY'))
+    return 'Missing anon key â€” set CONFIG.SUPABASE_ANON_KEY in foundation/auth/auth-client.js.';
+  if (!CONFIG.SUPABASE_URL || CONFIG.SUPABASE_URL.includes('YOUR-PROJECT-REF'))
+    return 'Wrong Supabase URL â€” set CONFIG.SUPABASE_URL in foundation/auth/auth-client.js.';
+  if (raw.includes('Failed to fetch'))
+    return 'Network / CORS issue. Check browser network access and Supabase project URL.';
+  if (raw.toLowerCase().includes('jwt') || raw.includes('42501') || raw.includes('row-level security'))
+    return 'RLS / policy blocked this query. Verify select policies for admin role on scheduled_notifications.';
+  return raw;
 }
 
-function setSectionError(id, err){
-  $(id).innerHTML = `<div class="error">${esc(err?.message || err || 'Unknown error')}</div>`;
+/* â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+let toastTimer;
+function showToast(msg, ok = true) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = `fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-bold ${
+    ok ? 'bg-fsSuccess text-white' : 'bg-fsDanger text-white'}`;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 3500);
 }
 
-function rowsToTable(headers, rows){
-  if (!rows.length) return '<div class="empty">No records found.</div>';
-  return `<div class="table-wrap"><table><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
-}
-
-async function requireAdminAccess(){
-  const { data: { session } } = await db.auth.getSession();
-  if (!session) { window.location.href = 'login.html'; return null; }
-
-  const { data: { user }, error: userErr } = await db.auth.getUser();
-  if (userErr || !user) { window.location.href = 'login.html'; return null; }
-
-  const { data: profile, error: profileErr } = await db
-    .from('admin_users')
-    .select('role, full_name, email, auth_user_id')
-    .eq('auth_user_id', user.id)
-    .maybeSingle();
-
-  if (profileErr || !profile) {
-    $('accessMsg').textContent = 'You are logged in but no admin profile was found for this account.';
-    $('access').style.display = 'block';
-    return null;
-  }
-
-  if (!['admin','superadmin','subgroup_admin'].includes(String(profile.role || ''))) {
-    $('accessMsg').textContent = 'You are logged in but your role does not have access to Notification Center.';
-    $('access').style.display = 'block';
-    return null;
-  }
-
-  $('app').style.display = '';
-  return { user, profile };
-}
-
-async function signOut(){
-  try { await db.auth.signOut(); } catch (_) {}
-  window.location.href = 'login.html';
-}
-
-async function writeAudit(action, details){
+/* â”€â”€ Data loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+async function loadNotifications() {
+  state.errors.notifications = null;
   try {
-    await db.from('audit_logs').insert({
-      actor_email: 'notification-center@system',
-      action,
-      entity_type: 'scheduled_notification',
-      entity_id: details?.id || null,
-      status: 'SUCCESS',
-      details: details || {}
-    });
-  } catch (e) {
-    console.error('AUDIT_LOG_WRITE_FAILED', e);
-  }
-}
-
-async function loadDashboardStats(){
-  try {
-    const start = new Date();
-    start.setHours(0,0,0,0);
-
-    const [pending, failed, sentToday, waitingClasses, waitingTimes] = await Promise.all([
-      db.from('scheduled_notifications').select('id', { count:'exact', head:true }).eq('status','PENDING'),
-      db.from('scheduled_notifications').select('id', { count:'exact', head:true }).eq('status','FAILED'),
-      db.from('scheduled_notifications').select('id', { count:'exact', head:true }).eq('status','SENT').gte('sent_at', start.toISOString()),
-      db.from('applicant_notification_state').select('applicant_id', { count:'exact', head:true }).eq('notification_state','WAITING_FOR_CLASSES'),
-      db.from('applicant_notification_state').select('applicant_id', { count:'exact', head:true }).eq('notification_state','WAITING_FOR_MORE_TIMES')
-    ]);
-
-    $('m-pending').textContent = String(pending.count || 0);
-    $('m-failed').textContent = String(failed.count || 0);
-    $('m-sent-today').textContent = String(sentToday.count || 0);
-    $('m-wait-classes').textContent = String(waitingClasses.count || 0);
-    $('m-wait-times').textContent = String(waitingTimes.count || 0);
-  } catch (e) {
-    console.error('loadDashboardStats failed', e);
-    $('m-pending').textContent = '!';
-    $('m-failed').textContent = '!';
-    $('m-sent-today').textContent = '!';
-    $('m-wait-classes').textContent = '!';
-    $('m-wait-times').textContent = '!';
-  }
-}
-
-async function loadRecentEvents(){
-  setSectionLoading('events');
-  try {
-    const { data, error } = await db
-      .from('notification_events')
-      .select('created_at,event_type,email,fellowship_code,payload')
-      .order('created_at', { ascending:false })
-      .limit(50);
-    if (error) throw error;
-
-    const rows = (data || []).map(r => {
-      const preview = JSON.stringify(r.payload || {}).slice(0, 180);
-      return `<tr>
-        <td>${fmt(r.created_at)}</td>
-        <td>${badge(r.event_type)}</td>
-        <td>${esc(r.email || '�')}</td>
-        <td>${esc(r.fellowship_code || '�')}</td>
-        <td>${badge((r.payload && r.payload.status) || '�')}</td>
-        <td><div class="pre">${esc(preview)}${preview.length >= 180 ? '�' : ''}</div></td>
-      </tr>`;
-    });
-
-    $('events').innerHTML = rowsToTable(['Time','Event Type','Email','Fellowship','Status','Payload Preview'], rows);
-  } catch (e) {
-    console.error('loadRecentEvents failed', e);
-    setSectionError('events', e);
-  }
-}
-
-async function retryNotification(id, btn){
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Retrying...';
-  try {
-    const { error } = await db.from('scheduled_notifications').update({
-      status: 'PENDING',
-      attempts: 0,
-      next_retry_at: null,
-      error_message: null,
-      locked_at: null,
-      lock_token: null
-    }).eq('id', id);
-    if (error) throw error;
-    await writeAudit('NOTIFICATION_RETRY', { id });
-    showToast('Notification reset to PENDING');
-    await Promise.all([loadScheduledQueue(), loadFailedNotifications(), loadDashboardStats()]);
-  } catch (e) {
-    showToast(`Retry failed: ${e.message || e}`, false);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-}
-
-async function cancelNotification(id, btn, reason){
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Canceling...';
-  try {
-    const { error } = await db.from('scheduled_notifications').update({ status: 'CANCELED' }).eq('id', id);
-    if (error) throw error;
-    await writeAudit(reason || 'NOTIFICATION_CANCELED', { id, reason: reason || 'canceled' });
-    showToast('Notification canceled');
-    await Promise.all([loadScheduledQueue(), loadFailedNotifications(), loadDashboardStats()]);
-  } catch (e) {
-    showToast(`Cancel failed: ${e.message || e}`, false);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = original;
-  }
-}
-
-async function markIgnored(id, btn){
-  await cancelNotification(id, btn, 'NOTIFICATION_IGNORED');
-}
-
-async function loadScheduledQueue(){
-  setSectionLoading('queue');
-  try {
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from('scheduled_notifications')
-      .select('id,scheduled_for,recipient_email,template_key,status,attempts,next_retry_at,created_at')
-      .order('scheduled_for', { ascending:true })
-      .limit(100);
+      .select('id,recipient_email,event_type,template_key,status,attempts,max_attempts,scheduled_for,sent_at,last_error,error_message,created_at')
+      .order('created_at', { ascending: false })
+      .limit(2000);
     if (error) throw error;
-
-    const rows = (data || []).map(r => `<tr>
-      <td>${fmt(r.scheduled_for)}</td>
-      <td>${esc(r.recipient_email)}</td>
-      <td>${esc(r.template_key || '�')}</td>
-      <td>${badge(r.status)}</td>
-      <td>${esc(r.attempts ?? 0)}</td>
-      <td class="actions"><button class="sm" onclick="retryNotification('${r.id}', this)">Retry</button></td>
-      <td class="actions"><button class="sm danger" onclick="cancelNotification('${r.id}', this)">Cancel</button></td>
-    </tr>`);
-
-    $('queue').innerHTML = rowsToTable(['Scheduled Time','Recipient','Template','Status','Attempts','Retry','Cancel'], rows);
+    state.notifications = data || [];
   } catch (e) {
-    console.error('loadScheduledQueue failed', e);
-    setSectionError('queue', e);
+    state.errors.notifications = classifyError(e);
+    state.notifications = [];
   }
 }
 
-async function loadFailedNotifications(){
-  setSectionLoading('failed');
+async function loadTemplates() {
+  state.errors.templates = null;
   try {
-    const { data, error } = await db
-      .from('scheduled_notifications')
-      .select('id,recipient_email,template_key,error_message,attempts,created_at,status')
-      .eq('status','FAILED')
-      .order('created_at', { ascending:false })
-      .limit(100);
+    const { data, error } = await supabase
+      .from('notification_templates')
+      .select('template_key,subject,active')
+      .order('template_key');
     if (error) throw error;
-
-    const rows = (data || []).map(r => `<tr>
-      <td>${esc(r.recipient_email)}</td>
-      <td>${esc(r.template_key || '�')}</td>
-      <td><div class="pre">${esc(r.error_message || '�')}</div></td>
-      <td>${esc(r.attempts ?? 0)}</td>
-      <td>${fmt(r.created_at)}</td>
-      <td class="actions"><button class="sm" onclick="retryNotification('${r.id}', this)">Retry</button></td>
-      <td class="actions"><button class="sm warn" onclick="markIgnored('${r.id}', this)">Mark Ignored</button></td>
-    </tr>`);
-
-    $('failed').innerHTML = rowsToTable(['Recipient','Template','Error','Attempts','Created','Retry','Mark Ignored'], rows);
+    state.templates = data || [];
   } catch (e) {
-    console.error('loadFailedNotifications failed', e);
-    setSectionError('failed', e);
+    state.errors.templates = classifyError(e);
+    state.templates = [];
   }
 }
 
-async function loadApplicantStates(){
-  setSectionLoading('states');
-  try {
-    const { data, error } = await db
-      .from('applicant_notification_state')
-      .select('applicant_id,notification_state,last_template_sent,last_sent_at,updated_at,applicants!inner(full_name,email)')
-      .order('updated_at', { ascending:false })
-      .limit(150);
-    if (error) throw error;
+/* â”€â”€ Filter logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function filteredRows() {
+  const { search, status, template, date } = state.filters;
+  return state.notifications.filter(r => {
+    if (search   && !String(r.recipient_email || '').toLowerCase().includes(search.toLowerCase())) return false;
+    if (status   && r.status       !== status)   return false;
+    if (template && r.template_key !== template) return false;
+    if (date     && ymd(r.scheduled_for) !== date) return false;
+    return true;
+  });
+}
 
-    const rows = (data || []).map(r => {
-      const applicant = Array.isArray(r.applicants) ? r.applicants[0] : r.applicants;
-      return `<tr>
-        <td>${esc(applicant?.full_name || r.applicant_id || '�')}</td>
-        <td>${esc(applicant?.email || '�')}</td>
-        <td>${badge(r.notification_state || '�')}</td>
-        <td>${esc(r.last_template_sent || '�')}</td>
-        <td>${fmt(r.last_sent_at)}</td>
-        <td>${fmt(r.updated_at)}</td>
-      </tr>`;
+/* â”€â”€ Stat cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function renderStats() {
+  const all = state.notifications;
+  const byStatus     = s => all.filter(r => r.status === s).length;
+  const totalAttempts = all.reduce((acc, r) => acc + (r.attempts || 0), 0);
+
+  const cards = [
+    { label: 'Pending',        value: byStatus('PENDING'), color: 'text-amber-600', bg: 'bg-amber-50',  border: 'border-amber-200' },
+    { label: 'Sent',           value: byStatus('SENT'),    color: 'text-green-700', bg: 'bg-green-50',  border: 'border-green-200' },
+    { label: 'Failed',         value: byStatus('FAILED'),  color: 'text-red-700',   bg: 'bg-red-50',    border: 'border-red-200'   },
+    { label: 'Total Attempts', value: totalAttempts,       color: 'text-fsPurple',  bg: 'bg-white',     border: 'border-fsPurple/10' },
+  ];
+
+  $('statsGrid').innerHTML = cards.map(c => `
+    <div class="${c.bg} rounded-2xl border ${c.border} p-5">
+      <p class="text-xs font-bold uppercase tracking-wide text-fsMuted mb-1">${esc(c.label)}</p>
+      <p class="font-heading text-4xl ${c.color}">${c.value.toLocaleString()}</p>
+    </div>`).join('');
+}
+
+/* â”€â”€ Template dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function hydrateTemplateFilter() {
+  const keys = [...new Set(state.notifications.map(r => r.template_key).filter(Boolean))].sort();
+  $('templateFilter').innerHTML =
+    '<option value="">All Templates</option>' +
+    keys.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('');
+}
+
+/* â”€â”€ Main table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function renderTable() {
+  $('tableError').innerHTML = state.errors.notifications ? sectionError(state.errors.notifications) : '';
+
+  const rows       = filteredRows();
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  state.page       = Math.min(state.page, totalPages);
+
+  const start    = (state.page - 1) * PAGE_SIZE;
+  const pageRows = rows.slice(start, start + PAGE_SIZE);
+
+  $('rowCount').textContent = `${rows.length.toLocaleString()} row${rows.length !== 1 ? 's' : ''}`;
+  $('pageInfo').textContent = `Page ${state.page} of ${totalPages}`;
+  $('prevBtn').disabled     = state.page <= 1;
+  $('nextBtn').disabled     = state.page >= totalPages;
+
+  if (!pageRows.length) {
+    $('tableWrap').innerHTML = emptyState(
+      state.errors.notifications
+        ? 'Could not load notifications.'
+        : 'No notifications match your filters.'
+    );
+    return;
+  }
+
+  $('tableWrap').innerHTML = `
+    <table class="min-w-full text-sm">
+      <thead class="bg-fsLilac text-fsPurple">
+        <tr>
+          <th class="px-3 py-2 text-left font-heading">Recipient</th>
+          <th class="px-3 py-2 text-left font-heading">Template</th>
+          <th class="px-3 py-2 text-left font-heading">Event Type</th>
+          <th class="px-3 py-2 text-left font-heading">Status</th>
+          <th class="px-3 py-2 text-left font-heading">Attempts</th>
+          <th class="px-3 py-2 text-left font-heading">Scheduled For</th>
+          <th class="px-3 py-2 text-left font-heading">Sent At</th>
+          <th class="px-3 py-2 text-left font-heading">Last Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${pageRows.map(r => `
+        <tr class="border-t border-fsPurple/10 hover:bg-fsLilac/30 transition-colors ${r.status === 'FAILED' ? 'bg-red-50/40' : ''}">
+          <td class="px-3 py-2 font-semibold max-w-[180px] truncate" title="${esc(r.recipient_email)}">${esc(r.recipient_email || 'â€”')}</td>
+          <td class="px-3 py-2 text-fsMuted">${esc(r.template_key || 'â€”')}</td>
+          <td class="px-3 py-2 text-fsMuted">${esc(r.event_type || 'â€”')}</td>
+          <td class="px-3 py-2">${badge(r.status)}</td>
+          <td class="px-3 py-2 text-center">${esc(r.attempts ?? 0)}&thinsp;/&thinsp;${esc(r.max_attempts ?? 3)}</td>
+          <td class="px-3 py-2">${fmt(r.scheduled_for)}</td>
+          <td class="px-3 py-2">${fmt(r.sent_at)}</td>
+          <td class="px-3 py-2 text-red-700 text-xs max-w-[200px] truncate" title="${esc(r.last_error || r.error_message || '')}">${esc(r.last_error || r.error_message || 'â€”')}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+/* â”€â”€ Failed panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function renderFailed() {
+  $('failedError').innerHTML = state.errors.notifications ? sectionError(state.errors.notifications) : '';
+
+  const failed = state.notifications.filter(r => r.status === 'FAILED');
+  $('failedCount').textContent = failed.length || '';
+
+  if (!failed.length) {
+    $('failedWrap').innerHTML = emptyState('No failed notifications â€” all clear.');
+    return;
+  }
+
+  $('failedWrap').innerHTML = `
+    <table class="min-w-full text-sm">
+      <thead class="bg-red-50 text-red-700">
+        <tr>
+          <th class="px-3 py-2 text-left font-heading">Recipient</th>
+          <th class="px-3 py-2 text-left font-heading">Template</th>
+          <th class="px-3 py-2 text-left font-heading">Attempts</th>
+          <th class="px-3 py-2 text-left font-heading">Scheduled For</th>
+          <th class="px-3 py-2 text-left font-heading">Error</th>
+          <th class="px-3 py-2 text-left font-heading">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${failed.map(r => `
+        <tr class="border-t border-red-100 hover:bg-red-50/60 transition-colors">
+          <td class="px-3 py-2 font-semibold max-w-[160px] truncate" title="${esc(r.recipient_email)}">${esc(r.recipient_email || 'â€”')}</td>
+          <td class="px-3 py-2 text-fsMuted">${esc(r.template_key || 'â€”')}</td>
+          <td class="px-3 py-2 text-center">${esc(r.attempts ?? 0)}&thinsp;/&thinsp;${esc(r.max_attempts ?? 3)}</td>
+          <td class="px-3 py-2">${fmt(r.scheduled_for)}</td>
+          <td class="px-3 py-2 text-red-700 text-xs max-w-[200px] truncate" title="${esc(r.last_error || r.error_message || '')}">${esc(r.last_error || r.error_message || 'Unknown error')}</td>
+          <td class="px-3 py-2">
+            <button
+              id="retry-${esc(r.id)}"
+              onclick="window.__retryNotification('${esc(r.id)}')"
+              class="px-3 py-1.5 rounded-lg bg-fsPurple text-white text-xs font-bold hover:opacity-80 disabled:opacity-40 transition-opacity"
+            >Retry</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+/* â”€â”€ Retry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+window.__retryNotification = async function(id) {
+  if (state.retrying.has(id)) return;
+  state.retrying.add(id);
+
+  const btn = $(`retry-${id}`);
+  if (btn) { btn.disabled = true; btn.textContent = 'â€¦'; }
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    const res = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/email-retry`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': CONFIG.SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ id, source: 'scheduled_notifications' })
     });
 
-    $('states').innerHTML = rowsToTable(['Applicant','Email','State','Last Template','Last Sent','Updated'], rows);
+    if (!res.ok) {
+      const body = await res.text().catch(() => res.statusText);
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+
+    showToast('Retry queued successfully.', true);
+    await loadNotifications();
+    renderAll();
   } catch (e) {
-    console.error('loadApplicantStates failed', e);
-    setSectionError('states', e);
+    showToast(`Retry failed: ${e.message}`, false);
+    if (btn) { btn.disabled = false; btn.textContent = 'Retry'; }
+  } finally {
+    state.retrying.delete(id);
   }
+};
+
+/* â”€â”€ Render all â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function renderAll() {
+  renderStats();
+  renderTable();
+  renderFailed();
 }
 
-async function refreshAll(){
+/* â”€â”€ Load all â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+async function loadAll() {
+  $('tableWrap').innerHTML  = skeletonRows(8);
+  $('failedWrap').innerHTML = skeletonRows(4);
+  $('statsGrid').innerHTML  = '<div class="col-span-4 h-20 rounded-2xl skeleton"></div>';
+
   await Promise.allSettled([
-    loadDashboardStats(),
-    loadRecentEvents(),
-    loadScheduledQueue(),
-    loadFailedNotifications(),
-    loadApplicantStates()
+    loadNotifications(),
+    loadTemplates()
   ]);
+
+  hydrateTemplateFilter();
+  renderAll();
 }
 
-async function manualRefresh(){
-  await refreshAll();
-  showToast('Notification Center refreshed');
+/* â”€â”€ Wire events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+function wireEvents() {
+  $('refreshBtn').addEventListener('click', loadAll);
+  $('logoutBtn').addEventListener('click',  logout);
+
+  $('searchInput').addEventListener('input', e => {
+    state.filters.search = e.target.value;
+    state.page = 1;
+    renderTable();
+  });
+  $('statusFilter').addEventListener('change', e => {
+    state.filters.status = e.target.value;
+    state.page = 1;
+    renderTable();
+    renderFailed();
+  });
+  $('templateFilter').addEventListener('change', e => {
+    state.filters.template = e.target.value;
+    state.page = 1;
+    renderTable();
+  });
+  $('dateFilter').addEventListener('change', e => {
+    state.filters.date = e.target.value;
+    state.page = 1;
+    renderTable();
+  });
+  $('prevBtn').addEventListener('click', () => {
+    if (state.page > 1) { state.page -= 1; renderTable(); }
+  });
+  $('nextBtn').addEventListener('click', () => {
+    state.page += 1;
+    renderTable();
+  });
 }
 
-async function init(){
+/* â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+(async function boot() {
   try {
-    const ctx = await requireAdminAccess();
-    if (!ctx) return;
-    await refreshAll();
-    refreshTimer = setInterval(refreshAll, 60 * 1000);
+    const auth = await requireAuth(['admin', 'superadmin']);
+    if (!auth) return;
+
+    $('whoami').textContent = `${auth.profile.email || ''} (${auth.profile.role || ''})`;
+    renderRoleSidebar(auth.profile, 'roleSidebar');
+
+    wireEvents();
+    await loadAll();
   } catch (e) {
-    $('accessMsg').textContent = `Unexpected error loading Notification Center: ${e.message || e}`;
-    $('access').style.display = 'block';
+    $('diagPanel').classList.remove('hidden');
+    $('diagBody').innerHTML = sectionError(classifyError(e));
   }
-}
-
-window.retryNotification = retryNotification;
-window.cancelNotification = cancelNotification;
-window.markIgnored = markIgnored;
-window.manualRefresh = manualRefresh;
-window.signOut = signOut;
-
-window.addEventListener('beforeunload', () => {
-  if (refreshTimer) clearInterval(refreshTimer);
-});
-
-init();
+})();
 </script>
+  <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
+
+
+

@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Foundation School — Admin Portal</title>
+  <title>Foundation School â€” Admin Portal</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -20,7 +20,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
 
-    /* ── Loading / Access Denied ── */
+    /* â”€â”€ Loading / Access Denied â”€â”€ */
     #loading-screen {
       position: fixed; inset: 0; background: var(--cream);
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 100;
@@ -43,10 +43,10 @@
     .denied-card h2 { color: var(--danger); font-size: 20px; margin-bottom: 12px; }
     .denied-card p  { color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
 
-    /* ── Portal shell ── */
+    /* â”€â”€ Portal shell â”€â”€ */
     #portal { display: none; min-height: 100vh; }
 
-    /* ── Header ── */
+    /* â”€â”€ Header â”€â”€ */
     header {
       background: var(--navy); color: #fff;
       position: sticky; top: 0; z-index: 50;
@@ -73,7 +73,7 @@
     }
     .btn-logout:hover { background: rgba(255,255,255,0.25); }
 
-    /* ── Toasts ── */
+    /* â”€â”€ Toasts â”€â”€ */
     #toasts { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
     .toast {
       padding: 12px 18px; border-radius: 9px; font-size: 14px; font-weight: 500;
@@ -85,10 +85,10 @@
     .toast-info    { background: var(--navy); }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ── Main layout ── */
+    /* â”€â”€ Main layout â”€â”€ */
     main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; display: flex; flex-direction: column; gap: 28px; }
 
-    /* ── Section cards ── */
+    /* â”€â”€ Section cards â”€â”€ */
     .section { background: #fff; border-radius: 14px; border: 1px solid var(--border); overflow: hidden; }
     .section-header {
       padding: 18px 24px 16px; border-bottom: 1px solid var(--border);
@@ -97,7 +97,7 @@
     .section-header h2 { font-size: 16px; font-weight: 700; color: var(--navy); }
     .section-body { padding: 20px 24px; }
 
-    /* ── Badges ── */
+    /* â”€â”€ Badges â”€â”€ */
     .badge {
       display: inline-block; padding: 2px 10px; border-radius: 20px;
       font-size: 12px; font-weight: 600; white-space: nowrap;
@@ -116,7 +116,7 @@
     .gate-ok  { color: #16a34a; font-size: 16px; }
     .gate-no  { color: #d1d5db; font-size: 16px; }
 
-    /* ── Tables ── */
+    /* â”€â”€ Tables â”€â”€ */
     .table-wrap { overflow-x: auto; margin-top: 4px; }
     table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
     thead tr { background: #f8f6ff; }
@@ -125,7 +125,7 @@
     tr:hover td { background: #faf9ff; }
     td.nowrap { white-space: nowrap; }
 
-    /* ── Buttons ── */
+    /* â”€â”€ Buttons â”€â”€ */
     .btn-sm {
       padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
       cursor: pointer; border: none; transition: opacity 0.15s; white-space: nowrap;
@@ -160,7 +160,7 @@
     .btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
-    /* ── States ── */
+    /* â”€â”€ States â”€â”€ */
     .empty-state { color: var(--muted); padding: 24px 0; text-align: center; font-size: 14px; }
     .loading-state { color: var(--muted); padding: 24px 0; text-align: center; }
     .error-state {
@@ -169,7 +169,7 @@
     }
     .error-state small { display: block; margin-top: 4px; opacity: 0.75; }
 
-    /* ── Dashboard grid ── */
+    /* â”€â”€ Dashboard grid â”€â”€ */
     .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
     .dash-card { background: #f8f6ff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
     .dash-card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
@@ -179,11 +179,11 @@
     .metric-val { display: block; font-size: 22px; font-weight: 800; color: var(--navy); line-height: 1; }
     .metric-label { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
 
-    /* ── Attention flag ── */
+    /* â”€â”€ Attention flag â”€â”€ */
     .flag-on { color: #d97706; font-weight: 700; }
     .flag-off { color: #d1d5db; }
 
-    /* ── Modal ── */
+    /* â”€â”€ Modal â”€â”€ */
     #modal-overlay {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
       align-items: center; justify-content: center; z-index: 150; padding: 20px;
@@ -208,16 +208,16 @@
     .modal-error.show { display: block; }
     .modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
 
-    /* ── Section header actions ── */
+    /* â”€â”€ Section header actions â”€â”€ */
     .section-header-actions { display: flex; gap: 8px; align-items: center; }
 
-    /* ── Batch status badges ── */
+    /* â”€â”€ Batch status badges â”€â”€ */
     .badge-draft     { background: #f1f5f9; color: #475569; }
     .badge-open      { background: var(--info-bg); color: var(--info); }
     .badge-completed { background: #f0fdf4; color: #15803d; }
     .badge-archived  { background: #f3f4f6; color: #9ca3af; }
 
-    /* ── Form fields (batch + moodle modals) ── */
+    /* â”€â”€ Form fields (batch + moodle modals) â”€â”€ */
     .modal-form   { display: flex; flex-direction: column; gap: 14px; }
     .form-row     { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-group   { display: flex; flex-direction: column; gap: 5px; }
@@ -235,7 +235,7 @@
     }
     .form-group input:disabled { background: #f1f5f9; color: #9ca3af; cursor: not-allowed; }
 
-    /* ── Moodle group rows ── */
+    /* â”€â”€ Moodle group rows â”€â”€ */
     .moodle-group-row {
       background: #f8f6ff; border: 1px solid var(--border); border-radius: 10px;
       padding: 14px 16px; margin-bottom: 10px;
@@ -253,13 +253,14 @@
       .form-row { grid-template-columns: 1fr; }
     }
   </style>
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
 </head>
 <body>
 
   <!-- Loading -->
   <div id="loading-screen">
     <div class="spinner"></div>
-    <p>Loading portal…</p>
+    <p>Loading portalâ€¦</p>
   </div>
 
   <!-- Access denied -->
@@ -301,7 +302,7 @@
       </div>
       <div class="modal-body">
         <label class="modal-label" for="modal-reason">Reason for Suspension <span class="required">*</span></label>
-        <textarea id="modal-reason" placeholder="Describe the reason…"></textarea>
+        <textarea id="modal-reason" placeholder="Describe the reasonâ€¦"></textarea>
         <div class="modal-error" id="modal-err"></div>
       </div>
       <div class="modal-foot">
@@ -338,7 +339,7 @@
           </div>
           <div class="form-group">
             <label for="bm-batch-name">Batch Name <span class="required">*</span></label>
-            <input id="bm-batch-name" type="text" placeholder="e.g. Foundation School 2026 — Batch A">
+            <input id="bm-batch-name" type="text" placeholder="e.g. Foundation School 2026 â€” Batch A">
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -377,7 +378,7 @@
           Subgroups (e.g. CSGA, CSGB) inherit their parent group's course automatically.
         </p>
         <div class="moodle-group-row">
-          <div class="moodle-group-label">CE — Central East</div>
+          <div class="moodle-group-label">CE â€” Central East</div>
           <div class="modal-form">
             <div class="form-group">
               <label for="mm-CE-id">Moodle Course ID <span class="required">*</span></label>
@@ -390,13 +391,13 @@
               </div>
               <div class="form-group">
                 <label for="mm-CE-url">Course URL</label>
-                <input id="mm-CE-url" type="text" placeholder="https://…">
+                <input id="mm-CE-url" type="text" placeholder="https://â€¦">
               </div>
             </div>
           </div>
         </div>
         <div class="moodle-group-row">
-          <div class="moodle-group-label">CS — Central South</div>
+          <div class="moodle-group-label">CS â€” Central South</div>
           <div class="modal-form">
             <div class="form-group">
               <label for="mm-CS-id">Moodle Course ID <span class="required">*</span></label>
@@ -415,7 +416,7 @@
           </div>
         </div>
         <div class="moodle-group-row">
-          <div class="moodle-group-label">WS — West</div>
+          <div class="moodle-group-label">WS â€” West</div>
           <div class="modal-form">
             <div class="form-group">
               <label for="mm-WS-id">Moodle Course ID <span class="required">*</span></label>
@@ -446,11 +447,11 @@
   <div id="toasts"></div>
 
 <script>
-// ── Config ────────────────────────────────────────────────────
+// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SUPABASE_URL      = 'https://xelpsttqhrcqmttmjory.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhlbHBzdHRxaHJjcW10dG1qb3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4ODcxMTMsImV4cCI6MjA5MzQ2MzExM30.7a5yGvkaxxUBMOZl-_nZjjDCVYYvf4FrmwwhrzYd9zQ'
 
-// ── State ─────────────────────────────────────────────────────
+// â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let db, currentUser, adminProfile
 let suspendTarget    = null   // { type: 'teacher'|'availability', id, label }
 let currentBatches   = []     // cached batch list for batch management
@@ -458,7 +459,7 @@ let batchModalMode   = 'create' // 'create' | 'edit'
 let batchModalId     = null   // batch_id being edited
 let moodleModalBatchId = null // batch_id open in Moodle config modal
 
-// ── Init ──────────────────────────────────────────────────────
+// â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function init() {
   const { createClient } = window.supabase
   db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -520,7 +521,7 @@ function safeInvokeLoader(fnName, moduleName, targetSectionId) {
   }
 }
 
-// ── Role helpers ──────────────────────────────────────────────
+// â”€â”€ Role helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function isSuperadmin()    { return adminProfile?.role === 'superadmin' }
 function isSubgroupAdmin() { return adminProfile?.role === 'subgroup_admin' }
 function isPastor()        { return adminProfile?.role === 'pastor' }
@@ -535,7 +536,7 @@ function scopeQuery(query, col) {
   return sg.length ? query.in(col, sg) : query.in(col, ['__NONE__'])
 }
 
-// ── Render portal ─────────────────────────────────────────────
+// â”€â”€ Render portal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderPortal() {
   document.getElementById('loading-screen').style.display = 'none'
   document.getElementById('portal').style.display = 'block'
@@ -592,7 +593,7 @@ function renderPortal() {
   }
 }
 
-// ── Section helpers ───────────────────────────────────────────
+// â”€â”€ Section helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function mkSection(id, title, headerActionsHtml) {
   const s = document.createElement('section')
   s.className = 'section'
@@ -602,7 +603,7 @@ function mkSection(id, title, headerActionsHtml) {
       <h2>${title}</h2>
       ${headerActionsHtml ? `<div class="section-header-actions">${headerActionsHtml}</div>` : ''}
     </div>
-    <div class="section-body" id="sb-${id}"><div class="loading-state">Loading…</div></div>`
+    <div class="section-body" id="sb-${id}"><div class="loading-state">Loadingâ€¦</div></div>`
   return s
 }
 
@@ -673,8 +674,8 @@ function mkTable(heads, rows) {
 }
 
 function esc(s)  { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
-function fmtDate(v) { if (!v) return '—'; try { return new Date(v).toLocaleDateString('en-CA') } catch { return v } }
-function fmtTime(v) { if (!v) return '—'; return String(v).substring(0, 5) }
+function fmtDate(v) { if (!v) return 'â€”'; try { return new Date(v).toLocaleDateString('en-CA') } catch { return v } }
+function fmtTime(v) { if (!v) return 'â€”'; return String(v).substring(0, 5) }
 
 function roleBadgeHtml(r) {
   const map = { superadmin: 'Superadmin', subgroup_admin: 'Subgroup Admin', pastor: 'Pastor' }
@@ -694,12 +695,12 @@ function statusBadge(s) {
 async function btnAction(btn, label, fn) {
   const orig = btn.textContent
   btn.disabled = true
-  btn.textContent = label || 'Loading…'
+  btn.textContent = label || 'Loadingâ€¦'
   try { await fn() }
   finally { btn.disabled = false; btn.textContent = orig }
 }
 
-// ── Superadmin: Pending Teacher Approvals ─────────────────────
+// â”€â”€ Superadmin: Pending Teacher Approvals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadPendingTeachers() {
   try {
     const { data, error } = await db.from('teachers')
@@ -711,8 +712,8 @@ async function loadPendingTeachers() {
     if (error) throw error
 
     const rows = (data || []).map(t => [
-      esc(t.full_name), esc(t.email || '—'), esc(t.subgroup_id || '—'),
-      esc(t.group_id || '—'), fmtDate(t.created_at),
+      esc(t.full_name), esc(t.email || 'â€”'), esc(t.subgroup_id || 'â€”'),
+      esc(t.group_id || 'â€”'), fmtDate(t.created_at),
       `<div class="actions">
         <button class="btn-sm btn-approve" onclick="approveTeacher('${esc(t.teacher_id)}', this)">Approve</button>
         <button class="btn-sm btn-reject"  onclick="rejectTeacher('${esc(t.teacher_id)}', this)">Reject</button>
@@ -726,7 +727,7 @@ async function loadPendingTeachers() {
 }
 
 async function approveTeacher(id, btn) {
-  await btnAction(btn, 'Approving…', async () => {
+  await btnAction(btn, 'Approvingâ€¦', async () => {
     const { error } = await db.from('teachers')
       .update({ active: true, status: 'Active' })
       .eq('teacher_id', id)
@@ -738,7 +739,7 @@ async function approveTeacher(id, btn) {
 
 async function rejectTeacher(id, btn) {
   if (!confirm('Reject this teacher application? This cannot be undone.')) return
-  await btnAction(btn, 'Rejecting…', async () => {
+  await btnAction(btn, 'Rejectingâ€¦', async () => {
     const { error } = await db.from('teachers')
       .update({ active: false, status: 'Rejected' })
       .eq('teacher_id', id)
@@ -748,7 +749,7 @@ async function rejectTeacher(id, btn) {
   })
 }
 
-// ── Superadmin: Suspended Teachers ───────────────────────────
+// â”€â”€ Superadmin: Suspended Teachers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadSuspendedTeachers() {
   try {
     const { data, error } = await db.from('teachers')
@@ -760,8 +761,8 @@ async function loadSuspendedTeachers() {
     if (error) throw error
 
     const rows = (data || []).map(t => [
-      esc(t.full_name), esc(t.email || '—'), esc(t.subgroup_id || '—'),
-      esc(t.suspended_reason || '—'), esc(t.suspended_by || '—'), fmtDate(t.suspended_at),
+      esc(t.full_name), esc(t.email || 'â€”'), esc(t.subgroup_id || 'â€”'),
+      esc(t.suspended_reason || 'â€”'), esc(t.suspended_by || 'â€”'), fmtDate(t.suspended_at),
       `<div class="actions">
         <button class="btn-sm btn-confirm"   onclick="confirmSuspension('${esc(t.teacher_id)}', this)">Confirm Suspension</button>
         <button class="btn-sm btn-reinstate" onclick="reinstateTeacher('${esc(t.teacher_id)}', this)">Override & Reinstate</button>
@@ -776,7 +777,7 @@ async function loadSuspendedTeachers() {
 
 async function confirmSuspension(id, btn) {
   if (!confirm('Confirm this suspension? The teacher will remain inactive.')) return
-  await btnAction(btn, 'Confirming…', async () => {
+  await btnAction(btn, 'Confirmingâ€¦', async () => {
     const { error } = await db.from('teachers')
       .update({ active: false, status: 'SuspendedConfirmed', reviewed_at: new Date().toISOString(), reviewed_by: currentUser.id })
       .eq('teacher_id', id)
@@ -788,7 +789,7 @@ async function confirmSuspension(id, btn) {
 
 async function reinstateTeacher(id, btn) {
   if (!confirm('Override suspension and reinstate this teacher?')) return
-  await btnAction(btn, 'Reinstating…', async () => {
+  await btnAction(btn, 'Reinstatingâ€¦', async () => {
     const { error } = await db.from('teachers')
       .update({ active: true, status: 'Active', suspended_reason: null, suspended_by: null, suspended_at: null, reviewed_at: new Date().toISOString(), reviewed_by: currentUser.id })
       .eq('teacher_id', id)
@@ -798,7 +799,7 @@ async function reinstateTeacher(id, btn) {
   })
 }
 
-// ── Superadmin: Pending Availability ─────────────────────────
+// â”€â”€ Superadmin: Pending Availability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadPendingAvail() {
   try {
     const { data, error } = await db.from('teacher_availability')
@@ -809,8 +810,8 @@ async function loadPendingAvail() {
     if (error) throw error
 
     const rows = (data || []).map(r => [
-      esc(r.teachers?.full_name || r.teacher_id), esc(r.subgroup_id || '—'),
-      esc(r.day || '—'), fmtTime(r.time_slot), esc(r.batch_id || '2025A'),
+      esc(r.teachers?.full_name || r.teacher_id), esc(r.subgroup_id || 'â€”'),
+      esc(r.day || 'â€”'), fmtTime(r.time_slot), esc(r.batch_id || '2025A'),
       `<div class="actions">
         <button class="btn-sm btn-approve" onclick="approveAvail('${esc(r.id)}', this)">Approve</button>
         <button class="btn-sm btn-reject"  onclick="rejectAvail('${esc(r.id)}', this)">Reject</button>
@@ -824,7 +825,7 @@ async function loadPendingAvail() {
 }
 
 async function approveAvail(id, btn) {
-  await btnAction(btn, 'Approving…', async () => {
+  await btnAction(btn, 'Approvingâ€¦', async () => {
     // Fetch full availability row with teacher info
     const { data: avail, error: ae } = await db.from('teacher_availability')
       .select('*, teachers(full_name, group_id, subgroup_id)')
@@ -885,7 +886,7 @@ async function approveAvail(id, btn) {
 
 async function rejectAvail(id, btn) {
   if (!confirm('Reject this availability slot?')) return
-  await btnAction(btn, 'Rejecting…', async () => {
+  await btnAction(btn, 'Rejectingâ€¦', async () => {
     const { error } = await db.from('teacher_availability')
       .update({ status: 'Unavailable' })
       .eq('id', id)
@@ -895,7 +896,7 @@ async function rejectAvail(id, btn) {
   })
 }
 
-// ── Superadmin: Dashboards ────────────────────────────────────
+// â”€â”€ Superadmin: Dashboards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadDashboards() {
   try {
     const [fmRes, stuRes, attRes, gradRes] = await Promise.all([
@@ -935,7 +936,7 @@ async function loadDashboards() {
   }
 }
 
-// ── Superadmin: Admin Users ───────────────────────────────────
+// â”€â”€ Superadmin: Admin Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadAdminUsers() {
   try {
     const { data, error } = await db.from('admin_users')
@@ -945,8 +946,8 @@ async function loadAdminUsers() {
 
     const rows = (data || []).map(u => [
       esc(u.full_name), esc(u.email), roleBadgeHtml(u.role),
-      esc((u.subgroups || []).join(', ') || '—'),
-      esc((u.group_ids || []).join(', ') || '—')
+      esc((u.subgroups || []).join(', ') || 'â€”'),
+      esc((u.group_ids || []).join(', ') || 'â€”')
     ])
     setHtml('admin-users', mkTable(['Name','Email','Role','Subgroups','Groups'], rows))
   } catch (e) {
@@ -955,7 +956,7 @@ async function loadAdminUsers() {
   }
 }
 
-// ── Shared: Students ──────────────────────────────────────────
+// â”€â”€ Shared: Students â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadStudents() {
   try {
     let q = db.from('students')
@@ -968,11 +969,11 @@ async function loadStudents() {
     if (error) throw error
 
     const rows = (data || []).map(s => [
-      esc(s.student_id), esc(s.full_name), esc(s.email || '—'),
-      esc(s.fellowship_code || '—'), statusBadge(s.status || 'Active'),
+      esc(s.student_id), esc(s.full_name), esc(s.email || 'â€”'),
+      esc(s.fellowship_code || 'â€”'), statusBadge(s.status || 'Active'),
       s.needs_attention_flag
-        ? `<span class="flag-on" title="${esc(s.needs_attention_reason || '')}">⚑ Flagged</span>`
-        : `<span class="flag-off">—</span>`
+        ? `<span class="flag-on" title="${esc(s.needs_attention_reason || '')}">âš‘ Flagged</span>`
+        : `<span class="flag-off">â€”</span>`
     ])
     const note = (data || []).length === 150 ? '<p style="color:var(--muted);font-size:12px;margin-top:10px">Showing first 150 records.</p>' : ''
     setHtml('students', mkTable(['ID','Name','Email','Fellowship','Status','Attention'], rows) + note)
@@ -982,7 +983,7 @@ async function loadStudents() {
   }
 }
 
-// ── Shared: Attendance ────────────────────────────────────────
+// â”€â”€ Shared: Attendance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadAttendance() {
   try {
     let q = db.from('attendance_log').select('subgroup_id, present')
@@ -1012,7 +1013,7 @@ async function loadAttendance() {
   }
 }
 
-// ── Shared: Graduation ────────────────────────────────────────
+// â”€â”€ Shared: Graduation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadGraduation() {
   try {
     let q = db.from('graduation_review')
@@ -1023,10 +1024,10 @@ async function loadGraduation() {
     const { data, error } = await q
     if (error) throw error
 
-    function gIcon(v) { return v ? '<span class="gate-ok">✓</span>' : '<span class="gate-no">✗</span>' }
+    function gIcon(v) { return v ? '<span class="gate-ok">âœ“</span>' : '<span class="gate-no">âœ—</span>' }
     const rows = (data || []).map(r => [
       esc(r.students?.full_name || r.student_id),
-      esc(r.subgroup_id || '—'),
+      esc(r.subgroup_id || 'â€”'),
       gIcon(r.gate1_attendance), gIcon(r.gate2_assignments),
       gIcon(r.gate3_exam_passed), gIcon(r.gate4_cell_integrated),
       statusBadge(r.graduation_status || 'Not Ready')
@@ -1038,7 +1039,7 @@ async function loadGraduation() {
   }
 }
 
-// ── Subgroup Admin: Notes ─────────────────────────────────────
+// â”€â”€ Subgroup Admin: Notes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadNotes() {
   try {
     let q = db.from('students')
@@ -1051,7 +1052,7 @@ async function loadNotes() {
     if (error) throw error
 
     const rows = (data || []).map(s => [
-      esc(s.full_name), esc(s.subgroup_id || '—'), esc(s.needs_attention_reason || '—')
+      esc(s.full_name), esc(s.subgroup_id || 'â€”'), esc(s.needs_attention_reason || 'â€”')
     ])
     setHtml('notes', mkTable(['Student','Subgroup','Reason / Note'], rows))
   } catch (e) {
@@ -1060,7 +1061,7 @@ async function loadNotes() {
   }
 }
 
-// ── Pastor: Teachers ──────────────────────────────────────────
+// â”€â”€ Pastor: Teachers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadTeachers() {
   try {
     let q = db.from('teachers')
@@ -1074,7 +1075,7 @@ async function loadTeachers() {
     const rows = (data || []).map(t => {
       const canSusp = t.status !== 'Suspended' && t.status !== 'SuspendedConfirmed'
       return [
-        esc(t.full_name), esc(t.email || '—'), esc(t.subgroup_id || '—'),
+        esc(t.full_name), esc(t.email || 'â€”'), esc(t.subgroup_id || 'â€”'),
         statusBadge(t.status || (t.active ? 'Active' : 'Inactive')),
         canSusp
           ? `<button class="btn-sm btn-suspend" onclick="openModal('teacher','${esc(t.teacher_id)}','${esc(t.full_name)}')">Suspend</button>`
@@ -1088,7 +1089,7 @@ async function loadTeachers() {
   }
 }
 
-// ── Pastor: Availability ──────────────────────────────────────
+// â”€â”€ Pastor: Availability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadAvailPastor() {
   try {
     // Get teacher IDs in this pastor's subgroups
@@ -1110,10 +1111,10 @@ async function loadAvailPastor() {
     const rows = (data || []).map(r => {
       const canSusp = r.status !== 'Suspended'
       return [
-        esc(r.teachers?.full_name || r.teacher_id), esc(r.day || '—'), fmtTime(r.time_slot),
-        statusBadge(r.status), esc(r.batch_id || '—'),
+        esc(r.teachers?.full_name || r.teacher_id), esc(r.day || 'â€”'), fmtTime(r.time_slot),
+        statusBadge(r.status), esc(r.batch_id || 'â€”'),
         canSusp
-          ? `<button class="btn-sm btn-suspend" onclick="openModal('availability','${esc(r.id)}','${esc(r.teachers?.full_name || r.teacher_id)} — ${esc(r.day)} ${fmtTime(r.time_slot)}')">Suspend</button>`
+          ? `<button class="btn-sm btn-suspend" onclick="openModal('availability','${esc(r.id)}','${esc(r.teachers?.full_name || r.teacher_id)} â€” ${esc(r.day)} ${fmtTime(r.time_slot)}')">Suspend</button>`
           : `<span style="color:var(--muted);font-size:12px">Suspended</span>`
       ]
     })
@@ -1124,7 +1125,7 @@ async function loadAvailPastor() {
   }
 }
 
-// ── Modal: Suspend ────────────────────────────────────────────
+// â”€â”€ Modal: Suspend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function openModal(type, id, label) {
   suspendTarget = { type, id, label }
   document.getElementById('modal-title').textContent  = type === 'teacher' ? 'Suspend Teacher' : 'Suspend Availability'
@@ -1154,7 +1155,7 @@ async function confirmSuspend() {
 
   const btn = document.getElementById('modal-submit')
   btn.disabled = true
-  btn.textContent = 'Suspending…'
+  btn.textContent = 'Suspendingâ€¦'
 
   try {
     const now = new Date().toISOString()
@@ -1204,7 +1205,7 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-overlay')) closeModal()
 })
 
-// ── Toast ─────────────────────────────────────────────────────
+// â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function toast(msg, type) {
   type = type || 'success'
   const el = document.createElement('div')
@@ -1214,8 +1215,14 @@ function toast(msg, type) {
   setTimeout(() => el.remove(), 4000)
 }
 
-// ── Boot ──────────────────────────────────────────────────────
+// â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 init()
 </script>
+  <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
+
+
+

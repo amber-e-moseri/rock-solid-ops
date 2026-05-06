@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Foundation School — Admin Login</title>
+  <title>Foundation School â€” Admin Login</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -128,6 +128,7 @@
 
     .error.show { display: block; }
   </style>
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
 </head>
 <body>
   <div class="card">
@@ -144,7 +145,7 @@
       </div>
       <div class="field">
         <label for="pw">Password</label>
-        <input type="password" id="pw" autocomplete="current-password" placeholder="••••••••" required>
+        <input type="password" id="pw" autocomplete="current-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required>
       </div>
       <button type="submit" class="btn" id="btn">Sign In</button>
       <div class="error" id="err"></div>
@@ -177,7 +178,7 @@
 
       err.classList.remove('show')
       btn.disabled = true
-      btn.textContent = 'Signing in…'
+      btn.textContent = 'Signing inâ€¦'
 
       try {
         const { error } = await db.auth.signInWithPassword({ email, password: pw })
@@ -194,5 +195,11 @@
       }
     })
   </script>
+  <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
+
+
+

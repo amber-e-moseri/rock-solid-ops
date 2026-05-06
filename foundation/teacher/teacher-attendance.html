@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foundation School - Teacher Attendance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <style>
+    :root { --line: color-mix(in srgb, var(--border) 90%, transparent); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "DM Sans", sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 14px; }
+    .top {
+      position: sticky; top: 8px; z-index: 30; border: 1px solid var(--line); border-radius: 16px; padding: 12px;
+      background: color-mix(in srgb, var(--surface) 84%, transparent); backdrop-filter: blur(8px);
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .top h1 { margin: 0; font-size: 22px; }
+    .top p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .icon-btn, .btn, select, input, textarea {
+      border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--text); font: inherit;
+    }
+    .icon-btn { width: 42px; height: 42px; cursor: pointer; font-size: 18px; }
+    .btn { padding: 10px 14px; font-weight: 700; cursor: pointer; }
+    .btn.primary { background: var(--primary); color: #fff; border-color: color-mix(in srgb, var(--primary) 80%, black); }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-top: 10px; box-shadow: var(--shadow-soft); }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    label { display: block; margin-bottom: 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+    input, select, textarea { width: 100%; padding: 10px; }
+    .roster { display: grid; gap: 8px; }
+    .student {
+      border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: var(--surface-2);
+      display: grid; gap: 8px;
+    }
+    .student-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+    .name { font-weight: 800; }
+    .meta { font-size: 12px; color: var(--muted); }
+    .present-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--soft-lavender) 75%, var(--surface));
+      color: var(--primary); font-size: 11px; font-weight: 700; padding: 6px 10px; cursor: pointer;
+    }
+    .chip.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .sticky-save {
+      position: sticky; bottom: 10px; z-index: 35; margin-top: 10px;
+      border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .msg { margin-top: 8px; border-radius: 10px; padding: 9px 10px; font-size: 12px; border: 1px solid var(--line); }
+    .ok { color: #166534; background: color-mix(in srgb, #22c55e 12%, var(--surface)); border-color: color-mix(in srgb, #22c55e 35%, var(--surface)); }
+    .bad { color: #b42318; background: color-mix(in srgb, #ef4444 12%, var(--surface)); border-color: color-mix(in srgb, #ef4444 34%, var(--surface)); }
+    .warn { color: #b45309; background: color-mix(in srgb, #f59e0b 14%, var(--surface)); border-color: color-mix(in srgb, #f59e0b 35%, var(--surface)); }
+    @media (max-width: 840px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="top">
+      <div>
+        <h1>Teacher Attendance</h1>
+        <p>Assigned classes only, attendance and milestone updates in one flow</p>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="themeBtn" class="icon-btn">🌙</button>
+        <button id="logoutBtn" class="btn">Logout</button>
+      </div>
+    </section>
+
+    <section id="flash"></section>
+
+    <section class="card">
+      <div class="grid">
+        <div>
+          <label>Assigned Class</label>
+          <select id="classSelect"></select>
+        </div>
+        <div>
+          <label>Session</label>
+          <select id="sessionSelect">
+            <option>Class1</option><option>Class2</option><option>Class3</option><option>Class4</option><option>Class5</option><option>Class6</option><option>Class7</option>
+          </select>
+        </div>
+        <div>
+          <label>Date</label>
+          <input id="classDate" type="date" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <strong>Roster</strong>
+        <input id="searchInput" placeholder="Search student..." style="max-width:240px" />
+      </div>
+      <div id="roster" class="roster" style="margin-top:8px"></div>
+      <div class="sticky-save">
+        <div id="saveMeta" style="font-size:12px;color:var(--muted)">No changes yet.</div>
+        <button id="saveBtn" class="btn primary">Save Attendance</button>
+      </div>
+    </section>
+  </main>
+
+<script type="module">
+import { CONFIG, supabase } from "../auth/auth-client.js";
+import { requireAuth } from "../auth/auth-guards.js";
+import { logout } from "../auth/logout.js";
+
+const MILESTONES = [
+  "Born Again",
+  "Filled with the Spirit",
+  "Partnership",
+  "Joined Cell",
+  "Serving Team Interest",
+  "Needs Follow-up",
+  "Foundation Completed"
+];
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;" }[c]));
+
+const state = {
+  auth: null,
+  assignments: [],
+  classes: [],
+  applicants: [],
+  milestoneDefs: [],
+  studentMilestones: [],
+  roster: [],
+  selectedClass: "",
+  search: ""
+};
+
+function setTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("fs_theme", theme);
+  $("themeBtn").textContent = theme === "dark" ? "☀️" : "🌙";
+}
+function flash(msg, type = "ok") { $("flash").innerHTML = msg ? `<div class="msg ${type}">${esc(msg)}</div>` : ""; }
+function todayYmd() { return new Date().toISOString().slice(0, 10); }
+
+function milestoneIdFor(name) {
+  const found = state.milestoneDefs.find((m) => String(m.name || m.question || "").toLowerCase() === name.toLowerCase());
+  return found?.id || found?.milestone_id || name;
+}
+
+function renderClassOptions() {
+  const rows = state.assignments.map((a) => {
+    const classId = a.class_option_id || a.class_id;
+    const cls = state.classes.find((c) => String(c.class_option_id || c.class_id || "") === String(classId || ""));
+    return {
+      value: classId,
+      label: `${classId || "-"} · ${cls?.day || "-"} ${cls?.class_time || cls?.time_slot || ""} · ${cls?.teacher_name || cls?.teacher_id || "-"}`
+    };
+  }).filter((x) => x.value);
+  $("classSelect").innerHTML = rows.map((r) => `<option value="${esc(r.value)}">${esc(r.label)}</option>`).join("") || `<option value="">No assigned classes</option>`;
+  if (!state.selectedClass && rows[0]) state.selectedClass = rows[0].value;
+  $("classSelect").value = state.selectedClass || "";
+}
+
+function hydrateRoster() {
+  const all = state.applicants.filter((a) => String(a.class_option_id || "") === String(state.selectedClass || ""));
+  state.roster = all.map((a) => {
+    const sm = state.studentMilestones.filter((m) => String(m.applicant_id || m.student_id || "") === String(a.id || ""));
+    const milestoneOn = new Set(sm.filter((m) => m.status === "completed" || m.completed === true || String(m.value || "").toLowerCase() === "yes").map((m) => String(m.milestone_name || m.name || m.milestone_id || "")));
+    return {
+      id: a.id,
+      full_name: a.full_name || "Student",
+      email: a.email || "",
+      present: false,
+      notes: "",
+      milestones: milestoneOn
+    };
+  });
+}
+
+function filteredRoster() {
+  const q = state.search.toLowerCase();
+  if (!q) return state.roster;
+  return state.roster.filter((s) => `${s.full_name} ${s.email}`.toLowerCase().includes(q));
+}
+
+function renderRoster() {
+  const rows = filteredRoster();
+  $("roster").innerHTML = rows.map((s) => {
+    const chips = MILESTONES.map((m) => {
+      const on = s.milestones.has(m) || s.milestones.has(milestoneIdFor(m));
+      return `<button type="button" class="chip ${on ? "on" : ""}" data-student="${esc(s.id)}" data-milestone="${esc(m)}">${esc(m)}</button>`;
+    }).join("");
+    return `<article class="student">
+      <div class="student-head">
+        <div><div class="name">${esc(s.full_name)}</div><div class="meta">${esc(s.email || "-")}</div></div>
+        <label class="present-toggle"><input type="checkbox" data-present="${esc(s.id)}" ${s.present ? "checked" : ""} /> Present</label>
+      </div>
+      <textarea data-notes="${esc(s.id)}" placeholder="Notes...">${esc(s.notes)}</textarea>
+      <div class="chips">${chips}</div>
+    </article>`;
+  }).join("") || `<div class="msg warn">No students found for this class.</div>`;
+  $("saveMeta").textContent = `${rows.length} students in current roster.`;
+
+  document.querySelectorAll("[data-present]").forEach((el) => {
+    el.addEventListener("change", () => {
+      const row = state.roster.find((r) => String(r.id) === String(el.dataset.present));
+      if (row) row.present = el.checked;
+    });
+  });
+  document.querySelectorAll("[data-notes]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const row = state.roster.find((r) => String(r.id) === String(el.dataset.notes));
+      if (row) row.notes = el.value;
+    });
+  });
+  document.querySelectorAll("[data-milestone]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const row = state.roster.find((r) => String(r.id) === String(el.dataset.student));
+      const key = el.dataset.milestone;
+      if (!row) return;
+      if (row.milestones.has(key)) row.milestones.delete(key); else row.milestones.add(key);
+      renderRoster();
+    });
+  });
+}
+
+async function loadData() {
+  const profile = state.auth.profile;
+  const teacherId = profile.user_id;
+  const teacherEmail = profile.email;
+  const [{ data: assignments, error: aErr }, { data: classes, error: cErr }, { data: applicants, error: pErr }, { data: mDefs }, { data: sMiles }] = await Promise.all([
+    supabase.from("teacher_assignments").select("*").or(`teacher_id.eq.${teacherId},teacher_email.eq.${teacherEmail}`).limit(500),
+    supabase.from("class_options").select("*").limit(1000),
+    supabase.from("applicants").select("*").limit(5000),
+    supabase.from("milestone_definitions").select("*").limit(200),
+    supabase.from("student_milestones").select("*").limit(10000)
+  ]);
+  if (aErr || cErr || pErr) throw new Error(aErr?.message || cErr?.message || pErr?.message);
+  state.assignments = assignments || [];
+  state.classes = classes || [];
+  state.applicants = applicants || [];
+  state.milestoneDefs = mDefs || [];
+  state.studentMilestones = sMiles || [];
+  renderClassOptions();
+  hydrateRoster();
+  renderRoster();
+}
+
+async function saveAttendance() {
+  if (!state.selectedClass) { flash("Please select a class.", "warn"); return; }
+  const now = new Date().toISOString();
+  const classDate = $("classDate").value || todayYmd();
+  const session = $("sessionSelect").value;
+  const attendanceRows = state.roster.map((s) => ({
+    class_option_id: state.selectedClass,
+    applicant_id: s.id,
+    student_id: s.id,
+    class_date: classDate,
+    session_key: session,
+    present: !!s.present,
+    notes: s.notes || "",
+    teacher_id: state.auth.profile.user_id,
+    teacher_email: state.auth.profile.email,
+    created_at: now
+  }));
+  const { error: attErr } = await supabase.from("attendance_records").insert(attendanceRows);
+  if (attErr) { flash(`Attendance save failed: ${attErr.message}`, "bad"); return; }
+
+  const upserts = [];
+  state.roster.forEach((s) => {
+    MILESTONES.forEach((m) => {
+      const on = s.milestones.has(m) || s.milestones.has(milestoneIdFor(m));
+      upserts.push({
+        applicant_id: s.id,
+        student_id: s.id,
+        milestone_id: milestoneIdFor(m),
+        milestone_name: m,
+        status: on ? "completed" : "pending",
+        completed: on,
+        updated_at: now,
+        updated_by: state.auth.profile.email
+      });
+    });
+  });
+  const { error: mErr } = await supabase.from("student_milestones").upsert(upserts, { onConflict: "applicant_id,milestone_id" });
+  if (mErr) { flash(`Milestone update issue: ${mErr.message}`, "warn"); }
+
+  await supabase.from("audit_logs").insert({
+    action: "TEACHER_ATTENDANCE_SAVED",
+    entity_type: "attendance_records",
+    entity_id: `${state.selectedClass}:${classDate}:${session}`,
+    actor_email: state.auth.profile.email,
+    status: "SUCCESS",
+    details: {
+      class_option_id: state.selectedClass,
+      class_date: classDate,
+      session,
+      roster_count: state.roster.length
+    },
+    created_at: now
+  });
+  flash("Attendance and milestones saved.", "ok");
+}
+
+function wire() {
+  $("themeBtn").addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "light";
+    setTheme(current === "dark" ? "light" : "dark");
+  });
+  $("logoutBtn").addEventListener("click", logout);
+  $("classDate").value = todayYmd();
+  $("classSelect").addEventListener("change", () => {
+    state.selectedClass = $("classSelect").value;
+    hydrateRoster();
+    renderRoster();
+  });
+  $("searchInput").addEventListener("input", (e) => {
+    state.search = e.target.value || "";
+    renderRoster();
+  });
+  $("saveBtn").addEventListener("click", saveAttendance);
+}
+
+async function boot() {
+  setTheme(localStorage.getItem("fs_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+  if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY || CONFIG.SUPABASE_URL.includes("YOUR-PROJECT-REF")) {
+    flash("Supabase config missing in foundation/auth/auth-client.js.", "bad");
+    return;
+  }
+  const auth = await requireAuth(["teacher", "principal", "admin", "superadmin"]);
+  if (!auth) return;
+  state.auth = auth;
+  await loadData();
+  wire();
+}
+
+boot().catch((e) => flash(`Failed to load attendance module: ${e.message || e}`, "bad"));
+</script>
+</body>
+</html>

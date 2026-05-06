@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Foundation School — Email Campaigns</title>
+<title>Foundation School â€” Email Campaigns</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -39,6 +39,7 @@ tr:hover td{background:#faf9ff}
 .actions{display:flex;gap:7px;flex-wrap:wrap}
 .small{font-size:12px;color:var(--muted)}
 </style>
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
 </head>
 
 <body>
@@ -48,7 +49,7 @@ tr:hover td{background:#faf9ff}
     <div class="brand">
       <div class="logo">FS</div>
       <div>
-        <h1>Foundation School — Email Campaigns</h1>
+        <h1>Foundation School â€” Email Campaigns</h1>
         <p>Queue onboarding, reminder, and follow-up emails</p>
       </div>
     </div>
@@ -132,7 +133,7 @@ function esc(v){
 }
 
 function fmt(v){
-  if(!v) return "—";
+  if(!v) return "â€”";
   try { return new Date(v).toLocaleString(); }
   catch { return v; }
 }
@@ -149,7 +150,7 @@ function badge(s){
           ? "ok"
           : "info";
 
-  return `<span class="badge ${cls}">${esc(s || "—")}</span>`;
+  return `<span class="badge ${cls}">${esc(s || "â€”")}</span>`;
 }
 
 async function signOut(){
@@ -224,7 +225,7 @@ async function queueEmail(){
 
 async function loadEmails(){
   const el = $("emails");
-  el.innerHTML = "Loading…";
+  el.innerHTML = "Loadingâ€¦";
 
   try{
     const { data, error } = await db
@@ -241,11 +242,11 @@ async function loadEmails(){
         <tr>
           <td>${fmt(row.created_at)}</td>
           <td>${esc(row.recipient_email)}</td>
-          <td>${esc(row.recipient_name || "—")}</td>
+          <td>${esc(row.recipient_name || "â€”")}</td>
           <td>${esc(row.template_key)}</td>
-          <td>${esc(row.subject || "—")}</td>
+          <td>${esc(row.subject || "â€”")}</td>
           <td>${badge(row.status)}</td>
-          <td>${esc(row.error_message || "—")}</td>
+          <td>${esc(row.error_message || "â€”")}</td>
         </tr>
       `)
     );
@@ -258,5 +259,10 @@ async function loadEmails(){
 loadEmails();
 </script>
 
+  <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
+
+

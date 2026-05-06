@@ -70,6 +70,7 @@
     strong{color:var(--navy)}
     @media(max-width:980px){.grid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
   </style>
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
 </head>
 <body>
 <nav class="rs-nav" aria-label="Teacher Portal Navigation">
@@ -402,8 +403,14 @@ function init(){const browserTz=Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 try{init()}catch(e){show("error","Failed to initialize scheduler: "+String(e.message||e)); console.error(e);}
 </script>
+  <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
+
+
+
 
 
 

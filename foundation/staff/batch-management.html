@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Foundation School — Batch Management</title>
+  <title>Foundation School â€” Batch Management</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{--navy:#4C2A92;--navy-d:#3b2080;--gold:#F4BE41;--cream:#F4EFE3;--bg:#f5f3fb;--border:#e2ddf0;--text:#1a1230;--muted:#6b7280;--success:#166534;--success-bg:#dcfce7;--danger:#991b1b;--danger-bg:#fee2e2;--warn:#92400e;--warn-bg:#fef3c7;--info:#1e40af;--info-bg:#dbeafe}
@@ -50,6 +50,7 @@
     #toast.ok-toast{background:var(--success-bg);color:var(--success);border:1px solid #86efac}
     #toast.err-toast{background:var(--danger-bg);color:var(--danger);border:1px solid #fca5a5}
   </style>
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
 </head>
 <body>
 
@@ -58,7 +59,7 @@
     <div class="brand">
       <div class="logo">FS</div>
       <div>
-        <h1>Foundation School — Batch Management</h1>
+        <h1>Foundation School â€” Batch Management</h1>
         <p>Create and manage school batches</p>
       </div>
     </div>
@@ -118,7 +119,7 @@ function badge(s){
               x.includes('suspend') ? 'bad' :
               x.includes('open') ? 'ok' :
               x.includes('draft') ? 'wait' : 'info';
-  return `<span class="badge ${cls}">${esc(s??'—')}</span>`;
+  return `<span class="badge ${cls}">${esc(s??'â€”')}</span>`;
 }
 
 function toast(msg, ok=true){
@@ -171,16 +172,16 @@ async function createBatch(){
 }
 
 async function loadBatches(){
-  $('batchTable').innerHTML = '<p class="small muted">Loading…</p>';
+  $('batchTable').innerHTML = '<p class="small muted">Loadingâ€¦</p>';
   const { data, error } = await db.from('batches').select('*').order('created_at',{ascending:false});
   if(error){ $('batchTable').innerHTML = `<div class="error">${esc(error.message)}</div>`; return; }
 
   const rows = (data||[]).map(b => `
     <tr>
-      <td>${esc(b.batch_code||'—')}</td>
-      <td>${esc(b.batch_name||b.name||'—')}</td>
-      <td>${badge(b.status||'—')}</td>
-      <td>${esc(b.start_sunday||'—')}</td>
+      <td>${esc(b.batch_code||'â€”')}</td>
+      <td>${esc(b.batch_name||b.name||'â€”')}</td>
+      <td>${badge(b.status||'â€”')}</td>
+      <td>${esc(b.start_sunday||'â€”')}</td>
       <td>
         <div class="actions">
           <button class="sm" onclick="openRegistration('${b.batch_id}')">Open Registration</button>
@@ -217,5 +218,10 @@ async function archiveBatch(id){
 
 loadBatches();
 </script>
+  <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
+
+
