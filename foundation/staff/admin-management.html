@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foundation School - Admin Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <style>
+    :root { --ease: 240ms cubic-bezier(.22,1,.36,1); }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--text);
+      background: radial-gradient(900px 460px at 100% -12%, color-mix(in srgb, var(--amber) 14%, transparent), transparent 65%), radial-gradient(760px 380px at -10% -6%, color-mix(in srgb, var(--navy) 10%, transparent), transparent 64%), var(--bg);
+      min-height: 100dvh;
+    }
+    .shell { max-width: 1220px; margin: 0 auto; padding: 24px 18px 72px; }
+    .header {
+      position: sticky; top: 10px; z-index: 30; backdrop-filter: blur(10px);
+      background: color-mix(in srgb, var(--surface) 84%, transparent); border: 1px solid var(--border);
+      border-radius: var(--r-xl); box-shadow: var(--sh-xs); display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; padding: 14px 16px; margin-bottom: 14px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(145deg, var(--navy), var(--navy-l)); color: #fff; display: grid; place-items: center; font-weight: 800; }
+    .brand h1 { margin: 0; font-size: clamp(16px,2vw,21px); letter-spacing: -.02em; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn { border: 1px solid transparent; border-radius: 12px; padding: 10px 14px; font-weight: 700; font-size: 13px; cursor: pointer; transition: transform var(--ease), background var(--ease), border-color var(--ease), box-shadow var(--ease); }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--navy); color: #fff; box-shadow: var(--sh-xs); }
+    .btn-primary:hover { background: var(--navy-l); }
+    .btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .btn-danger { background: var(--coral-l); color: var(--coral-d); border-color: color-mix(in srgb, var(--coral-d), transparent 75%); }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .tab-btn {
+      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      border-radius: 999px; padding: 8px 12px; font-size: 12px; font-weight: 800; cursor: pointer;
+    }
+    .tab-btn.active { background: var(--navy-ghost); color: var(--navy); border-color: color-mix(in srgb, var(--navy), transparent 72%); }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--sh-xs); overflow: hidden; }
+    .toolbar {
+      display: grid; grid-template-columns: minmax(230px, 1fr) auto auto; gap: 10px; padding: 12px 14px;
+      border-bottom: 1px solid var(--border); background: var(--surface-alt);
+    }
+    .input, .select, .textarea {
+      width: 100%; border: 1px solid var(--border); border-radius: var(--r); padding: 10px 11px;
+      background: var(--surface); color: var(--text); font: inherit;
+    }
+    .input:focus, .select:focus, .textarea:focus {
+      outline: 2px solid color-mix(in srgb, var(--navy), transparent 70%);
+      outline-offset: 1px;
+    }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1020px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    tr:hover td { background: color-mix(in srgb, var(--surface-alt), transparent 10%); }
+    .chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; }
+    .chip-active { background: var(--sage-l); color: var(--sage); }
+    .chip-inactive { background: #eceef2; color: #556070; }
+    .chip-linked { background: var(--info-bg); color: var(--info); }
+    .chip-unlinked { background: var(--amber-l); color: var(--amber-d); }
+    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .empty-state { padding: 42px 16px; text-align: center; color: var(--muted); }
+    .empty-state .emoji { font-size: 34px; margin-bottom: 8px; }
+    .msg { margin: 12px 14px 0; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+    .msg.error { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-bd); }
+    .msg.info { background: var(--surface-alt); color: var(--muted); }
+    .muted { color: var(--muted); font-size: 12px; }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(10, 10, 20, .42); backdrop-filter: blur(3px);
+      display: none; place-items: center; padding: 16px; z-index: 60;
+    }
+    .modal-overlay.open { display: grid; }
+    .modal {
+      width: min(760px, 96vw); max-height: 90dvh; overflow: auto; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--sh-lg);
+    }
+    .modal-head { padding: 16px 16px 10px; border-bottom: 1px solid var(--border); }
+    .modal-head h2 { margin: 0; font-size: 20px; }
+    .modal-body { padding: 14px 16px; }
+    .modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .field { display: grid; gap: 5px; }
+    .field label { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .field.full { grid-column: 1 / -1; }
+    .modal-foot { padding: 12px 16px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+    @media (max-width: 980px) { .toolbar { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 760px) {
+      .shell { padding: 12px 10px 100px; }
+      .header { border-radius: 14px; top: 6px; }
+      .brand p { display: none; }
+      .toolbar { grid-template-columns: 1fr; }
+      .modal-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell main">
+    <header class="header" aria-label="Admin management header">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">FS</div>
+        <div>
+          <h1>Admin Management</h1>
+          <p id="welcomeLine">Staff/admin operations control</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" id="refreshBtn">Refresh</button>
+        <button class="btn btn-primary" id="addBtn">Add</button>
+        <button class="btn btn-ghost" id="signOutBtn">Sign out</button>
+      </div>
+    </header>
+
+    <section class="tabs" id="tabs"></section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <input class="input" id="searchInput" placeholder="Search records..." aria-label="Search records" />
+        <div id="tabNote" class="muted" style="align-self:center"></div>
+        <div style="display:flex;justify-content:flex-end">
+          <button class="btn btn-ghost" id="clearBtn">Clear</button>
+        </div>
+      </div>
+      <div id="errorHost"></div>
+      <div id="tableHost" class="table-wrap"></div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" id="entityModalOverlay" role="dialog" aria-modal="true" aria-labelledby="entityModalTitle">
+    <div class="modal">
+      <div class="modal-head"><h2 id="entityModalTitle">Manage Record</h2></div>
+      <form class="modal-body" id="entityForm">
+        <div class="modal-grid" id="entityFormGrid"></div>
+      </form>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" id="cancelModalBtn">Cancel</button>
+        <button class="btn btn-primary" id="saveModalBtn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/runtime.js"></script>
+  <script type="module">
+    import { supabase, getCurrentProfile } from "../auth/auth-client.js";
+    import { requireAuth } from "../auth/auth-guards.js";
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
+    const tabsByRole = {
+      superadmin: ["staff", "teachers", "assignees", "watchers"],
+      admin: ["staff", "teachers", "assignees", "watchers"],
+      principal: ["teachers"],
+    };
+    const tabMeta = {
+      staff: { label: "Staff Accounts", empty: "No staff profiles found." },
+      teachers: { label: "Teachers", empty: "No teachers found." },
+      assignees: { label: "ClickUp Assignees", empty: "No ClickUp assignee mappings found." },
+      watchers: { label: "ClickUp Watchers", empty: "No ClickUp watcher mappings found." },
+    };
+    const validRoles = ["pending", "teacher", "principal", "admin", "superadmin", "subgroup_admin", "pastor"];
+    const elevatedRoles = new Set(["admin", "superadmin", "principal", "subgroup_admin", "pastor"]);
+    const state = {
+      auth: null,
+      role: "",
+      activeTab: "staff",
+      visibleTabs: [],
+      search: "",
+      profileIdKey: "id",
+      teacherIdKey: "teacher_id",
+      teacherNameKey: "full_name",
+      teachersEmailKey: "email",
+      teacherSupportsDeletedAt: true,
+      teacherSupportsStatus: true,
+      rows: { staff: [], teachers: [], assignees: [], watchers: [] },
+      loadErrors: { staff: null, teachers: null, assignees: null, watchers: null },
+      editing: null
+    };
+
+    const els = {
+      welcomeLine: $("welcomeLine"),
+      refreshBtn: $("refreshBtn"),
+      addBtn: $("addBtn"),
+      signOutBtn: $("signOutBtn"),
+      tabs: $("tabs"),
+      searchInput: $("searchInput"),
+      clearBtn: $("clearBtn"),
+      tabNote: $("tabNote"),
+      errorHost: $("errorHost"),
+      tableHost: $("tableHost"),
+      entityModalOverlay: $("entityModalOverlay"),
+      entityModalTitle: $("entityModalTitle"),
+      entityForm: $("entityForm"),
+      entityFormGrid: $("entityFormGrid"),
+      cancelModalBtn: $("cancelModalBtn"),
+      saveModalBtn: $("saveModalBtn"),
+    };
+
+    function notify(message, type = "info", ttl = 3600) {
+      if (window.FSToast?.show) window.FSToast.show(message, type, ttl);
+    }
+    function setTheme() {
+      document.documentElement.setAttribute("data-theme", "light");
+      document.documentElement.classList.remove("dark");
+      document.body.classList.add("fs-force-light");
+      localStorage.setItem("fs_theme", "light");
+    }
+    function appPath(relativePath) {
+      const clean = String(relativePath || "").replace(/^\/+/, "");
+      const p = window.location.pathname || "";
+      return p.includes("/foundation/") ? `/foundation/${clean}` : `/${clean}`;
+    }
+    function loginPath() {
+      return appPath("auth/login.html");
+    }
+    function hasRole(role) {
+      return String(state.role || "").toLowerCase() === String(role || "").toLowerCase();
+    }
+    function canManageStaffRoles() {
+      return hasRole("superadmin") || hasRole("admin");
+    }
+    function allowedRoleAssignments() {
+      return hasRole("superadmin") ? validRoles : ["teacher", "principal"];
+    }
+    function isSelfProfile(row) {
+      const currentId = String(state.auth?.session?.user?.id || "");
+      const rowId = String(row?.id || row?.user_id || "");
+      return !!currentId && !!rowId && currentId === rowId;
+    }
+    function isTeacherBlocked() {
+      return !tabsByRole[state.role];
+    }
+    function openModal(overlay, focusEl) {
+      overlay.classList.add("open");
+      setTimeout(() => focusEl?.focus(), 0);
+    }
+    function closeModal(overlay) {
+      overlay.classList.remove("open");
+    }
+    function setError(tab, message) {
+      state.loadErrors[tab] = message || null;
+    }
+    function renderErrorForActiveTab() {
+      const e = state.loadErrors[state.activeTab];
+      els.errorHost.innerHTML = e ? `<div class="msg error">${esc(e)}</div>` : "";
+    }
+    function currentRows() {
+      const q = state.search.toLowerCase();
+      const rows = state.rows[state.activeTab] || [];
+      if (!q) return rows;
+      return rows.filter((r) => JSON.stringify(r || {}).toLowerCase().includes(q));
+    }
+    function profileLabel(profile) {
+      return profile?.full_name || profile?.email || "User";
+    }
+    function safeSortByName(rows, keys) {
+      return [...rows].sort((a, b) => {
+        const av = keys.map((k) => String(a?.[k] || "")).join(" ").toLowerCase();
+        const bv = keys.map((k) => String(b?.[k] || "")).join(" ").toLowerCase();
+        return av.localeCompare(bv);
+      });
+    }
+    function tableMissingErr(name, err) {
+      const msg = String(err?.message || err || "");
+      if (err?.code === "42P01" || msg.toLowerCase().includes("does not exist")) {
+        return `${name} table is missing. Add migrations before using this tab.`;
+      }
+      return `${name} failed to load: ${msg}`;
+    }
+
+    async function trySelect(table, projections) {
+      let lastError = null;
+      for (const projection of projections) {
+        const { data, error } = await supabase.from(table).select(projection).limit(4000);
+        if (!error) return { data: data || [], projection };
+        lastError = error;
+      }
+      return { data: [], error: lastError };
+    }
+
+    async function loadStaff() {
+      const res = await trySelect("profiles", [
+        "id,user_id,full_name,email,role,is_active,active,created_at,updated_at",
+        "id,full_name,email,role,is_active,active,created_at,updated_at",
+        "id,full_name,email,role,active,created_at,updated_at",
+        "id,email,role,active",
+        "id,email,role"
+      ]);
+      if (res.error) {
+        setError("staff", tableMissingErr("profiles", res.error));
+        state.rows.staff = [];
+        return;
+      }
+      state.profileIdKey = res.projection.includes("user_id") ? "user_id" : "id";
+      state.rows.staff = safeSortByName(res.data, ["full_name", "email"]);
+      setError("staff", null);
+    }
+
+    async function loadTeachers() {
+      const res = await trySelect("teachers", [
+        "teacher_id,full_name,email,phone,group_id,subgroup_id,status,active,deleted_at,teacher_user_id,updated_at",
+        "teacher_id,teacher_name,email,phone,group_id,subgroup_id,status,active,deleted_at,teacher_user_id,updated_at",
+        "id,full_name,email,phone,group_id,subgroup_id,status,active,deleted_at,teacher_user_id,updated_at",
+        "teacher_id,full_name,email,group_id,subgroup_id,active,teacher_user_id"
+      ]);
+      if (res.error) {
+        setError("teachers", tableMissingErr("teachers", res.error));
+        state.rows.teachers = [];
+        return;
+      }
+      state.teacherIdKey = res.projection.includes("id,") || res.projection.startsWith("id,") ? "id" : "teacher_id";
+      state.teacherNameKey = res.projection.includes("teacher_name") ? "teacher_name" : "full_name";
+      state.teachersEmailKey = res.projection.includes("teacher_email") ? "teacher_email" : "email";
+      state.teacherSupportsDeletedAt = res.projection.includes("deleted_at");
+      state.teacherSupportsStatus = res.projection.includes("status");
+      state.rows.teachers = safeSortByName(res.data, [state.teacherNameKey, state.teachersEmailKey]);
+      setError("teachers", null);
+    }
+
+    async function loadAssignees() {
+      const { data, error } = await supabase
+        .from("clickup_admin_mappings")
+        .select("id,group_id,subgroup_id,clickup_user_id,admin_name,admin_email,active,updated_at")
+        .order("group_id", { ascending: true })
+        .limit(4000);
+      if (error) {
+        setError("assignees", tableMissingErr("clickup_admin_mappings", error));
+        state.rows.assignees = [];
+        return;
+      }
+      state.rows.assignees = data || [];
+      setError("assignees", null);
+    }
+
+    async function loadWatchers() {
+      const { data, error } = await supabase
+        .from("clickup_admin_watchers")
+        .select("id,group_id,subgroup_id,clickup_user_id,watcher_name,watcher_email,active,notes,updated_at")
+        .order("group_id", { ascending: true })
+        .limit(4000);
+      if (error) {
+        setError("watchers", tableMissingErr("clickup_admin_watchers", error));
+        state.rows.watchers = [];
+        return;
+      }
+      state.rows.watchers = data || [];
+      setError("watchers", null);
+    }
+
+    async function refreshActiveData() {
+      if (state.activeTab === "staff") return loadStaff();
+      if (state.activeTab === "teachers") return loadTeachers();
+      if (state.activeTab === "assignees") return loadAssignees();
+      if (state.activeTab === "watchers") return loadWatchers();
+    }
+
+    function renderTabs() {
+      els.tabs.innerHTML = state.visibleTabs.map((tab) => {
+        const active = state.activeTab === tab ? " active" : "";
+        return `<button class="tab-btn${active}" data-tab="${tab}">${tabMeta[tab].label}</button>`;
+      }).join("");
+      els.tabs.querySelectorAll("[data-tab]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          state.activeTab = btn.dataset.tab;
+          state.search = "";
+          els.searchInput.value = "";
+          renderTabs();
+          await refreshActiveData();
+          render();
+        });
+      });
+    }
+
+    function renderTable() {
+      const rows = currentRows();
+      if (!rows.length) {
+        els.tableHost.innerHTML = `<div class="empty-state"><div class="emoji">📭</div><h3 style="margin:0 0 6px">${esc(tabMeta[state.activeTab].empty)}</h3><p style="margin:0">${state.search ? "No records matched your search." : "Add a record to get started."}</p></div>`;
+        return;
+      }
+      if (state.activeTab === "staff") return renderStaffTable(rows);
+      if (state.activeTab === "teachers") return renderTeachersTable(rows);
+      if (state.activeTab === "assignees") return renderAssigneesTable(rows);
+      if (state.activeTab === "watchers") return renderWatchersTable(rows);
+    }
+
+    function renderStaffTable(rows) {
+      els.tabNote.textContent = "To invite a new user, create or invite them in Supabase Auth first, then set their role here.";
+      els.tableHost.innerHTML = `<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th>Actions</th></tr></thead><tbody>${
+        rows.map((r) => {
+          const active = (r.is_active !== false && r.active !== false);
+          const role = String(r.role || "pending").toLowerCase();
+          return `<tr>
+            <td><strong>${esc(r.full_name || "-")}</strong></td>
+            <td>${esc(r.email || "-")}</td>
+            <td><span class="chip ${elevatedRoles.has(role) ? "chip-linked" : "chip-inactive"}">${esc(role)}</span></td>
+            <td><span class="chip ${active ? "chip-active" : "chip-inactive"}">${active ? "Active" : "Inactive"}</span></td>
+            <td><div class="row-actions">
+              <button class="btn btn-ghost" data-edit-staff="${esc(r.id || r.user_id || "")}">Edit Role</button>
+              <button class="btn ${active ? "btn-danger" : "btn-ghost"}" data-toggle-staff="${esc(r.id || r.user_id || "")}">${active ? "Deactivate" : "Reactivate"}</button>
+            </div></td>
+          </tr>`;
+        }).join("")
+      }</tbody></table>`;
+      els.tableHost.querySelectorAll("[data-edit-staff]").forEach((b) => b.addEventListener("click", () => openStaffModal(b.dataset.editStaff)));
+      els.tableHost.querySelectorAll("[data-toggle-staff]").forEach((b) => b.addEventListener("click", () => toggleStaffActive(b.dataset.toggleStaff)));
+    }
+
+    function renderTeachersTable(rows) {
+      els.tabNote.textContent = "Linked status uses teachers.teacher_user_id. Email fallback is transitional.";
+      els.tableHost.innerHTML = `<table><thead><tr><th>Name</th><th>Email</th><th>Group</th><th>Subgroup</th><th>Active</th><th>Auth Link</th><th>Actions</th></tr></thead><tbody>${
+        rows.map((r) => {
+          const active = r.active !== false && !r.deleted_at;
+          const linked = !!r.teacher_user_id;
+          const tid = String(r[state.teacherIdKey] || "");
+          return `<tr>
+            <td><strong>${esc(r[state.teacherNameKey] || "-")}</strong></td>
+            <td>${esc(r[state.teachersEmailKey] || "-")}</td>
+            <td>${esc(r.group_id || "-")}</td>
+            <td>${esc(r.subgroup_id || "-")}</td>
+            <td><span class="chip ${active ? "chip-active" : "chip-inactive"}">${active ? "Active" : "Inactive"}</span></td>
+            <td><span class="chip ${linked ? "chip-linked" : "chip-unlinked"}">${linked ? "Linked" : "Unlinked"}</span></td>
+            <td><div class="row-actions">
+              <button class="btn btn-ghost" data-edit-teacher="${esc(tid)}">Edit</button>
+              <button class="btn ${active ? "btn-danger" : "btn-ghost"}" data-toggle-teacher="${esc(tid)}">${active ? "Deactivate" : "Reactivate"}</button>
+              <button class="btn btn-ghost" data-link-teacher="${esc(tid)}">${linked ? "Relink" : "Link Auth"}</button>
+              ${linked ? `<button class="btn btn-ghost" data-unlink-teacher="${esc(tid)}">Unlink</button>` : ""}
+            </div></td>
+          </tr>`;
+        }).join("")
+      }</tbody></table>`;
+      els.tableHost.querySelectorAll("[data-edit-teacher]").forEach((b) => b.addEventListener("click", () => openTeacherModal(b.dataset.editTeacher)));
+      els.tableHost.querySelectorAll("[data-toggle-teacher]").forEach((b) => b.addEventListener("click", () => toggleTeacherActive(b.dataset.toggleTeacher)));
+      els.tableHost.querySelectorAll("[data-link-teacher]").forEach((b) => b.addEventListener("click", () => linkTeacherModal(b.dataset.linkTeacher)));
+      els.tableHost.querySelectorAll("[data-unlink-teacher]").forEach((b) => b.addEventListener("click", () => unlinkTeacher(b.dataset.unlinkTeacher)));
+    }
+
+    function renderAssigneesTable(rows) {
+      els.tabNote.textContent = "Primary assignee mapping: subgroup first, then group fallback.";
+      els.tableHost.innerHTML = `<table><thead><tr><th>Group</th><th>Subgroup</th><th>ClickUp User ID</th><th>Name</th><th>Email</th><th>Active</th><th>Actions</th></tr></thead><tbody>${
+        rows.map((r) => `<tr>
+          <td>${esc(r.group_id || "-")}</td><td>${esc(r.subgroup_id || "-")}</td><td>${esc(r.clickup_user_id || "-")}</td>
+          <td>${esc(r.admin_name || "-")}</td><td>${esc(r.admin_email || "-")}</td>
+          <td><span class="chip ${r.active !== false ? "chip-active" : "chip-inactive"}">${r.active !== false ? "Active" : "Inactive"}</span></td>
+          <td><div class="row-actions">
+            <button class="btn btn-ghost" data-edit-assignee="${esc(r.id)}">Edit</button>
+            <button class="btn ${r.active !== false ? "btn-danger" : "btn-ghost"}" data-toggle-assignee="${esc(r.id)}">${r.active !== false ? "Deactivate" : "Reactivate"}</button>
+          </div></td>
+        </tr>`).join("")
+      }</tbody></table>`;
+      els.tableHost.querySelectorAll("[data-edit-assignee]").forEach((b) => b.addEventListener("click", () => openAssigneeModal(b.dataset.editAssignee)));
+      els.tableHost.querySelectorAll("[data-toggle-assignee]").forEach((b) => b.addEventListener("click", () => toggleAssigneeActive(b.dataset.toggleAssignee)));
+    }
+
+    function renderWatchersTable(rows) {
+      els.tabNote.textContent = "Watcher mapping is secondary/follower routing only.";
+      els.tableHost.innerHTML = `<table><thead><tr><th>Group</th><th>Subgroup</th><th>ClickUp User ID</th><th>Name</th><th>Email</th><th>Active</th><th>Notes</th><th>Actions</th></tr></thead><tbody>${
+        rows.map((r) => `<tr>
+          <td>${esc(r.group_id || "-")}</td><td>${esc(r.subgroup_id || "-")}</td><td>${esc(r.clickup_user_id || "-")}</td>
+          <td>${esc(r.watcher_name || "-")}</td><td>${esc(r.watcher_email || "-")}</td>
+          <td><span class="chip ${r.active !== false ? "chip-active" : "chip-inactive"}">${r.active !== false ? "Active" : "Inactive"}</span></td>
+          <td>${esc(r.notes || "-")}</td>
+          <td><div class="row-actions">
+            <button class="btn btn-ghost" data-edit-watcher="${esc(r.id)}">Edit</button>
+            <button class="btn ${r.active !== false ? "btn-danger" : "btn-ghost"}" data-toggle-watcher="${esc(r.id)}">${r.active !== false ? "Deactivate" : "Reactivate"}</button>
+          </div></td>
+        </tr>`).join("")
+      }</tbody></table>`;
+      els.tableHost.querySelectorAll("[data-edit-watcher]").forEach((b) => b.addEventListener("click", () => openWatcherModal(b.dataset.editWatcher)));
+      els.tableHost.querySelectorAll("[data-toggle-watcher]").forEach((b) => b.addEventListener("click", () => toggleWatcherActive(b.dataset.toggleWatcher)));
+    }
+
+    function render() {
+      renderErrorForActiveTab();
+      renderTable();
+    }
+
+    function fieldHtml(label, id, type = "text", value = "", required = false, extra = "") {
+      return `<div class="field"><label for="${id}">${label}</label><input class="input" id="${id}" type="${type}" value="${esc(value)}" ${required ? "required" : ""} ${extra} /></div>`;
+    }
+    function selectHtml(label, id, options, value = "", required = false) {
+      return `<div class="field"><label for="${id}">${label}</label><select class="select" id="${id}" ${required ? "required" : ""}>${options.map((o) => `<option value="${esc(o)}" ${String(value) === String(o) ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></div>`;
+    }
+
+    function openStaffModal(id) {
+      if (!canManageStaffRoles()) {
+        notify("You do not have permission to edit staff roles.", "error");
+        return;
+      }
+      const row = id ? state.rows.staff.find((r) => String(r.id || r.user_id || "") === String(id)) : null;
+      state.editing = { kind: "staff", id: id || null };
+      const options = allowedRoleAssignments();
+      els.entityModalTitle.textContent = row ? "Edit Staff Account" : "Add Staff Profile";
+      els.entityFormGrid.innerHTML = fieldHtml("Email", "fEmail", "email", row?.email || "", true) +
+        fieldHtml("Full Name", "fName", "text", row?.full_name || "", true) +
+        selectHtml("Role", "fRole", options, row?.role || options[0], true) +
+        `<div class="field"><label>Active</label><select class="select" id="fActive"><option value="true" ${(row?.is_active !== false && row?.active !== false) ? "selected" : ""}>Active</option><option value="false" ${(row?.is_active === false || row?.active === false) ? "selected" : ""}>Inactive</option></select></div>` +
+        `<div class="field full"><p class="muted" style="margin:0">To invite a new user, create or invite them in Supabase Auth first, then set their role here.</p></div>`;
+      openModal(els.entityModalOverlay, $("fEmail"));
+    }
+
+    function openTeacherModal(id) {
+      const row = id ? state.rows.teachers.find((r) => String(r[state.teacherIdKey] || "") === String(id)) : null;
+      state.editing = { kind: "teacher", id: id || null };
+      els.entityModalTitle.textContent = row ? "Edit Teacher" : "Add Teacher";
+      els.entityFormGrid.innerHTML = fieldHtml("Full Name", "fName", "text", row?.[state.teacherNameKey] || "", true) +
+        fieldHtml("Email", "fEmail", "email", row?.[state.teachersEmailKey] || "", true) +
+        fieldHtml("Phone", "fPhone", "text", row?.phone || "") +
+        fieldHtml("Group ID", "fGroup", "text", row?.group_id || "", true) +
+        fieldHtml("Subgroup ID", "fSubgroup", "text", row?.subgroup_id || "") +
+        selectHtml("Active", "fActive", ["true", "false"], row?.active === false ? "false" : "true", true);
+      openModal(els.entityModalOverlay, $("fName"));
+    }
+
+    function openAssigneeModal(id) {
+      const row = id ? state.rows.assignees.find((r) => String(r.id) === String(id)) : null;
+      state.editing = { kind: "assignee", id: id || null };
+      els.entityModalTitle.textContent = row ? "Edit ClickUp Assignee Mapping" : "Add ClickUp Assignee Mapping";
+      els.entityFormGrid.innerHTML = fieldHtml("Group ID", "fGroup", "text", row?.group_id || "", true) +
+        fieldHtml("Subgroup ID", "fSubgroup", "text", row?.subgroup_id || "") +
+        fieldHtml("ClickUp User ID", "fClickupUserId", "text", row?.clickup_user_id || "", true) +
+        fieldHtml("Admin Name", "fName", "text", row?.admin_name || "") +
+        fieldHtml("Admin Email", "fEmail", "email", row?.admin_email || "") +
+        selectHtml("Active", "fActive", ["true", "false"], row?.active === false ? "false" : "true", true);
+      openModal(els.entityModalOverlay, $("fGroup"));
+    }
+
+    function openWatcherModal(id) {
+      const row = id ? state.rows.watchers.find((r) => String(r.id) === String(id)) : null;
+      state.editing = { kind: "watcher", id: id || null };
+      els.entityModalTitle.textContent = row ? "Edit ClickUp Watcher Mapping" : "Add ClickUp Watcher Mapping";
+      els.entityFormGrid.innerHTML = fieldHtml("Group ID", "fGroup", "text", row?.group_id || "", true) +
+        fieldHtml("Subgroup ID", "fSubgroup", "text", row?.subgroup_id || "") +
+        fieldHtml("ClickUp User ID", "fClickupUserId", "text", row?.clickup_user_id || "", true) +
+        fieldHtml("Watcher Name", "fName", "text", row?.watcher_name || "") +
+        fieldHtml("Watcher Email", "fEmail", "email", row?.watcher_email || "") +
+        `<div class="field full"><label for="fNotes">Notes</label><textarea class="textarea" id="fNotes" rows="3">${esc(row?.notes || "")}</textarea></div>` +
+        selectHtml("Active", "fActive", ["true", "false"], row?.active === false ? "false" : "true", true);
+      openModal(els.entityModalOverlay, $("fGroup"));
+    }
+
+    function linkTeacherModal(id) {
+      const row = state.rows.teachers.find((r) => String(r[state.teacherIdKey] || "") === String(id));
+      if (!row) return;
+      state.editing = { kind: "teacher-link", id };
+      els.entityModalTitle.textContent = "Link Teacher to Auth User";
+      els.entityFormGrid.innerHTML = fieldHtml("Teacher Email", "fEmail", "email", row[state.teachersEmailKey] || "", true) +
+        `<div class="field full"><p class="muted" style="margin:0">This looks up profiles by email and writes teachers.teacher_user_id.</p></div>`;
+      openModal(els.entityModalOverlay, $("fEmail"));
+    }
+
+    async function toggleStaffActive(id) {
+      const row = state.rows.staff.find((r) => String(r.id || r.user_id || "") === String(id));
+      if (!row) return;
+      if (!canManageStaffRoles()) {
+        notify("You do not have permission to update staff accounts.", "error");
+        return;
+      }
+      if (isSelfProfile(row)) {
+        notify("You cannot deactivate your own account.", "error");
+        return;
+      }
+      const current = row.is_active !== false && row.active !== false;
+      const next = !current;
+      if (!window.confirm(`${next ? "Reactivate" : "Deactivate"} ${profileLabel(row)}?`)) return;
+      const payload = row.is_active !== undefined ? { is_active: next, active: next, updated_at: new Date().toISOString() } : { active: next, updated_at: new Date().toISOString() };
+      const { error } = await supabase.from("profiles").update(payload).eq("id", row.id || row.user_id);
+      if (error) { notify(`Update failed: ${error.message}`, "error"); return; }
+      notify(`Staff account ${next ? "reactivated" : "deactivated"}.`, "success");
+      await loadStaff();
+      render();
+    }
+
+    async function toggleTeacherActive(id) {
+      const row = state.rows.teachers.find((r) => String(r[state.teacherIdKey] || "") === String(id));
+      if (!row) return;
+      const active = row.active !== false && !row.deleted_at;
+      const next = !active;
+      if (!window.confirm(`${next ? "Reactivate" : "Deactivate"} ${row[state.teacherNameKey] || "teacher"}?`)) return;
+      const patch = { active: next, updated_at: new Date().toISOString() };
+      if (state.teacherSupportsDeletedAt) patch.deleted_at = next ? null : new Date().toISOString();
+      if (state.teacherSupportsStatus) patch.status = next ? "ACTIVE" : "INACTIVE";
+      const { error } = await supabase.from("teachers").update(patch).eq(state.teacherIdKey, row[state.teacherIdKey]);
+      if (error) { notify(`Update failed: ${error.message}`, "error"); return; }
+      notify(`Teacher ${next ? "reactivated" : "deactivated"}.`, "success");
+      await loadTeachers();
+      render();
+    }
+
+    async function unlinkTeacher(id) {
+      const row = state.rows.teachers.find((r) => String(r[state.teacherIdKey] || "") === String(id));
+      if (!row) return;
+      if (!window.confirm(`Unlink auth user from ${row[state.teacherNameKey] || "this teacher"}?`)) return;
+      const { error } = await supabase.from("teachers").update({ teacher_user_id: null, updated_at: new Date().toISOString() }).eq(state.teacherIdKey, row[state.teacherIdKey]);
+      if (error) { notify(`Unlink failed: ${error.message}`, "error"); return; }
+      notify("Teacher auth link removed.", "success");
+      await loadTeachers();
+      render();
+    }
+
+    async function toggleAssigneeActive(id) {
+      const row = state.rows.assignees.find((r) => String(r.id) === String(id));
+      if (!row) return;
+      const next = !(row.active !== false);
+      const { error } = await supabase.from("clickup_admin_mappings").update({ active: next, updated_at: new Date().toISOString() }).eq("id", row.id);
+      if (error) { notify(`Update failed: ${error.message}`, "error"); return; }
+      notify(`Assignee mapping ${next ? "reactivated" : "deactivated"}.`, "success");
+      await loadAssignees();
+      render();
+    }
+
+    async function toggleWatcherActive(id) {
+      const row = state.rows.watchers.find((r) => String(r.id) === String(id));
+      if (!row) return;
+      const next = !(row.active !== false);
+      const { error } = await supabase.from("clickup_admin_watchers").update({ active: next, updated_at: new Date().toISOString() }).eq("id", row.id);
+      if (error) { notify(`Update failed: ${error.message}`, "error"); return; }
+      notify(`Watcher mapping ${next ? "reactivated" : "deactivated"}.`, "success");
+      await loadWatchers();
+      render();
+    }
+
+    async function saveModal() {
+      if (!state.editing) return;
+      const kind = state.editing.kind;
+      const now = new Date().toISOString();
+      els.saveModalBtn.disabled = true;
+      try {
+        if (kind === "staff") {
+          const email = String($("fEmail")?.value || "").trim().toLowerCase();
+          const fullName = String($("fName")?.value || "").trim();
+          const role = String($("fRole")?.value || "").trim().toLowerCase();
+          const active = $("fActive")?.value !== "false";
+          if (!email || !fullName || !role) return notify("Email, full name, and role are required.", "warning");
+          if (!validRoles.includes(role)) return notify("Invalid role selected.", "warning");
+          if (!canManageStaffRoles()) return notify("You do not have permission to edit staff roles.", "error");
+          if (hasRole("admin") && !["teacher", "principal"].includes(role)) return notify("Admin can only assign teacher or principal.", "error");
+
+          const target = state.editing.id ? state.rows.staff.find((r) => String(r.id || r.user_id || "") === String(state.editing.id)) : null;
+          if (target && isSelfProfile(target)) {
+            const currentRole = String(target.role || "").toLowerCase();
+            if (currentRole === "superadmin" && role !== "superadmin") return notify("You cannot demote your own superadmin role.", "error");
+            if (!active) return notify("You cannot deactivate your own account.", "error");
+          }
+
+          if (target) {
+            const { error } = await supabase.from("profiles").update({ full_name: fullName, role, is_active: active, active, updated_at: now }).eq("id", target.id || target.user_id);
+            if (error) return notify(`Update failed: ${error.message}`, "error");
+            notify("Staff profile updated.", "success");
+          } else {
+            const { data: existing, error: lookupErr } = await supabase.from("profiles").select("id,email").ilike("email", email).limit(1).maybeSingle();
+            if (lookupErr) return notify(`Lookup failed: ${lookupErr.message}`, "error");
+            if (existing?.id) {
+              const { error } = await supabase.from("profiles").update({ full_name: fullName, role, is_active: active, active, updated_at: now }).eq("id", existing.id);
+              if (error) return notify(`Update failed: ${error.message}`, "error");
+              notify("Existing profile updated by email.", "success");
+            } else {
+              notify("No profile found for this email. Invite/create auth user first so profile exists.", "error");
+              return;
+            }
+          }
+          closeModal(els.entityModalOverlay);
+          await loadStaff();
+          render();
+          return;
+        }
+
+        if (kind === "teacher") {
+          const fullName = String($("fName")?.value || "").trim();
+          const email = String($("fEmail")?.value || "").trim().toLowerCase();
+          const phone = String($("fPhone")?.value || "").trim();
+          const group_id = String($("fGroup")?.value || "").trim();
+          const subgroup_id = String($("fSubgroup")?.value || "").trim();
+          const active = $("fActive")?.value !== "false";
+          if (!fullName || !email || !group_id) return notify("Name, email, and group are required.", "warning");
+          if (state.editing.id) {
+            const row = state.rows.teachers.find((r) => String(r[state.teacherIdKey] || "") === String(state.editing.id));
+            if (!row) return notify("Teacher row not found.", "error");
+            const patch = { [state.teacherNameKey]: fullName, [state.teachersEmailKey]: email, phone, group_id, subgroup_id: subgroup_id || null, active, updated_at: now };
+            if (state.teacherSupportsDeletedAt) patch.deleted_at = active ? null : (row.deleted_at || now);
+            if (state.teacherSupportsStatus) patch.status = active ? "ACTIVE" : "INACTIVE";
+            const { error } = await supabase.from("teachers").update(patch).eq(state.teacherIdKey, row[state.teacherIdKey]);
+            if (error) return notify(`Update failed: ${error.message}`, "error");
+            notify("Teacher updated.", "success");
+          } else {
+            const newId = `T-${Date.now()}`;
+            const payload = { [state.teacherIdKey]: newId, [state.teacherNameKey]: fullName, [state.teachersEmailKey]: email, phone, group_id, subgroup_id: subgroup_id || null, active, created_at: now, updated_at: now };
+            if (state.teacherSupportsStatus) payload.status = active ? "ACTIVE" : "PENDING";
+            const { error } = await supabase.from("teachers").insert(payload);
+            if (error) return notify(`Create failed: ${error.message}`, "error");
+            notify("Teacher added.", "success");
+          }
+          closeModal(els.entityModalOverlay);
+          await loadTeachers();
+          render();
+          return;
+        }
+
+        if (kind === "teacher-link") {
+          const row = state.rows.teachers.find((r) => String(r[state.teacherIdKey] || "") === String(state.editing.id));
+          if (!row) return notify("Teacher row not found.", "error");
+          const email = String($("fEmail")?.value || "").trim().toLowerCase();
+          if (!email) return notify("Email is required.", "warning");
+          const lookup = await trySelect("profiles", ["id,user_id,email", "id,email"]);
+          if (lookup.error) return notify(`Profile lookup failed: ${lookup.error.message}`, "error");
+          const found = (lookup.data || []).find((p) => String(p.email || "").trim().toLowerCase() === email);
+          if (!found) return notify("No profile found for that email.", "error");
+          const authUserId = found.user_id || found.id;
+          const { error } = await supabase.from("teachers").update({ teacher_user_id: authUserId, updated_at: now }).eq(state.teacherIdKey, row[state.teacherIdKey]);
+          if (error) return notify(`Link failed: ${error.message}`, "error");
+          notify("Teacher linked to auth user.", "success");
+          closeModal(els.entityModalOverlay);
+          await loadTeachers();
+          render();
+          return;
+        }
+
+        if (kind === "assignee") {
+          const group_id = String($("fGroup")?.value || "").trim();
+          const subgroup_id = String($("fSubgroup")?.value || "").trim();
+          const clickup_user_id = String($("fClickupUserId")?.value || "").trim();
+          const admin_name = String($("fName")?.value || "").trim();
+          const admin_email = String($("fEmail")?.value || "").trim();
+          const active = $("fActive")?.value !== "false";
+          if (!group_id || !clickup_user_id || (!admin_name && !admin_email)) return notify("Group, ClickUp user ID, and admin name or email are required.", "warning");
+          const payload = { group_id, subgroup_id: subgroup_id || null, clickup_user_id, admin_name: admin_name || null, admin_email: admin_email || null, active, updated_at: now };
+          let error = null;
+          if (state.editing.id) ({ error } = await supabase.from("clickup_admin_mappings").update(payload).eq("id", state.editing.id));
+          else ({ error } = await supabase.from("clickup_admin_mappings").insert({ ...payload, created_at: now }));
+          if (error) return notify(`Save failed: ${error.message}`, "error");
+          notify("ClickUp assignee mapping saved.", "success");
+          closeModal(els.entityModalOverlay);
+          await loadAssignees();
+          render();
+          return;
+        }
+
+        if (kind === "watcher") {
+          const group_id = String($("fGroup")?.value || "").trim();
+          const subgroup_id = String($("fSubgroup")?.value || "").trim();
+          const clickup_user_id = String($("fClickupUserId")?.value || "").trim();
+          const watcher_name = String($("fName")?.value || "").trim();
+          const watcher_email = String($("fEmail")?.value || "").trim();
+          const notes = String($("fNotes")?.value || "").trim();
+          const active = $("fActive")?.value !== "false";
+          if (!group_id || !clickup_user_id || (!watcher_name && !watcher_email)) return notify("Group, ClickUp user ID, and watcher name or email are required.", "warning");
+          const payload = { group_id, subgroup_id: subgroup_id || null, clickup_user_id, watcher_name: watcher_name || null, watcher_email: watcher_email || null, notes: notes || null, active, updated_at: now };
+          let error = null;
+          if (state.editing.id) ({ error } = await supabase.from("clickup_admin_watchers").update(payload).eq("id", state.editing.id));
+          else ({ error } = await supabase.from("clickup_admin_watchers").insert({ ...payload, created_at: now }));
+          if (error) return notify(`Save failed: ${error.message}`, "error");
+          notify("ClickUp watcher mapping saved.", "success");
+          closeModal(els.entityModalOverlay);
+          await loadWatchers();
+          render();
+        }
+      } finally {
+        els.saveModalBtn.disabled = false;
+      }
+    }
+
+    function openAddForActiveTab() {
+      if (state.activeTab === "staff") return openStaffModal(null);
+      if (state.activeTab === "teachers") return openTeacherModal(null);
+      if (state.activeTab === "assignees") return openAssigneeModal(null);
+      if (state.activeTab === "watchers") return openWatcherModal(null);
+    }
+
+    function bindEvents() {
+      els.searchInput.addEventListener("input", () => {
+        state.search = els.searchInput.value || "";
+        render();
+      });
+      els.clearBtn.addEventListener("click", () => {
+        state.search = "";
+        els.searchInput.value = "";
+        render();
+      });
+      els.addBtn.addEventListener("click", openAddForActiveTab);
+      els.refreshBtn.addEventListener("click", async () => {
+        await refreshActiveData();
+        render();
+        notify("Data refreshed.", "info", 1600);
+      });
+      els.signOutBtn.addEventListener("click", async () => {
+        await supabase.auth.signOut();
+        window.location.href = loginPath();
+      });
+      els.cancelModalBtn.addEventListener("click", () => closeModal(els.entityModalOverlay));
+      els.saveModalBtn.addEventListener("click", saveModal);
+      els.entityModalOverlay.addEventListener("click", (e) => {
+        if (e.target === els.entityModalOverlay) closeModal(els.entityModalOverlay);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal(els.entityModalOverlay);
+      });
+    }
+
+    async function ensureAccess() {
+      const auth = await requireAuth(["superadmin", "admin", "principal"]);
+      if (!auth) return false;
+      const role = String(auth.profile?.role || "").toLowerCase();
+      state.auth = auth;
+      state.role = role;
+      state.visibleTabs = tabsByRole[role] || [];
+      if (!state.visibleTabs.length || isTeacherBlocked()) {
+        document.body.innerHTML = window.FSRuntime?._unauthorizedHtml?.("Your account does not have permission to view this page.") || "<h2>Access denied.</h2>";
+        return false;
+      }
+      state.activeTab = state.visibleTabs[0];
+      const profile = await getCurrentProfile().catch(() => auth.profile);
+      els.welcomeLine.textContent = `${profile?.full_name || profile?.email || "Staff"} · ${role}`;
+      return true;
+    }
+
+    async function boot() {
+      setTheme();
+      const ok = await ensureAccess();
+      if (!ok) return;
+      bindEvents();
+      renderTabs();
+      await refreshActiveData();
+      render();
+      notify("Admin management ready.", "info", 1600);
+    }
+
+    boot().catch((err) => {
+      const info = window.FSRuntime?.classifyError?.(err) || { message: String(err || "Unknown error"), isAuth: false };
+      if (info.isAuth) {
+        window.FSRuntime?.handleAuthExpiration?.();
+        return;
+      }
+      els.errorHost.innerHTML = `<div class="msg error">Page failed to load: ${esc(info.message || err?.message || err)}</div>`;
+    });
+  </script>
+  <script src="../js/admin-shell.js"></script>
+  <script>
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "adminmanagement", pageTitle: "Admin Management" });
+  </script>
+</body>
+</html>
