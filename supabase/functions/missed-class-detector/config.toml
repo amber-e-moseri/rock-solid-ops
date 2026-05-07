@@ -1,0 +1,2 @@
+verify_jwt = false
+schedule = "15 2 * * *"

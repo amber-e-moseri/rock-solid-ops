@@ -17,6 +17,19 @@ type RetryRequest = {
   limit?: number;
 };
 
+function applyAllowedOrigin(req: Request) {
+  const allowed = String(Deno.env.get("ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const origin = String(req.headers.get("Origin") || "").trim();
+  if (origin && allowed.includes(origin)) {
+    corsHeaders["Access-Control-Allow-Origin"] = origin;
+  } else {
+    delete corsHeaders["Access-Control-Allow-Origin"];
+  }
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -346,6 +359,7 @@ async function applyResolve(
 }
 
 Deno.serve(async (req) => {
+  applyAllowedOrigin(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
 
@@ -465,3 +479,4 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: message }, 500);
   }
 });
+

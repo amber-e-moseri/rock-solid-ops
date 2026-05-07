@@ -6,6 +6,21 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 )
 
+const corsHeaders: Record<string, string> = {};
+
+function applyAllowedOrigin(req: Request) {
+  const allowed = String(Deno.env.get('ALLOWED_ORIGINS') || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+  const origin = String(req.headers.get('Origin') || '').trim()
+  if (origin && allowed.includes(origin)) {
+    corsHeaders['Access-Control-Allow-Origin'] = origin
+  } else {
+    delete corsHeaders['Access-Control-Allow-Origin']
+  }
+}
+
 interface WebhookPayload {
   type: 'INSERT' | 'UPDATE' | 'DELETE'
   record: ApplicantRow
@@ -34,6 +49,14 @@ interface ClassCandidate {
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
+  applyAllowedOrigin(req)
+  const expectedSecret = String(Deno.env.get('PHASE2_WEBHOOK_SECRET') || '').trim()
+  const providedSecret = String(req.headers.get('x-webhook-secret') || '').trim()
+
+  if (!expectedSecret || !providedSecret || providedSecret !== expectedSecret) {
+    return json({ ok: false, error: 'Unauthorized webhook caller' }, 401)
+  }
+
   if (req.method !== 'POST') {
     return json({ ok: false, error: 'Method not allowed' }, 405)
   }
@@ -261,7 +284,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   })
 }
 
@@ -290,3 +313,4 @@ async function logSync(
     run_by: 'phase2-processor'
   })
 }
+
