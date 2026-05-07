@@ -2,7 +2,7 @@
 
 A multi-campus registration and administration platform handling student intake, class management, teacher availability, attendance, email workflows, and a gradual migration from Google Apps Script to Supabase.
 
-> **Status:** Active development. Apps Script/Sheets is the current working backend. Supabase migration is in progress.
+> **Status:** Active development. Supabase is the canonical backend for MVP deployment.
 
 ---
 
@@ -55,6 +55,29 @@ supabase_foundation/
 - Serve `foundation/` as the web app root.
 - Canonical staff pages live under `/foundation/staff/`.
 - Root-level /staff/ is deprecated and removed.
+
+### Runtime config security
+- Keep runtime keys in `foundation/js/config.js` only (gitignored).
+- Commit placeholders only in `foundation/js/config.js.example`.
+- Frontend uses only `SUPABASE_URL` + `SUPABASE_ANON_KEY` via `window.FS_CONFIG`.
+- Never put `SUPABASE_SERVICE_ROLE_KEY` in frontend files.
+
+## Edge Function Runtime Env (MVP)
+
+Set these server-side env vars before deployment:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_ANON_KEY`
+- `MOODLE_URL`
+- `MOODLE_TOKEN`
+
+Core function set for MVP flows:
+
+- `registration-processor`
+- `moodle-sync`
+- `retry-worker`
+- `sender-worker`
 
 ### Static local server
 ```bash
@@ -139,3 +162,39 @@ git commit -m "docs: update known bugs"
 - [`KNOWNBUGS.md`](foundation/docs/KNOWNBUGS.md)
 - [`NEXT_STEPS.md`](foundation/docs/NEXT_STEPS.md)
 
+
+## Deployment (MVP)
+
+### Routing and redirects
+- Canonical deployed pages are under `/foundation/*`.
+- Alias routes are expected to work:
+  - `/` -> `/foundation/auth/login.html`
+  - `/staff` -> `/foundation/staff/admin-portal.html`
+  - `/auth` -> `/foundation/auth/login.html`
+- Alias rewrites:
+  - `/staff/*` -> `/foundation/staff/*`
+  - `/auth/*` -> `/foundation/auth/*`
+
+### Netlify
+- Config file: `netlify.toml` at repo root.
+- Publish directory: repo root (`.`).
+- Ensure deploy step provides runtime config file:
+  - `foundation/js/config.js`
+
+### Vercel
+- Config file: `vercel.json` at repo root.
+- Static routing uses redirects + rewrites.
+- Ensure deploy step provides runtime config file:
+  - `foundation/js/config.js`
+
+### Production smoke-test checklist
+1. `GET /` redirects to login.
+2. `GET /staff` and `GET /auth` resolve correctly.
+3. Unauthenticated access to protected staff pages redirects to login.
+4. Login succeeds and honors `?next=`.
+5. Logout redirects to login with `next`.
+6. Role sidebar links work for both `/staff/*` and `/foundation/staff/*` URL shapes.
+7. No hardcoded localhost URLs in committed source.
+8. Missing runtime config shows clear visible error.
+9. Core staff/auth pages load with no broken assets.
+10. Runtime JS errors/unhandled rejections show visible feedback.

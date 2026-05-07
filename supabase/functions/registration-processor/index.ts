@@ -22,9 +22,37 @@ Deno.serve(async (req) => {
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY
     );
+    const triggerMoodleSync = async (syncId: string) => {
+      if (!syncId) return;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/moodle-sync`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: syncId, limit: 1 }),
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          console.error("REGISTRATION_PROCESSOR_MOODLE_SYNC_TRIGGER_FAILED", {
+            syncId,
+            status: res.status,
+            body: txt,
+          });
+        }
+      } catch (err) {
+        console.error("REGISTRATION_PROCESSOR_MOODLE_SYNC_TRIGGER_ERROR", { syncId, err });
+      }
+    };
 
     const body = await req.json();
     const nowIso = new Date().toISOString();
+    const debugTrail: Record<string, unknown> = {
+      started_at: nowIso,
+      phase: "received",
+    };
 
     const full_name = String(body.full_name || "").trim();
 
@@ -67,6 +95,9 @@ const availability =
       throw new Error(
         "full_name and email are required"
       );
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error("Malformed payload: email is invalid");
     }
 
     // Duplicate detection is informational only; it must never block registration.
@@ -268,6 +299,8 @@ const availability =
     }
 
     const insertedApplicant = applicant as { id?: string } | null;
+    debugTrail.phase = "applicant_created";
+    debugTrail.applicant_id = insertedApplicant?.id || null;
     console.log("APPLICANT_CREATED", {
       applicantId: insertedApplicant?.id,
       email,
@@ -330,7 +363,7 @@ const availability =
       templateKey,
     });
 
-    await db
+    const { error: emailQueueInsertError } = await db
       .from("email_queue")
       .insert({
         recipient_email: email,
@@ -391,8 +424,50 @@ const availability =
           template_key: templateKey,
         },
       });
+    if (emailQueueInsertError) {
+      console.error("REGISTRATION_PROCESSOR_EMAIL_QUEUE_INSERT_ERROR", emailQueueInsertError);
+      throw new Error(
+        `Queue insertion failure: ${emailQueueInsertError.message || "email_queue insert failed"}`,
+      );
+    }
+    debugTrail.phase = "email_queued";
 
+    let moodleSyncRowId = "";
     if (registrationStatus === "ASSIGNED") {
+      try {
+        const { data: moodleRow, error: moodleUpsertErr } = await db
+          .from("moodle_enrollment_sync")
+          .upsert(
+            {
+              dedupe_key: `moodle-enroll:${String(insertedApplicant?.id || "")}`,
+              registration_id: insertedApplicant?.id || null,
+              applicant_id: insertedApplicant?.id || null,
+              email,
+              full_name,
+              batch_id: batch_id || null,
+              class_option_id: class_option_id || null,
+              registration_status: registrationStatus,
+              sync_status: "PENDING",
+              status: "PENDING",
+              payload: {
+                applicant_id: insertedApplicant?.id,
+                email,
+                full_name,
+                batch_id,
+                class_option_id,
+                registration_status: registrationStatus,
+              },
+            },
+            { onConflict: "dedupe_key" },
+          )
+          .select("id")
+          .single();
+        if (moodleUpsertErr) throw moodleUpsertErr;
+        moodleSyncRowId = String(moodleRow?.id || "");
+      } catch (moodleSyncInsertErr) {
+        console.error("REGISTRATION_PROCESSOR_MOODLE_SYNC_INSERT_ERROR", moodleSyncInsertErr);
+      }
+
       try {
         await db
           .from("scheduled_notifications")
@@ -418,39 +493,67 @@ const availability =
       } catch (moodleQueueErr) {
         console.error("REGISTRATION_PROCESSOR_MOODLE_QUEUE_ERROR", moodleQueueErr);
       }
+      if (moodleSyncRowId) {
+        await triggerMoodleSync(moodleSyncRowId);
+      }
     }
 
-    await db
-      .from("audit_logs")
-      .insert({
+    const writeAudit = async (
+      action: string,
+      status: "SUCCESS" | "FAILED",
+      details: Record<string, unknown>,
+    ) => {
+      const payload = {
         actor_email:
           "registration-processor@system",
-
-        action:
-          "REGISTRATION_RECEIVED",
-
+        action,
         entity_type:
           "applicant",
-
         entity_id:
           applicant.id,
+        status,
+        details,
+      };
+      const { error } = await db.from("audit_logs").insert(payload);
+      if (error) {
+        console.error("REGISTRATION_PROCESSOR_AUDIT_LOG_INSERT_ERROR", { action, error });
+      }
+    };
 
-        status:
-          "SUCCESS",
+    const commonAuditDetails = {
+      full_name,
+      email,
+      fellowship_code,
+      class_option_id,
+      batch_id,
+      availability,
+      registration_status: registrationStatus,
+      availability_status: availabilityStatus,
+      class_is_full: classIsFull,
+      template_key: templateKey,
+      debug_trail: debugTrail,
+    };
 
-        details: {
-          full_name,
-          email,
-          fellowship_code,
-          class_option_id,
-          batch_id,
-          availability,
-          registration_status: registrationStatus,
-          availability_status: availabilityStatus,
-          class_is_full: classIsFull,
-          template_key: templateKey,
-        },
-      });
+    await writeAudit(
+      "REGISTRATION_RECEIVED",
+      "SUCCESS",
+      commonAuditDetails,
+    );
+    if (registrationStatus === "ASSIGNED") {
+      await writeAudit("REGISTRATION_ASSIGNED", "SUCCESS", commonAuditDetails);
+      if (moodleSyncRowId) {
+        await writeAudit("MOODLE_SYNC_QUEUED", "SUCCESS", {
+          ...commonAuditDetails,
+          moodle_sync_id: moodleSyncRowId,
+        });
+      }
+    } else if (registrationStatus === "WAITLISTED") {
+      await writeAudit("REGISTRATION_WAITLISTED", "SUCCESS", commonAuditDetails);
+    } else if (registrationStatus === "DUPLICATE") {
+      await writeAudit("REGISTRATION_DUPLICATE", "SUCCESS", commonAuditDetails);
+    } else if (registrationStatus === "REVIEW") {
+      await writeAudit("REGISTRATION_REVIEW", "SUCCESS", commonAuditDetails);
+    }
 
     return new Response(
       JSON.stringify({
@@ -459,6 +562,7 @@ const availability =
         registration_status: registrationStatus,
         availability_status: availabilityStatus,
         template_key: templateKey,
+        debug_trail: debugTrail,
         message:
           "Registration processed",
       }),

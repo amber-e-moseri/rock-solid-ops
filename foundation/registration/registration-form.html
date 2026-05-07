@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -454,7 +454,7 @@
     margin-bottom: 6px; margin-top: 16px;
   }
 
-  /* Step 5 only — compact 3-column radio layout */
+  /* Step 5 only � compact 3-column radio layout */
   #screen-5 .q-label { font-size: 22px; }
   #screen-5 .q-hint  { font-size: 13px; margin-bottom: 8px; }
   #screen-5 .radio-grid {
@@ -613,13 +613,38 @@
     transition: max-height 0.3s var(--ease), opacity 0.3s var(--ease), transform 0.3s var(--ease);
     pointer-events: none;
   }
-  .field-error::before { content: '⚠'; font-size: 11px; }
+  .field-error::before { content: '!'; font-size: 11px; }
   .field-error { display: flex; }
   .field-error.show {
     max-height: 40px;
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
+  }
+  .submit-error-banner {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(192, 57, 43, 0.28);
+    background: rgba(192, 57, 43, 0.08);
+    color: #84261c;
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 1.5;
+    display: none;
+  }
+  .submit-error-banner.show {
+    display: block;
+  }
+  .submit-error-banner.info {
+    border-color: rgba(76, 42, 146, 0.28);
+    background: rgba(76, 42, 146, 0.08);
+    color: #3a2075;
+  }
+  .submit-error-banner.warn {
+    border-color: rgba(245, 158, 11, 0.32);
+    background: rgba(245, 158, 11, 0.12);
+    color: #7a5a00;
   }
 
   /* ===================== SUCCESS ===================== */
@@ -690,11 +715,11 @@
   }
   .chip::before { font-size: 12px; }
   .chip.success { background: rgba(142,99,199,0.14); color: #4C2A92; border: 1px solid rgba(244,190,65,0.38); }
-  .chip.success::before { content: '✓'; }
+  .chip.success::before { content: 'OK'; }
   .chip.error-chip { background: rgba(142,99,199,0.10); color: #6A3DAE; border: 1px solid rgba(142,99,199,0.30); }
-  .chip.error-chip::before { content: '✕'; }
+  .chip.error-chip::before { content: 'X'; }
   .chip.pending { background: rgba(244,190,65,0.24); color: #4C2A92; border: 1px solid rgba(244,190,65,0.40); }
-  .chip.pending::before { content: '◉'; }
+  .chip.pending::before { content: '...'; }
 
   /* ===================== CONFETTI ===================== */
   .confetti-container {
@@ -1045,6 +1070,7 @@
     </div>
     <div class="class-grid" id="classGrid" style="display:none;max-height:300px;overflow-y:auto;padding-right:4px;"></div>
     <div class="field-error" id="err-class">Please select a class time.</div>
+    <div class="submit-error-banner" id="submitErrorBanner" role="alert" aria-live="assertive"></div>
     <div class="q-actions">
       <button class="btn-back" onclick="goBack()">Back</button>
       <button class="btn-next" id="btn-submit" onclick="submitForm()">
@@ -1057,7 +1083,7 @@
 <!-- ===== SUCCESS ===== -->
 <div class="screen" id="screen-success">
   <div class="success-content">
-    <div class="success-icon">🎉</div>
+    <div class="success-icon">Success</div>
     <div class="success-title">You're in, <span id="success-name"></span>!</div>
     <p class="success-sub">Welcome to Rock Solid. Check your inbox - your class details are on their way.</p>
     <div class="summary-card" id="summary-card"></div>
@@ -1065,18 +1091,16 @@
 </div>
 
 <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
 <script>
 const CONFIG = {
-  // ── Supabase ──────────────────────────────────────────────
+  // -- Supabase ----------------------------------------------
   SUPABASE_URL: String(window.FS_CONFIG?.SUPABASE_URL || ''),
   SUPABASE_ANON_KEY: String(window.FS_CONFIG?.SUPABASE_ANON_KEY || ''),
 
-  // ── Legacy (no longer used) ───────────────────────────────
+  // -- Legacy (no longer used) -------------------------------
   APPS_SCRIPT_URL:   '',
   CLASS_TIMEZONE:    'America/Toronto',
-  MOODLE_URL:        'YOUR_MOODLE_URL',
-  MOODLE_TOKEN:      'YOUR_MOODLE_TOKEN',
-  MOODLE_COURSE_IDS: { CE: 2, CS: 3, WS: 4 },
   CLASS_OPTIONS_CSV: '',
   FELLOWSHIP_CSV:    '',
 };
@@ -1094,6 +1118,7 @@ let fellowshipTzMap = {};
 let fellowshipLookup = {};
 let classViewMode = 'normal';
 let noClassOptionsShown = false;
+let isSubmitting = false;
 const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 const TEMP_DRAFT_KEY = 'fsch_temp_draft_v1';
 const TEMP_DRAFT_TTL_MS = 2 * 60 * 60 * 1000;
@@ -1566,7 +1591,7 @@ function formatSessionLocal(cls) {
     const fallbackBits = [cleanDay, cleanTime].filter(Boolean);
     const fallbackTitle = fallbackBits.length ? fallbackBits.join(" - ") : "Class time unavailable";
     return {
-      title: `${isRegional ? "Regional — " : ""}${fallbackTitle}`,
+      title: `${isRegional ? "Regional � " : ""}${fallbackTitle}`,
       startLine: "",
       teacherLine: teacher,
       mismatch: false,
@@ -1594,7 +1619,7 @@ function formatSessionLocal(cls) {
     .formatToParts(instant).find(p => p.type === "timeZoneName")?.value || classTimeZone;
   const mismatch = classTimeZone !== userTimeZone;
   return {
-    title: `${isRegional ? "Regional — " : ""}${weekday || cleanDay} - ${timePart || cleanTime}${mismatch ? " (Your Time)" : ""}`,
+    title: `${isRegional ? "Regional � " : ""}${weekday || cleanDay} - ${timePart || cleanTime}${mismatch ? " (Your Time)" : ""}`,
     startLine: `Starts: ${startsLocal}`,
     teacherLine: teacher,
     mismatch,
@@ -1641,7 +1666,7 @@ function showScreen(id) {
   } else {
     logo.classList.add('visible');
     if (id === 'success') {
-      stepEl.textContent = 'Complete ✓';
+      stepEl.textContent = 'Complete';
     } else {
       const navStep = id === '4b' ? 5 : (typeof id === 'number' && id >= 5 ? id + 1 : id);
       stepEl.textContent = `${navStep} / ${TOTAL_STEPS}`;
@@ -1815,6 +1840,12 @@ function validateStep(step) {
     const sel = document.querySelector('input[name=classChoice]:checked');
     if (!sel && !noClassOptionsShown) show('err-class');
   }
+  if (!ok) {
+    const firstVisibleError = document.querySelector(`#screen-${step} .field-error.show`);
+    if (firstVisibleError && typeof firstVisibleError.scrollIntoView === "function") {
+      firstVisibleError.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
   return ok;
 }
 
@@ -1887,7 +1918,7 @@ async function loadFellowships() {
 
   if (debug) debug.textContent = '';
   try {
-    // ── Load fellowships from Supabase ──────────────────────
+    // -- Load fellowships from Supabase ----------------------
     const res = await fetch(
       `${CONFIG.SUPABASE_URL}/rest/v1/fellowship_map?active=eq.true&select=fellowship_code,campus_name,group_id,subgroup_id,timezone&order=campus_name`,
       { headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}` } }
@@ -1923,7 +1954,7 @@ async function loadClasses() {
   classesLoaded = false;
 
   try {
-    // ── Load class options from Supabase ────────────────────
+    // -- Load class options from Supabase --------------------
     showClassSkeleton();
     const res = await fetch(
       `${CONFIG.SUPABASE_URL}/rest/v1/class_options?active=eq.true&enrollment_open=eq.true&deleted_at=is.null&select=class_option_id,class_id,fellowship_codes,teacher_id,teacher_name,day,class_time,active`,
@@ -2046,7 +2077,7 @@ function renderClassesForSelectedFellowship(mode = classViewMode) {
   grid.appendChild(none);
 }
 async function preloadData() {
-  // fellowships MUST finish first — loadClasses reads fellowshipTzMap
+  // fellowships MUST finish first � loadClasses reads fellowshipTzMap
   // which is empty until loadFellowships completes.
   await loadFellowships();
   await loadClasses();
@@ -2056,6 +2087,7 @@ async function preloadData() {
 //  SUBMIT
 // ============================================================
 async function submitForm() {
+  if (isSubmitting) return;
   if (sessionStorage.getItem(CACHE_KEYS.submitGuard)) {
     const proceed = window.confirm(
       'This registration was already submitted in this browser session. Submit again anyway?'
@@ -2134,186 +2166,172 @@ async function submitForm() {
 
   const btn = document.getElementById('btn-submit');
 
-  document.getElementById('submit-text').textContent =
-    'Submitting';
-
-  document.getElementById('submit-spinner').style.display =
-    'inline-block';
-
-  btn.disabled = true;
-
   const payload = {
     firstName: formData.firstName,
     lastName: formData.lastName,
     email: formData.email,
     phone: formData.phone,
-
-    fellowshipName:
-      formData.fellowshipName || '',
-
-    fellowshipCode:
-      formData.fellowshipCode,
-
-    classChoice:
-      formData.classChoice || '',
-
-    classLabel:
-      formData.classLabel || '',
-
-    classTime:
-      classTime || '',
-
-    classStartDate:
-      classStartDate || '',
-
-    teacherName:
-      teacherName || '',
-
-    classId:
-      classId || '',
-
+    fellowshipName: formData.fellowshipName || '',
+    fellowshipCode: formData.fellowshipCode,
+    classChoice: formData.classChoice || '',
+    classLabel: formData.classLabel || '',
+    classTime: classTime || '',
+    classStartDate: classStartDate || '',
+    teacherName: teacherName || '',
+    classId: classId || '',
     batchId: '',
-
-    attendeeType:
-      formData.isStudent === true
-        ? 'student'
-        : (
-            formData.isStudent === false
-              ? 'non-student'
-              : ''
-          ),
-
-    subgroup:
-      subgroup || '',
-
-    timezone:
-      classTimezone ||
-      browserTimezone ||
-      '',
-
-    availability:
-      formData.availability ||
-      (
-        formData.classChoice === 'NONE'
-          ? 'NONE_SELECTED'
-          : ''
-      ),
-
-    bornAgain:
-      formData.bornAgain,
-
-    speaksInTongues:
-      formData.tongues,
-
-    waterBaptized:
-      formData.waterBaptized,
-
-    submittedAt:
-      new Date().toISOString(),
+    attendeeType: formData.isStudent === true ? 'student' : (formData.isStudent === false ? 'non-student' : ''),
+    subgroup: subgroup || '',
+    timezone: classTimezone || browserTimezone || '',
+    availability: formData.availability || (formData.classChoice === 'NONE' ? 'NONE_SELECTED' : ''),
+    bornAgain: formData.bornAgain,
+    speaksInTongues: formData.tongues,
+    waterBaptized: formData.waterBaptized,
+    submittedAt: new Date().toISOString(),
   };
 
-  let sheetsOk = false;
-  let mailchimpReason = '';
+  let processed = false;
+  let processorResult = null;
+  const submitErrorBanner = document.getElementById('submitErrorBanner');
+  const clearSubmitError = () => {
+    if (!submitErrorBanner) return;
+    submitErrorBanner.textContent = '';
+    submitErrorBanner.className = 'submit-error-banner';
+  };
+  const showSubmitState = (message, type = 'error') => {
+    if (!submitErrorBanner) return;
+    submitErrorBanner.textContent = message;
+    submitErrorBanner.className = `submit-error-banner show${type === 'warn' ? ' warn' : type === 'info' ? ' info' : ''}`;
+  };
+
+  clearSubmitError();
+  isSubmitting = true;
+  btn.disabled = true;
+  document.getElementById('submit-text').textContent = 'Submitting';
+  document.getElementById('submit-spinner').style.display = 'inline-block';
 
   try {
-
-    const fullName =
-      `${payload.firstName || ''} ${payload.lastName || ''}`.trim();
+    const fullName = `${payload.firstName || ''} ${payload.lastName || ''}`.trim();
 
     const res = await fetch(
       `${CONFIG.SUPABASE_URL}/functions/v1/registration-processor`,
       {
         method: 'POST',
-
         headers: {
           'Content-Type': 'application/json',
-          'Authorization':
-            `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
+          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
         },
-
         body: JSON.stringify({
           full_name: fullName,
-
-          email:
-            payload.email,
-
-          phone:
-            payload.phone || '',
-
-          fellowship_code:
-            payload.fellowshipCode || null,
-
-          class_option_id:
-            payload.classId || null,
-
-          batch_id:
-            payload.batchId || null,
-
-          first_name:
-            payload.firstName,
-
-          last_name:
-            payload.lastName,
-
-          born_again:
-            payload.bornAgain,
-
-          speaks_in_tongues:
-            payload.speaksInTongues,
-
-          water_baptized:
-            payload.waterBaptized,
-
-          class_label:
-            payload.classLabel,
-
-          class_time:
-            payload.classTime,
-
-          teacher_name:
-            payload.teacherName,
-
-          timezone:
-            payload.timezone,
-
-          attendee_type:
-            payload.attendeeType,
-
-          availability:
-            payload.availability
+          email: payload.email,
+          phone: payload.phone || '',
+          fellowship_code: payload.fellowshipCode || null,
+          class_option_id: payload.classId || null,
+          batch_id: payload.batchId || null,
+          first_name: payload.firstName,
+          last_name: payload.lastName,
+          born_again: payload.bornAgain,
+          speaks_in_tongues: payload.speaksInTongues,
+          water_baptized: payload.waterBaptized,
+          class_label: payload.classLabel,
+          class_time: payload.classTime,
+          teacher_name: payload.teacherName,
+          timezone: payload.timezone,
+          attendee_type: payload.attendeeType,
+          availability: payload.availability,
+          group_id: String(selectedFellowship?.groupId || ''),
+          subgroup_id: String(selectedFellowship?.subgroupId || ''),
+          preferred_class_time: payload.classTime || null
         })
       }
     );
 
-    const result = await res.json();
+    const result = await res.json().catch(() => ({}));
+    processorResult = result;
 
-    if (!result.ok) {
-      throw new Error(
-        result.error || 'Registration failed'
-      );
+    if (!res.ok || !result.ok) {
+      throw new Error(result?.error || `Registration failed (${res.status})`);
     }
 
-    sheetsOk = true;
-try {
+    processed = true;
 
-  await fetch(
-    `${CONFIG.SUPABASE_URL}/functions/v1/mailchimp-sync`,
-    {
-      method: 'POST',
+    const registrationStatus = String(result.registration_status || '').toUpperCase();
+    const availabilityStatus = String(result.availability_status || '').toUpperCase();
 
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization':
-          `Bearer ${CONFIG.SUPABASE_ANON_KEY}`
-      },
-
-      body: JSON.stringify({
-        limit: 1,
-        email: payload.email
-      })
+    if (registrationStatus === 'DUPLICATE') {
+      showSubmitState('We received your registration update. This email already exists, so our team will review it.', 'warn');
+    } else if (registrationStatus === 'WAITLISTED' || availabilityStatus === 'NO_MATCHING_TIME' || availabilityStatus === 'NO_CLASS_AVAILABLE' || availabilityStatus === 'CLASS_FULL') {
+      showSubmitState('We received your registration and placed you on the waitlist. We are actively working on your class placement.', 'info');
+    } else if (registrationStatus === 'REVIEW' || registrationStatus === 'PENDING') {
+      showSubmitState('Your registration was received and is now under review. We will update you shortly.', 'info');
+    } else if (registrationStatus === 'ASSIGNED' || registrationStatus === 'MOODLE_PENDING' || registrationStatus === 'MOODLE_SYNCED' || registrationStatus === 'MOODLE_FAILED') {
+      showSubmitState('Registration received successfully. Your class assignment is confirmed.', 'info');
     }
-  );
 
+    console.info('REGISTRATION_SUBMIT_OK', {
+      applicant_id: result.applicant_id,
+      registration_status: registrationStatus,
+      availability_status: availabilityStatus,
+      template_key: result.template_key,
+    });
+  } catch (err) {
+    processed = false;
+    const rawMessage = String(err?.message || err || 'Registration failed. Please try again.');
+    const lower = rawMessage.toLowerCase();
+    let friendly = rawMessage;
+    if (lower.includes('malformed payload')) {
+      friendly = 'We could not process your registration details. Please check your information and try again.';
+    } else if (lower.includes('duplicate')) {
+      friendly = 'This email has already been registered. We recorded your update and our team will review it.';
+    } else if (lower.includes('queue insertion failure')) {
+      friendly = 'Your registration was received, but follow-up notifications are delayed. Please retry in a moment.';
+    } else if (lower.includes('timed out')) {
+      friendly = 'Request timed out. Your form is still filled in. Please try submitting again.';
+    } else if (lower.includes('class')) {
+      friendly = 'We could not confirm class assignment right now. Please retry shortly.';
+    }
+    console.error('REGISTRATION_SUBMIT_FAILED', {
+      error: err,
+      processorResult,
+      payload: {
+        email: payload.email,
+        fellowshipCode: payload.fellowshipCode,
+        classId: payload.classId,
+        subgroup,
+      }
+    });
+    showSubmitState(friendly, 'error');
+    const firstVisibleError = document.querySelector('#screen-6 .field-error.show') || submitErrorBanner;
+    if (firstVisibleError && typeof firstVisibleError.scrollIntoView === 'function') {
+      firstVisibleError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  } finally {
+    isSubmitting = false;
+    btn.disabled = false;
+    document.getElementById('submit-spinner').style.display = 'none';
+    document.getElementById('submit-text').textContent = '';
+  }
+
+  if (processed) {
+    sessionStorage.setItem(CACHE_KEYS.submitGuard, '1');
+  }
+
+  sessionStorage.removeItem(CACHE_KEYS.fellowships);
+  sessionStorage.removeItem(CACHE_KEYS.classes);
+
+  const successData = { ...formData };
+  clearTempDraft();
+  showSuccess(successData, processorResult || {});
+
+  Object.keys(formData).forEach(k => delete formData[k]);
+  currentStep = 0;
+  fellowships = [];
+  fellowshipTzMap = {};
+  classes = [];
+  classesLoaded = false;
+  noClassOptionsShown = false;
 } catch (mailchimpErr) {
 
   console.error(
@@ -2323,30 +2341,27 @@ try {
 
 }
   } catch (err) {
-
-  sheetsOk = false;
-
-  console.error(
-    'Registration processor error:',
-    err
-  );
-
-  alert(
-    err.message ||
-    'Registration failed. Please try again.'
-  );
-
-  btn.disabled = false;
-
-  document.getElementById('submit-spinner').style.display =
-    'none';
-
-  document.getElementById('submit-text').textContent =
-    '';
-
-  return;
-}
-
+    sheetsOk = false;
+    const rawMessage = String(err?.message || err || 'Registration failed. Please try again.');
+    const lower = rawMessage.toLowerCase();
+    let friendly = rawMessage;
+    if (lower.includes('malformed payload')) {
+      friendly = 'We could not process your registration details. Please check your information and try again.';
+    } else if (lower.includes('duplicate')) {
+      friendly = 'This email has already been registered. We recorded your update and our team will review it.';
+    } else if (lower.includes('queue insertion failure')) {
+      friendly = 'Your registration was received, but notification queueing failed. Please retry in a moment.';
+    } else if (lower.includes('class')) {
+      friendly = 'We could not confirm a class assignment right now. Please retry shortly.';
+    }
+    console.error('Registration processor error:', { err, processorResult });
+    showSubmitError(friendly);
+    return;
+  } finally {
+    btn.disabled = false;
+    document.getElementById('submit-spinner').style.display = 'none';
+    document.getElementById('submit-text').textContent = '';
+  }
 
 
   if (sheetsOk) {
@@ -2389,7 +2404,7 @@ Object.keys(formData).forEach(k =>
 //  SUCCESS
 // ============================================================
 
-function showSuccess(data = {}) {
+function showSuccess(data = {}, processorResult = {}) {
 
   const fullName =
     `${data.firstName || ''} ${data.lastName || ''}`.trim();
@@ -2416,8 +2431,23 @@ function showSuccess(data = {}) {
     document.getElementById('navStep');
 
   if (navStep) {
-    navStep.textContent = 'Complete ✓';
+    navStep.textContent = 'Complete';
     navStep.classList.add('visible');
+  }
+
+  const successSub = document.querySelector('.success-sub');
+  if (successSub) {
+    const status = String(processorResult.registration_status || '').toUpperCase();
+    const availability = String(processorResult.availability_status || '').toUpperCase();
+    if (status === 'DUPLICATE') {
+      successSub.textContent = 'We received your registration update. Our team will review the duplicate submission.';
+    } else if (status === 'WAITLISTED' || availability === 'NO_MATCHING_TIME' || availability === 'NO_CLASS_AVAILABLE' || availability === 'CLASS_FULL') {
+      successSub.textContent = 'You are on our waitlist. We are actively working on your placement and will contact you soon.';
+    } else if (status === 'REVIEW' || status === 'PENDING') {
+      successSub.textContent = 'Your registration is under review. We will update you by email as soon as it is processed.';
+    } else {
+      successSub.textContent = 'Welcome to Rock Solid. Check your inbox - your class details are on their way.';
+    }
   }
 
   // ===== Summary =====
@@ -2429,30 +2459,30 @@ function showSuccess(data = {}) {
     summary.innerHTML = `
       <div class="summary-row">
         <span class="summary-key">Name</span>
-        <span class="summary-val">${fullName || '—'}</span>
+        <span class="summary-val">${fullName || '�'}</span>
       </div>
 
       <div class="summary-row">
         <span class="summary-key">Email</span>
-        <span class="summary-val">${data.email || '—'}</span>
+        <span class="summary-val">${data.email || '�'}</span>
       </div>
 
       <div class="summary-row">
         <span class="summary-key">Phone</span>
-        <span class="summary-val">${data.phone || '—'}</span>
+        <span class="summary-val">${data.phone || '�'}</span>
       </div>
 
       <div class="summary-row">
         <span class="summary-key">Fellowship</span>
         <span class="summary-val">
-          ${data.fellowshipName || data.fellowshipCode || '—'}
+          ${data.fellowshipName || data.fellowshipCode || '�'}
         </span>
       </div>
 
       <div class="summary-row">
         <span class="summary-key">Class</span>
         <span class="summary-val">
-          ${data.classLabel || data.classChoice || '—'}
+          ${data.classLabel || data.classChoice || '�'}
         </span>
       </div>
     `;
@@ -2536,6 +2566,18 @@ window.addEventListener('load', async () => {
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

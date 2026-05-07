@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 type RetryAction = "retry" | "resolve";
-type RetrySource = "email_queue" | "scheduled_notifications" | "moodle_sync" | "failed_syncs";
+type RetrySource = "email_queue" | "scheduled_notifications" | "moodle_sync" | "moodle_enrollment_sync" | "failed_syncs";
 
 type RetryRequest = {
   action?: RetryAction;
@@ -24,6 +24,26 @@ function json(body: unknown, status = 200) {
       "Content-Type": "application/json",
     },
   });
+}
+
+async function triggerMoodleSync(
+  supabaseUrl: string,
+  serviceKey: string,
+  id: string,
+) {
+  const res = await fetch(`${supabaseUrl}/functions/v1/moodle-sync`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ id, limit: 1 }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`moodle-sync trigger failed (${res.status}): ${text}`);
+  }
 }
 
 async function isAdmin(serviceDb: ReturnType<typeof createClient>, userId: string, email?: string) {
@@ -135,6 +155,23 @@ async function applyRetry(
     return;
   }
 
+  if (source === "moodle_enrollment_sync") {
+    const { error } = await db
+      .from("moodle_enrollment_sync")
+      .update({
+        sync_status: "RETRYING",
+        status: "RETRYING",
+        last_error: null,
+        error_message: null,
+        error_code: null,
+        retry_requested_at: now,
+        updated_at: now,
+      })
+      .eq("id", id);
+    if (error) throw error;
+    return;
+  }
+
   if (source === "failed_syncs") {
     const { error } = await db
       .from("failed_syncs")
@@ -174,6 +211,19 @@ async function applyResolve(
     const { error } = await db
       .from("moodle_sync")
       .update({ status: "RESOLVED", updated_at: now })
+      .eq("id", id);
+    if (error) throw error;
+    return;
+  }
+
+  if (source === "moodle_enrollment_sync") {
+    const { error } = await db
+      .from("moodle_enrollment_sync")
+      .update({
+        sync_status: "RESOLVED",
+        status: "RESOLVED",
+        updated_at: now,
+      })
       .eq("id", id);
     if (error) throw error;
     return;
@@ -219,17 +269,28 @@ const allowed = await isAdmin(
 
     if (!id) return json({ ok: false, error: "id is required" }, 400);
     if (!["retry", "resolve"].includes(action)) return json({ ok: false, error: "action must be retry|resolve" }, 400);
-    if (!["email_queue", "scheduled_notifications", "moodle_sync", "failed_syncs"].includes(source)) {
+    if (!["email_queue", "scheduled_notifications", "moodle_sync", "moodle_enrollment_sync", "failed_syncs"].includes(source)) {
       return json({ ok: false, error: "Unsupported source" }, 400);
     }
 
-    if (action === "retry") await applyRetry(serviceDb, source, id);
+    if (action === "retry") {
+      await applyRetry(serviceDb, source, id);
+      if (source === "moodle_enrollment_sync") {
+        try {
+          await triggerMoodleSync(SUPABASE_URL, SERVICE_KEY, id);
+        } catch (triggerErr) {
+          console.error("RETRY_WORKER_MOODLE_TRIGGER_ERROR", triggerErr);
+        }
+      }
+    }
     else await applyResolve(serviceDb, source, id);
 
     await logAudit(
       serviceDb,
       userData.user.email || "admin@system",
-      action === "retry" ? "RETRY_REQUESTED" : "RETRY_MARK_RESOLVED",
+      action === "retry"
+        ? (source === "moodle_enrollment_sync" ? "MOODLE_SYNC_RETRIED" : "RETRY_REQUESTED")
+        : "RETRY_MARK_RESOLVED",
       source,
       id,
       "SUCCESS",

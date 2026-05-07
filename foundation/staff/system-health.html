@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
@@ -13,202 +13,730 @@
   <link rel="stylesheet" href="../ui/admin-shell.css" />
   <style>
     body { font-family: "Manrope", system-ui, sans-serif; }
-    .hero-title { margin: 0; font-size: clamp(1.6rem, 3.2vw, 2.2rem); }
-    .hero-sub { margin-top: 6px; }
-    .checks { display: grid; gap: 10px; }
-    .check { display: flex; justify-content: space-between; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: var(--surface-2); }
-    .check strong { font-size: 13px; }
-    .status { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); }
-    .status.ok { background: var(--success-soft); color: #1b6b3d; }
-    .status.warn { background: #fff4db; color: #8a5600; }
-    .status.bad { background: var(--danger-soft); color: #a33131; }
-    .state { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--muted); }
+    .ops-summary-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-bottom: 12px;
+    }
+    .ops-kpi {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow-soft);
+    }
+    .ops-kpi h3 {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-weight: 800;
+    }
+    .ops-kpi .v {
+      margin-top: 6px;
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--ink, var(--text));
+    }
+
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .health-card {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: var(--shadow-soft);
+    }
+    .health-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .health-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--ink, var(--text));
+    }
+    .health-chip {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .health-chip.pass { background: var(--success-soft); color: #1f7a4a; }
+    .health-chip.warn { background: #fff4db; color: #8a5600; }
+    .health-chip.fail { background: var(--danger-soft); color: #a33131; }
+    .health-detail {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      min-height: 36px;
+    }
+
+    .checks-toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .state {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-2);
+      color: var(--muted);
+    }
+
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+    table { width: 100%; min-width: 860px; border-collapse: collapse; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { font-size: 11px; text-transform: uppercase; color: var(--muted); letter-spacing: .05em; }
+    .muted-cell { color: var(--muted); max-width: 350px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .mobile-fails { display: none; gap: 10px; }
+    .mobile-fail {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      padding: 12px;
+    }
+    .mobile-fail h4 { margin: 0 0 6px; font-size: 14px; }
+    .mobile-fail p { margin: 4px 0; font-size: 12px; color: var(--muted); }
+
+    @media (max-width: 1100px) {
+      .ops-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .health-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .ops-summary-grid { grid-template-columns: 1fr; }
+      .table-wrap { display: none; }
+      .mobile-fails { display: grid; }
+    }
   </style>
 </head>
 <body>
-  <main class="fs-page">
+  <main class="fs-page fs-wrap-xl">
     <section class="hero">
       <h1 class="hero-title">System Health</h1>
-      <p class="hero-sub">Runtime checks for Supabase access, queue pressure, and delivery risk.</p>
+      <p class="hero-sub">Operational diagnostics for auth, data visibility, queues, retries, and Edge Function readiness.</p>
     </section>
 
+    <section class="ops-summary-grid">
+      <article class="ops-kpi"><h3>Supabase Connection</h3><div id="kConnection" class="v">-</div></article>
+      <article class="ops-kpi"><h3>Auth Session</h3><div id="kSession" class="v">-</div></article>
+      <article class="ops-kpi"><h3>Failed Sync Count</h3><div id="kFailedSync" class="v">0</div></article>
+      <article class="ops-kpi"><h3>Queued Emails</h3><div id="kQueuedEmail" class="v">0</div></article>
+      <article class="ops-kpi"><h3>Failed Emails</h3><div id="kFailedEmail" class="v">0</div></article>
+      <article class="ops-kpi"><h3>Scheduled Notifications</h3><div id="kScheduled" class="v">0</div></article>
+      <article class="ops-kpi"><h3>Active Batches</h3><div id="kActiveBatch" class="v">0</div></article>
+      <article class="ops-kpi"><h3>Retry Backlog</h3><div id="kRetryBacklog" class="v">0</div></article>
+    </section>
+
+    <section id="errorBox" class="err hidden"></section>
+    <section id="okBox" class="ok hidden"></section>
+    <section id="infoBox" class="warn hidden"></section>
+
     <section class="card">
-      <div class="fs-row" style="margin-bottom:10px;">
-        <strong>Health Snapshot</strong>
+      <div class="checks-toolbar">
+        <strong>Runtime Health Checks</strong>
         <span class="spacer"></span>
         <button id="refreshBtn" class="btn primary">Refresh</button>
       </div>
-      <div id="checks" class="checks"></div>
       <div id="checksState" class="state">Running checks...</div>
+      <div id="checksGrid" class="health-grid hidden"></div>
     </section>
 
     <section class="card">
-      <h3 style="margin-top:0;">Queue Counters</h3>
-      <div id="stats" class="stats"></div>
-      <div id="statsState" class="state">Loading queue counters...</div>
+      <h3 style="margin-top:0;">Recent Failure Summary</h3>
+      <div id="failsState" class="state">Loading recent failures...</div>
+      <div id="failsTableWrap" class="table-wrap hidden">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Target</th>
+              <th>Error</th>
+              <th>Created</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="failsRows"></tbody>
+        </table>
+      </div>
+      <div id="failsMobile" class="mobile-fails"></div>
     </section>
 
     <section class="card">
-      <h3 style="margin-top:0;">Migration Notes</h3>
+      <h3 style="margin-top:0;">Optional Table Notes</h3>
       <ul id="migrationNotes" class="muted" style="margin:0 0 0 18px;"></ul>
     </section>
   </main>
 
   <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/runtime.js"></script>
+  <script src="../js/admin-ui.js"></script>
+  <script src="../js/admin-api.js"></script>
+  <script src="../js/toast.js"></script>
   <script src="../js/admin-shell.js"></script>
   <script type="module">
-    import { supabase, getCurrentProfile } from "../auth/auth-client.js";
+    import { supabase, getCurrentProfile, getSessionOrNull } from "../auth/auth-client.js";
 
-    const roleAllow = new Set(["admin", "superadmin", "subgroup_admin", "pastor"]);
+    const adminApi = window.FSAdminApi;
+    const adminUi = window.FSAdminUi;
+    const roleAllow = new Set(["admin", "superadmin", "subgroup_admin", "pastor", "principal"]);
     const missingTables = new Set();
+
     const $ = (id) => document.getElementById(id);
 
-    const isMissingTable = (error) => {
-      const msg = String(error?.message || "").toLowerCase();
-      return error?.code === "42P01" || msg.includes("does not exist") || msg.includes("relation");
+    const state = {
+      profile: null,
+      checks: [],
+      failures: []
     };
 
-    function setState(id, msg) {
-      $(id).textContent = msg;
-      $(id).classList.remove("hidden");
-    }
-
-    function clearState(id) {
-      $(id).classList.add("hidden");
-    }
-
-    function checkRow(name, status, detail) {
-      return `
-        <article class="check">
-          <div>
-            <strong>${name}</strong>
-            <div class="muted">${detail}</div>
-          </div>
-          <span class="status ${status}">${status.toUpperCase()}</span>
-        </article>
-      `;
-    }
-
-    async function ensureAccess() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        window.location.href = "login.html";
-        return null;
+    function showBanner(kind, text) {
+      ["errorBox", "okBox", "infoBox"].forEach((id) => $(id)?.classList.add("hidden"));
+      const id = kind === "error" ? "errorBox" : kind === "ok" ? "okBox" : "infoBox";
+      if ($(id)) {
+        $(id).textContent = text;
+        $(id).classList.remove("hidden");
       }
-      const profile = await getCurrentProfile();
-      if (!profile || !roleAllow.has(profile.role)) {
-        setState("checksState", "Access denied for this account.");
-        return null;
-      }
-      return profile;
     }
 
-    async function safeCount(table, apply) {
-      let query = supabase.from(table).select("*", { count: "exact", head: true });
-      if (typeof apply === "function") query = apply(query);
-      const { count, error } = await query;
-      if (error) {
-        if (isMissingTable(error)) {
+    function isMissingTable(error) {
+      const msg = String(error?.message || "").toLowerCase();
+      return error?.code === "42P01" || msg.includes("does not exist") || msg.includes("relation");
+    }
+
+    async function withTimeout(label, promiseFactory, timeoutMs = 9000) {
+      let timer;
+      try {
+        const timeoutPromise = new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+        });
+        return await Promise.race([promiseFactory(), timeoutPromise]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    }
+
+    function pushCheck(key, title, stateValue, detail) {
+      state.checks.push({ key, title, state: stateValue, detail });
+    }
+
+    function checkChipClass(v) {
+      if (v === "pass") return "pass";
+      if (v === "warn") return "warn";
+      return "fail";
+    }
+
+    function checkChipLabel(v) {
+      return v === "pass" ? "PASS" : v === "warn" ? "WARN" : "FAIL";
+    }
+
+    function formatDateTime(v) {
+      if (!v || v === "-") return "-";
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return String(v);
+      return d.toLocaleString();
+    }
+
+    async function countTable(table, apply, optional = false) {
+      try {
+        const q0 = supabase.from(table).select("*", { count: "exact", head: true });
+        const q = typeof apply === "function" ? apply(q0) : q0;
+        const { count, error } = await withTimeout(`count ${table}`, () => q);
+        if (error) {
+          if (optional && isMissingTable(error)) {
+            missingTables.add(table);
+            return 0;
+          }
+          throw error;
+        }
+        return count || 0;
+      } catch (e) {
+        if (optional && isMissingTable(e)) {
           missingTables.add(table);
           return 0;
         }
-        throw error;
+        throw e;
       }
-      return count || 0;
     }
 
-    async function healthChecks() {
-      setState("checksState", "Running checks...");
-      missingTables.clear();
-      const rows = [];
+    async function fetchRecentFailures() {
+      const out = [];
 
-      try {
-        const probe = await supabase.from("batches").select("batch_id", { head: true, count: "exact" }).limit(1);
-        if (probe.error) {
-          if (isMissingTable(probe.error)) missingTables.add("batches");
-          rows.push(checkRow("Supabase Connection", "bad", probe.error.message));
-        } else {
-          rows.push(checkRow("Supabase Connection", "ok", "Database reachable via anon session."));
+      const load = async (table, apply, mapper, optional = true) => {
+        try {
+          const q0 = supabase.from(table).select("*").limit(20);
+          const q = apply ? apply(q0) : q0;
+          const { data, error } = await withTimeout(`recent ${table}`, () => q);
+          if (error) {
+            if (optional && isMissingTable(error)) {
+              missingTables.add(table);
+              return;
+            }
+            throw error;
+          }
+          (data || []).forEach((row) => out.push(mapper(row, table)));
+        } catch (e) {
+          if (optional && isMissingTable(e)) {
+            missingTables.add(table);
+            return;
+          }
+          throw e;
         }
-      } catch (error) {
-        rows.push(checkRow("Supabase Connection", "bad", error.message));
-      }
+      };
 
-      const session = await supabase.auth.getSession();
-      rows.push(checkRow("Auth Session", session.data?.session ? "ok" : "warn", session.data?.session ? "Active session found." : "No active session detected."));
+      await load(
+        "failed_syncs",
+        (q) => q.order("created_at", { ascending: false }),
+        (r, t) => ({
+          source: t,
+          status: String(r.status || "FAILED"),
+          target: String(r.source_table || r.sync_type || r.source_id || "-"),
+          error: String(r.error_message || "-"),
+          createdAt: r.created_at || "-",
+          updatedAt: r.last_retry_at || r.updated_at || "-"
+        })
+      );
 
-      try {
-       const rlsProbe = await supabase
-  .from("admin_users")
-  .select("auth_user_id")
-  .limit(1);
-        //const rlsProbe = await supabase.from("profiles").select("user_id").limit(1);
-        if (rlsProbe.error) {
-          rows.push(checkRow("RLS Visibility", "warn", rlsProbe.error.message));
-        } else {
-          rows.push(checkRow("RLS Visibility", "ok", "Read probe succeeded for profiles."));
-        }
-      } catch (error) {
-        rows.push(checkRow("RLS Visibility", "warn", error.message));
-      }
+      await load(
+        "email_queue",
+        (q) => q.or("status.ilike.%fail%,status.ilike.%error%").order("updated_at", { ascending: false }),
+        (r, t) => ({
+          source: t,
+          status: String(r.status || "FAILED"),
+          target: String(r.recipient_email || r.recipient_name || "-"),
+          error: String(r.error_message || r.last_error || "-"),
+          createdAt: r.created_at || "-",
+          updatedAt: r.updated_at || "-"
+        })
+      );
 
-      rows.push(checkRow("Edge Function: registration-processor", "warn", "Placeholder check. Add function heartbeat table for live probe."));
-      rows.push(checkRow("Edge Function: sender-worker", "warn", "Placeholder check. Add worker heartbeat table for live probe."));
+      await load(
+        "scheduled_notifications",
+        (q) => q.or("status.ilike.%fail%,status.ilike.%error%").order("updated_at", { ascending: false }),
+        (r, t) => ({
+          source: t,
+          status: String(r.status || "FAILED"),
+          target: String(r.recipient_email || r.event_type || "-"),
+          error: String(r.error_message || r.last_error || "-"),
+          createdAt: r.created_at || "-",
+          updatedAt: r.updated_at || "-"
+        })
+      );
 
-      $("checks").innerHTML = rows.join("");
-      clearState("checksState");
+      await load(
+        "audit_logs",
+        (q) => q.or("status.ilike.%fail%,status.ilike.%error%").order("created_at", { ascending: false }),
+        (r, t) => ({
+          source: t,
+          status: String(r.status || "-"),
+          target: String(r.action || r.entity_type || "-"),
+          error: String(r.details?.error || r.details?.message || "-"),
+          createdAt: r.created_at || r.logged_at || "-",
+          updatedAt: r.created_at || r.logged_at || "-"
+        })
+      );
+
+      await load(
+        "moodle_enrollment_sync",
+        (q) => q.or("sync_status.ilike.%fail%,sync_status.ilike.%error%,last_error.not.is.null").order("updated_at", { ascending: false }),
+        (r, t) => ({
+          source: t,
+          status: String(r.sync_status || "FAILED"),
+          target: String(r.email || r.student_id || r.batch_id || "-"),
+          error: String(r.last_error || "-"),
+          createdAt: r.created_at || "-",
+          updatedAt: r.updated_at || "-"
+        })
+      );
+
+      return out.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()).slice(0, 60);
     }
 
-    async function loadStats() {
-      setState("statsState", "Loading queue counters...");
-      const queuedEmails = await safeCount("email_queue", (q) => q.in("status", ["Pending", "pending", "queued", "QUEUED"]));
-      const failedSyncs = await safeCount("failed_syncs", (q) => q.in("status", ["failed", "error", "FAILED", "ERROR"]));
-      const activeBatches = await safeCount("batches", (q) => q.eq("active", true));
+    async function checkEdgeEndpoint(name) {
+      const cfg = adminApi?.getConfig?.() || {};
+      if (!cfg.url || !cfg.anonKey) {
+        return { state: "fail", detail: "Missing runtime config." };
+      }
 
-      $("stats").innerHTML = [
-        { label: "Queued Emails", value: queuedEmails },
-        { label: "Failed Sync Count", value: failedSyncs },
-        { label: "Active Batch Count", value: activeBatches },
-      ].map((item) => `
-        <article class="stat">
-          <div class="stat-value">${item.value}</div>
-          <div class="stat-label">${item.label}</div>
+      const url = `${cfg.url}/functions/v1/${name}`;
+      try {
+        const res = await withTimeout(
+          `edge ${name}`,
+          () => fetch(url, {
+            method: "OPTIONS",
+            headers: {
+              apikey: cfg.anonKey,
+              Authorization: `Bearer ${cfg.anonKey}`,
+              "Content-Type": "application/json"
+            }
+          }),
+          8000
+        );
+
+        if (res.ok) return { state: "pass", detail: `Reachable (HTTP ${res.status}).` };
+        if (res.status === 401 || res.status === 403) return { state: "warn", detail: `Reachable but auth-restricted (HTTP ${res.status}).` };
+        return { state: "warn", detail: `Responded HTTP ${res.status}.` };
+      } catch (e) {
+        return { state: "fail", detail: adminApi.normalizeError(e) };
+      }
+    }
+
+    function renderChecks() {
+      const grid = $("checksGrid");
+      grid.innerHTML = state.checks.map((c) => `
+        <article class="health-card">
+          <div class="health-head">
+            <h3 class="health-title">${adminUi.esc(c.title)}</h3>
+            <span class="health-chip ${checkChipClass(c.state)}">${checkChipLabel(c.state)}</span>
+          </div>
+          <div class="health-detail">${adminUi.esc(c.detail)}</div>
         </article>
       `).join("");
 
-      clearState("statsState");
+      $("checksState").classList.add("hidden");
+      grid.classList.remove("hidden");
     }
 
-    function renderMigrationNotes() {
-      const items = [...missingTables].map((t) => `Missing required table for health checks: ${t}`);
-      $("migrationNotes").innerHTML = items.length
-        ? items.map((i) => `<li>${i}</li>`).join("")
-        : "<li>No missing-table migrations detected for this view.</li>";
+    function renderFailureSummary() {
+      const rows = $("failsRows");
+      const mobile = $("failsMobile");
+
+      if (!state.failures.length) {
+        $("failsState").textContent = "No recent failures found across monitored tables.";
+        $("failsState").classList.remove("hidden");
+        $("failsTableWrap").classList.add("hidden");
+        mobile.innerHTML = "";
+        return;
+      }
+
+      rows.innerHTML = state.failures.map((f) => `
+        <tr>
+          <td>${adminUi.esc(f.source)}</td>
+          <td>${adminUi.esc(f.status)}</td>
+          <td>${adminUi.esc(f.target)}</td>
+          <td class="muted-cell" title="${adminUi.esc(f.error)}">${adminUi.esc(f.error)}</td>
+          <td>${adminUi.esc(formatDateTime(f.createdAt))}</td>
+          <td>${adminUi.esc(formatDateTime(f.updatedAt))}</td>
+        </tr>
+      `).join("");
+
+      mobile.innerHTML = state.failures.map((f) => `
+        <article class="mobile-fail">
+          <h4>${adminUi.esc(f.source)} � ${adminUi.esc(f.status)}</h4>
+          <p><strong>Target:</strong> ${adminUi.esc(f.target)}</p>
+          <p><strong>Error:</strong> ${adminUi.esc(f.error)}</p>
+          <p><strong>Created:</strong> ${adminUi.esc(formatDateTime(f.createdAt))}</p>
+          <p><strong>Updated:</strong> ${adminUi.esc(formatDateTime(f.updatedAt))}</p>
+        </article>
+      `).join("");
+
+      $("failsState").classList.add("hidden");
+      $("failsTableWrap").classList.remove("hidden");
     }
 
-    async function refresh() {
-      await healthChecks();
-      await loadStats();
-      renderMigrationNotes();
+    function renderNotes() {
+      const notes = $("migrationNotes");
+      if (!missingTables.size) {
+        notes.innerHTML = "<li>No missing optional tables detected for health diagnostics.</li>";
+        return;
+      }
+      notes.innerHTML = [...missingTables].map((t) => `<li>Optional table missing: ${adminUi.esc(t)}</li>`).join("");
     }
 
-    async function init() {
-      const profile = await ensureAccess();
-      if (!profile) return;
+    async function ensureAccess() {
+      const session = await getSessionOrNull();
+      if (!session) {
+        window.location.href = "login.html";
+        return false;
+      }
 
+      const profile = await getCurrentProfile();
+      if (!profile || !profile.is_active || !roleAllow.has(String(profile.role || ""))) {
+        showBanner("error", "Access denied. Admin privileges are required.");
+        return false;
+      }
+
+      state.profile = profile;
       window.FSAdminShell?.mount({
         active: "health",
         title: "Foundation School Admin",
         profileName: profile.full_name || profile.email || "Admin",
         role: profile.role,
-        breadcrumbs: [{ label: "Admin", href: "admin-dashboard.html" }, "System Health"],
+        breadcrumbs: [{ label: "Admin", href: "admin-dashboard.html" }, "System Health"]
+      });
+      return true;
+    }
+
+    async function runChecks() {
+      state.checks = [];
+      missingTables.clear();
+
+      // 1. Session check
+      try {
+        const session = await withTimeout("auth session", () => supabase.auth.getSession());
+        const hasSession = !!session.data?.session;
+        pushCheck("session", "Auth / Session", hasSession ? "pass" : "warn", hasSession ? "Authenticated session present." : "No active session.");
+        $("kSession").textContent = hasSession ? "PASS" : "WARN";
+      } catch (e) {
+        pushCheck("session", "Auth / Session", "fail", adminApi.normalizeError(e));
+        $("kSession").textContent = "FAIL";
+      }
+
+      // 2. Supabase connectivity
+      try {
+        const { error } = await withTimeout(
+          "supabase connectivity",
+          () => supabase.from("batches").select("batch_id", { head: true, count: "exact" }).limit(1)
+        );
+        if (error) throw error;
+        pushCheck("conn", "Supabase Connection", "pass", "Database reachable and responding.");
+        $("kConnection").textContent = "PASS";
+      } catch (e) {
+        pushCheck("conn", "Supabase Connection", "fail", adminApi.normalizeError(e));
+        $("kConnection").textContent = "FAIL";
+      }
+
+      // 3. Profile visibility check — profiles (canonical) then admin_users (legacy fallback)
+      try {
+        const userRes = await withTimeout("auth user", () => supabase.auth.getUser());
+        const user = userRes.data?.user;
+        if (!user) throw new Error("No authenticated user.");
+
+        // Try profiles table first (canonical)
+        let profileSource = null;
+        const { data: profileRow, error: profileErr } = await withTimeout(
+          "profiles visibility",
+          () => supabase.from("profiles").select("id,email,role").eq("id", user.id).maybeSingle()
+        );
+        if (!profileErr && profileRow) {
+          profileSource = "profiles";
+          pushCheck("profiles", "Profile Visibility (profiles)", "pass", `Role: ${profileRow.role || "unknown"} — canonical table present.`);
+        } else if (profileErr && isMissingTable(profileErr)) {
+          missingTables.add("profiles");
+          pushCheck("profiles", "Profile Visibility (profiles)", "warn", "profiles table not yet present; using admin_users fallback.");
+        } else if (profileErr) {
+          pushCheck("profiles", "Profile Visibility (profiles)", "warn", adminApi.normalizeError(profileErr));
+        } else {
+          pushCheck("profiles", "Profile Visibility (profiles)", "warn", "No profiles row found for current user.");
+        }
+
+        // Also check admin_users for fallback visibility
+        if (!profileSource) {
+          const { data, error } = await withTimeout(
+            "admin_users visibility",
+            () => supabase
+              .from("admin_users")
+              .select("auth_user_id,email,role,status,active")
+              .or(`auth_user_id.eq.${user.id},email.eq.${user.email}`)
+              .limit(1)
+              .maybeSingle()
+          );
+          if (error && !isMissingTable(error)) throw error;
+          if (error && isMissingTable(error)) {
+            missingTables.add("admin_users");
+            pushCheck("admin-users", "Admin Visibility (admin_users)", "warn", "admin_users table missing.");
+          } else if (!data) {
+            pushCheck("admin-users", "Admin Visibility (admin_users)", "warn", "No admin_users record for current user.");
+          } else {
+            pushCheck("admin-users", "Admin Visibility (admin_users)", "pass", `Role: ${data.role || "unknown"}; status: ${data.status || "n/a"}`);
+          }
+        }
+      } catch (e) {
+        pushCheck("profiles", "Profile Visibility", "fail", adminApi.normalizeError(e));
+      }
+
+      // 4. RLS/table accessibility checks (admin_users-first)
+      const tableChecks = [
+        ["email_queue", "Queue table access"],
+        ["scheduled_notifications", "Scheduled notifications access"],
+        ["audit_logs", "Audit logs access"],
+        ["failed_syncs", "Failed syncs access"],
+        ["moodle_enrollment_sync", "Moodle enrollment sync access"],
+        ["batches", "Batches access"]
+      ];
+
+      for (const [table, label] of tableChecks) {
+        try {
+          const { error } = await withTimeout(label, () => supabase.from(table).select("*", { head: true, count: "exact" }).limit(1));
+          if (error) {
+            if (isMissingTable(error)) {
+              missingTables.add(table);
+              pushCheck(`tbl-${table}`, label, "warn", `${table} missing (optional in this environment).`);
+            } else {
+              throw error;
+            }
+          } else {
+            pushCheck(`tbl-${table}`, label, "pass", `${table} readable.`);
+          }
+        } catch (e) {
+          pushCheck(`tbl-${table}`, label, "fail", adminApi.normalizeError(e));
+        }
+      }
+
+      // 5. Edge function availability checks (non-destructive OPTIONS probe)
+      const edgeFunctions = ["retry-worker", "registration-processor", "moodle-sync", "sender-worker", "notification-dispatcher", "mailchimp-sync"];
+      for (const fn of edgeFunctions) {
+        const result = await checkEdgeEndpoint(fn);
+        pushCheck(`fn-${fn}`, `Edge Function: ${fn}`, result.state, result.detail);
+      }
+
+      try {
+        const activeMappings = await countTable("batch_moodle_courses", (q) => q.eq("active", true), true);
+        if (activeMappings > 0) {
+          pushCheck("moodle-mapping", "Moodle Course Mapping", "pass", `${activeMappings} active mapping(s) available.`);
+        } else {
+          pushCheck(
+            "moodle-mapping",
+            "Moodle Course Mapping",
+            "warn",
+            "No active batch_moodle_courses mappings found. ASSIGNED students will fail Moodle sync until mappings are added.",
+          );
+        }
+      } catch (e) {
+        pushCheck("moodle-mapping", "Moodle Course Mapping", "warn", adminApi.normalizeError(e));
+      }
+    }
+
+    async function loadMetricsAndFailures() {
+      // queue metrics
+      let queuedEmail = 0;
+      let failedEmail = 0;
+      let scheduled = 0;
+      let failedSync = 0;
+      let moodleBacklog = 0;
+      let activeBatch = 0;
+
+      try {
+        queuedEmail = await countTable("email_queue", (q) => q.or("status.ilike.%pending%,status.ilike.%queued%"), true);
+      } catch (e) {
+        showBanner("error", `Queued email count failed: ${adminApi.normalizeError(e)}`);
+      }
+
+      try {
+        failedEmail = await countTable("email_queue", (q) => q.or("status.ilike.%fail%,status.ilike.%error%"), true);
+      } catch (e) {
+        showBanner("error", `Failed email count failed: ${adminApi.normalizeError(e)}`);
+      }
+
+      try {
+        scheduled = await countTable("scheduled_notifications", (q) => q.or("status.ilike.%pending%,status.ilike.%queued%"), true);
+      } catch (e) {
+        showBanner("error", `Scheduled notification count failed: ${adminApi.normalizeError(e)}`);
+      }
+
+      try {
+        failedSync = await countTable("failed_syncs", (q) => q.or("status.ilike.%fail%,status.ilike.%error%"), true);
+      } catch (e) {
+        showBanner("error", `Failed sync count failed: ${adminApi.normalizeError(e)}`);
+      }
+
+      try {
+        moodleBacklog = await countTable("moodle_enrollment_sync", (q) => q.in("sync_status", ["PENDING", "RETRYING", "FAILED"]), true);
+      } catch (e) {
+        showBanner("error", `Moodle backlog count failed: ${adminApi.normalizeError(e)}`);
+      }
+
+      try {
+        activeBatch = await countTable("batches", (q) => q.eq("active", true), true);
+      } catch (e) {
+        showBanner("error", `Active batch count failed: ${adminApi.normalizeError(e)}`);
+      }
+
+      $("kQueuedEmail").textContent = String(queuedEmail);
+      $("kFailedEmail").textContent = String(failedEmail);
+      $("kScheduled").textContent = String(scheduled);
+      $("kFailedSync").textContent = String(failedSync);
+      $("kActiveBatch").textContent = String(activeBatch);
+      $("kRetryBacklog").textContent = String(failedSync + failedEmail + moodleBacklog);
+
+      // recent failures
+      try {
+        state.failures = await fetchRecentFailures();
+      } catch (e) {
+        showBanner("error", `Recent failure summary failed: ${adminApi.normalizeError(e)}`);
+        state.failures = [];
+      }
+    }
+
+    async function refresh() {
+      $("checksState").classList.remove("hidden");
+      $("checksState").textContent = "Running checks...";
+      $("checksGrid").classList.add("hidden");
+
+      $("failsState").classList.remove("hidden");
+      $("failsState").textContent = "Loading recent failures...";
+      $("failsTableWrap").classList.add("hidden");
+      $("failsMobile").innerHTML = "";
+
+      try {
+        await runChecks();
+        await loadMetricsAndFailures();
+        renderChecks();
+        renderFailureSummary();
+        renderNotes();
+        showBanner("ok", "System health checks completed.");
+      } catch (e) {
+        showBanner("error", `Health refresh failed: ${adminApi.normalizeError(e)}`);
+      } finally {
+        // always terminate loaders
+        if (!$("checksGrid").classList.contains("hidden")) {
+          $("checksState").classList.add("hidden");
+        }
+        if (!$("failsTableWrap").classList.contains("hidden") || state.failures.length === 0) {
+          // failure section renderer already controls visibility, this guards endless loading text
+          if (state.failures.length === 0) {
+            $("failsState").classList.remove("hidden");
+          }
+        }
+      }
+    }
+
+    async function init() {
+      if (!adminApi || !adminUi) {
+        showBanner("error", "Shared admin modules failed to load.");
+        return;
+      }
+
+      const allowed = await ensureAccess();
+      if (!allowed) return;
+
+      $("refreshBtn").addEventListener("click", async () => {
+        try {
+          await refresh();
+        } catch (e) {
+          showBanner("error", adminApi.normalizeError(e));
+        }
       });
 
-      $("refreshBtn").addEventListener("click", refresh);
       await refresh();
     }
 
     init();
   </script>
+  <script>
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "health", pageTitle: "System Health" });
+  </script>
 </body>
 </html>
+
+
