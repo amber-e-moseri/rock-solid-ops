@@ -1,4 +1,4 @@
-﻿begin;
+begin;
 
 alter table if exists public.moodle_enrollment_sync
   add column if not exists moodle_course_id text,

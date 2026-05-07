@@ -356,6 +356,7 @@ BEGIN
     EXECUTE 'DROP POLICY IF EXISTS batch_moodle_superadmin_delete ON public.batch_moodle_courses';
 
     EXECUTE 'CREATE POLICY batch_moodle_admin_all ON public.batch_moodle_courses FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin())';
+    EXECUTE 'DROP POLICY IF EXISTS batch_moodle_anon_select ON public.batch_moodle_courses';
     EXECUTE 'CREATE POLICY batch_moodle_anon_select ON public.batch_moodle_courses FOR SELECT TO anon USING (coalesce(active, false) = true)';
   END IF;
 

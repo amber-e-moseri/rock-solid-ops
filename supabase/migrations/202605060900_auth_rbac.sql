@@ -21,9 +21,11 @@ end;
 $$;
 
 drop trigger if exists trg_profiles_updated_at on public.profiles;
+
 create trigger trg_profiles_updated_at
 before update on public.profiles
-for each row execute function public.set_profiles_updated_at();
+for each row
+execute function public.set_profiles_updated_at();
 
 create or replace function public.handle_new_auth_user_profile()
 returns trigger
@@ -40,14 +42,17 @@ begin
     'teacher'
   )
   on conflict (user_id) do nothing;
+
   return new;
 end;
 $$;
 
 drop trigger if exists on_auth_user_created_profile on auth.users;
+
 create trigger on_auth_user_created_profile
 after insert on auth.users
-for each row execute function public.handle_new_auth_user_profile();
+for each row
+execute function public.handle_new_auth_user_profile();
 
 create or replace function public.current_user_role()
 returns text
@@ -76,6 +81,7 @@ $$;
 alter table public.profiles enable row level security;
 
 drop policy if exists profiles_self_select on public.profiles;
+
 create policy profiles_self_select
 on public.profiles
 for select
@@ -83,6 +89,7 @@ to authenticated
 using (user_id = auth.uid() or public.is_admin_like());
 
 drop policy if exists profiles_self_update on public.profiles;
+
 create policy profiles_self_update
 on public.profiles
 for update
@@ -92,11 +99,11 @@ with check (user_id = auth.uid() or public.is_admin_like());
 
 alter table if exists public.applicants enable row level security;
 alter table if exists public.class_options enable row level security;
-alter table if exists public.attendance_records enable row level security;
-alter table if exists public.teacher_assignments enable row level security;
+alter table if exists public.attendance_log enable row level security;
 alter table if exists public.email_queue enable row level security;
 
 drop policy if exists applicants_admin_all on public.applicants;
+
 create policy applicants_admin_all
 on public.applicants
 for all
@@ -105,6 +112,7 @@ using (public.is_admin_like())
 with check (public.is_admin_like());
 
 drop policy if exists applicants_teacher_select_assigned on public.applicants;
+
 create policy applicants_teacher_select_assigned
 on public.applicants
 for select
@@ -112,13 +120,16 @@ to authenticated
 using (
   exists (
     select 1
-    from public.teacher_assignments ta
-    where ta.teacher_user_id = auth.uid()
-      and ta.class_option_id::text = applicants.class_option_id::text
+    from public.class_options co
+    join public.teachers t
+      on t.teacher_id::text = co.teacher_id::text
+    where lower(trim(t.email)) = lower(trim(auth.jwt()->>'email'))
+      and co.class_option_id::text = applicants.class_option_id::text
   )
 );
 
 drop policy if exists class_options_admin_all on public.class_options;
+
 create policy class_options_admin_all
 on public.class_options
 for all
@@ -127,6 +138,7 @@ using (public.is_admin_like())
 with check (public.is_admin_like());
 
 drop policy if exists class_options_teacher_select_assigned on public.class_options;
+
 create policy class_options_teacher_select_assigned
 on public.class_options
 for select
@@ -134,58 +146,50 @@ to authenticated
 using (
   exists (
     select 1
-    from public.teacher_assignments ta
-    where ta.teacher_user_id = auth.uid()
-      and ta.class_option_id::text = class_options.class_option_id::text
+    from public.teachers t
+    where lower(trim(t.email)) = lower(trim(auth.jwt()->>'email'))
+      and t.teacher_id::text = class_options.teacher_id::text
   )
 );
 
-drop policy if exists attendance_admin_all on public.attendance_records;
+drop policy if exists attendance_admin_all on public.attendance_log;
+
 create policy attendance_admin_all
-on public.attendance_records
+on public.attendance_log
 for all
 to authenticated
 using (public.is_admin_like())
 with check (public.is_admin_like());
 
-drop policy if exists attendance_teacher_rw_assigned on public.attendance_records;
+drop policy if exists attendance_teacher_rw_assigned on public.attendance_log;
+
 create policy attendance_teacher_rw_assigned
-on public.attendance_records
+on public.attendance_log
 for all
 to authenticated
 using (
   exists (
     select 1
-    from public.teacher_assignments ta
-    where ta.teacher_user_id = auth.uid()
-      and ta.class_option_id::text = attendance_records.class_option_id::text
+    from public.class_options co
+    join public.teachers t
+      on t.teacher_id::text = co.teacher_id::text
+    where lower(trim(t.email)) = lower(trim(auth.jwt()->>'email'))
+      and co.class_option_id::text = attendance_log.class_option_id::text
   )
 )
 with check (
   exists (
     select 1
-    from public.teacher_assignments ta
-    where ta.teacher_user_id = auth.uid()
-      and ta.class_option_id::text = attendance_records.class_option_id::text
+    from public.class_options co
+    join public.teachers t
+      on t.teacher_id::text = co.teacher_id::text
+    where lower(trim(t.email)) = lower(trim(auth.jwt()->>'email'))
+      and co.class_option_id::text = attendance_log.class_option_id::text
   )
 );
 
-drop policy if exists teacher_assignments_admin_all on public.teacher_assignments;
-create policy teacher_assignments_admin_all
-on public.teacher_assignments
-for all
-to authenticated
-using (public.is_admin_like())
-with check (public.is_admin_like());
-
-drop policy if exists teacher_assignments_teacher_select_own on public.teacher_assignments;
-create policy teacher_assignments_teacher_select_own
-on public.teacher_assignments
-for select
-to authenticated
-using (teacher_user_id = auth.uid());
-
 drop policy if exists email_queue_admin_all on public.email_queue;
+
 create policy email_queue_admin_all
 on public.email_queue
 for all
@@ -194,4 +198,3 @@ using (public.is_admin_like())
 with check (public.is_admin_like());
 
 commit;
-

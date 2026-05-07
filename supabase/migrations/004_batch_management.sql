@@ -38,12 +38,21 @@ BEGIN;
 -- =============================================================
 
 -- Rename name → batch_name (guarded so re-runs don't error)
-DO $$ BEGIN
+DO $$
+BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public' AND table_name = 'batches' AND column_name = 'name'
+    WHERE table_schema = 'public'
+      AND table_name = 'batches'
+      AND column_name = 'name'
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'batches'
+      AND column_name = 'batch_name'
   ) THEN
-    ALTER TABLE batches RENAME COLUMN name TO batch_name;
+    ALTER TABLE public.batches RENAME COLUMN name TO batch_name;
   END IF;
 END $$;
 
@@ -56,9 +65,24 @@ ALTER TABLE batches
 
 -- status CHECK constraint (drop first to allow clean re-runs)
 ALTER TABLE batches DROP CONSTRAINT IF EXISTS chk_batches_status;
-ALTER TABLE batches ADD CONSTRAINT chk_batches_status
-  CHECK (status IN ('Draft', 'Open', 'Active', 'Completed', 'Archived', 'Suspended'));
+UPDATE public.batches
+SET status = CASE
+  WHEN status IS NULL OR trim(status) = '' THEN 'Draft'
+  WHEN lower(status) = 'draft' THEN 'Draft'
+  WHEN lower(status) = 'open' THEN 'Open'
+  WHEN lower(status) = 'active' THEN 'Active'
+  WHEN lower(status) = 'completed' THEN 'Completed'
+  WHEN lower(status) = 'archived' THEN 'Archived'
+  WHEN lower(status) = 'suspended' THEN 'Suspended'
+  WHEN lower(status) IN ('inactive', 'closed') THEN 'Archived'
+  WHEN lower(status) IN ('pending') THEN 'Draft'
+  ELSE 'Draft'
+END;
 
+ALTER TABLE public.batches DROP CONSTRAINT IF EXISTS chk_batches_status;
+
+ALTER TABLE public.batches ADD CONSTRAINT chk_batches_status
+  CHECK (status IN ('Draft', 'Open', 'Active', 'Completed', 'Archived', 'Suspended'));
 -- Ensure batch_name is populated before making NOT NULL
 UPDATE batches SET batch_name = batch_id WHERE batch_name IS NULL OR batch_name = '';
 ALTER TABLE batches ALTER COLUMN batch_name SET NOT NULL;
