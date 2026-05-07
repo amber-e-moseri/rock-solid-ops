@@ -1,15 +1,15 @@
-# Backend Decision: Supabase Canonical Source of Truth
+﻿# Backend Decision: Supabase Canonical Source of Truth
 
 Date: 2026-05-06  
 Status: Approved
 
 ## Decision
 - Supabase is the canonical system of record for Foundation School.
-- Apps Script is retired and will be fully removed after Supabase parity checks are complete.
+- Legacy backend code is archived under archive/apps-script-legacy and is non-operational.
 - All new features must use Supabase tables, Supabase Auth, RLS, and Edge Functions.
 
-## Why Apps Script Is Being Retired
-- Operational drift: duplicated logic between Apps Script and Supabase caused inconsistent outcomes.
+## Why Legacy Backend Was Archived
+- Operational drift: duplicated logic between legacy backend and Supabase caused inconsistent outcomes.
 - Limited reliability at scale: retry behavior, auditability, and typed contracts were weak.
 - Security posture: centralized Auth + RLS in Supabase is stricter and easier to enforce.
 - Maintainability: one backend stack reduces duplicated helpers, hidden business rules, and regressions.
@@ -22,10 +22,8 @@ Status: Approved
 - Add compatibility only at explicit migration boundaries, never as permanent architecture.
 
 ## Forbidden Patterns
-- Direct calls to `script.google.com` web app URLs.
-- `google.script.run` usage in portal code.
 - Action-string transport as backend contract (`action=get...`, `action=post...`) for new features.
-- Dual-write to Apps Script and Supabase for the same workflow.
+- Dual-write to legacy backend and Supabase for the same workflow.
 - New business logic outside Supabase tables/RPC/Edge Functions.
 
 ## Accepted Backend Architecture
@@ -49,18 +47,19 @@ Status: Approved
 - Root-level `/staff/` is deprecated and must not be used for new links, redirects, or deploy routes.
 
 ## Phased Retirement Checklist
-1. ✅ Replace Apps Script reads with Supabase queries/Edge Functions.
-2. ✅ Replace Apps Script writes with Supabase writes (idempotent/upsert where needed).
-3. ✅ Verify parity for each workflow with manual regression checklist.
-4. ✅ Remove frontend Apps Script URL/meta/config usage.
+1. âœ… Replace legacy backend reads with Supabase queries/Edge Functions.
+2. âœ… Replace legacy backend writes with Supabase writes (idempotent/upsert where needed).
+3. âœ… Verify parity for each workflow with manual regression checklist.
+4. âœ… Remove frontend legacy backend URL/meta/config usage.
    - Last reference was `window.TA_CONFIG.endpointBaseUrl` in `foundation/ui/teacher-availability/index.html`.
    - Removed 2026-05-06. Config now uses `mode: "supabase"`.
-5. ✅ Remove Apps Script helper branches from shared JS (`api-client.js`).
+5. âœ… Remove legacy backend helper branches from shared JS (`api-client.js`).
    - `api-client.js` was already Supabase-only; no dual-mode branches existed at final review.
-6. ⬜ Disable Apps Script endpoints in production traffic path (GCP console — manual step).
-7. ⬜ Archive Apps Script project as read-only historical artifact (GCP console — manual step).
+6. â¬œ Disable legacy backend endpoints in production traffic path (archive governance â€” manual step).
+7. â¬œ Archive legacy backend project as read-only historical artifact (archive governance â€” manual step).
 
 ## Exit Criteria for Full Retirement
-- No portal page calls Apps Script endpoints.
-- No workflow depends on Apps Script for success path or retries.
+- No portal page calls legacy backend endpoints.
+- No workflow depends on legacy backend for success path or retries.
 - Monitoring confirms all core flows run via Supabase for 2+ release cycles.
+

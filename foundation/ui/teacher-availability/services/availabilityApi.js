@@ -1,32 +1,32 @@
-/**
+﻿/**
  * availabilityApi.js
  * Supabase-backed API service for the Teacher Availability scheduler.
  *
- * Replaces the previous Google Apps Script endpoint wrapper.
+ * Supabase-native API wrapper for scheduler operations.
  * All exported function names are preserved so component files require no changes.
  *
  * Env vars required (via Vite):
- *   VITE_SUPABASE_URL       — Supabase project URL
- *   VITE_SUPABASE_ANON_KEY  — Supabase anon/public key (RLS enforced)
+ *   VITE_SUPABASE_URL       â€” Supabase project URL
+ *   VITE_SUPABASE_ANON_KEY  â€” Supabase anon/public key (RLS enforced)
  */
 
 import { createClient } from '@supabase/supabase-js'
 
-// ── Named client instance (importable by components that need direct access) ──
+// â”€â”€ Named client instance (importable by components that need direct access) â”€â”€
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
 )
 
-// ── Internal helpers ─────────────────────────────────────────
+// â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function assertData(data, error, label) {
   if (error) throw new Error(`${label}: ${error.message}`)
   return data
 }
 
-// ── Public API ───────────────────────────────────────────────
+// â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Returns all active fellowships for the campus selector dropdown.
@@ -331,8 +331,8 @@ export async function submitAvailability(payload) {
  * Marks a teacher_availability record as reviewed/approved by an admin.
  * Sets status to 'Available' if currently 'Tentative'; records reviewer identity.
  * Replaces: POST ?action=approveAvailability
- * @param {string} id         — teacher_availability UUID
- * @param {string} reviewedBy — name or email of the approving admin
+ * @param {string} id         â€” teacher_availability UUID
+ * @param {string} reviewedBy â€” name or email of the approving admin
  * @returns {Promise<{ id: string, status: string }>}
  */
 export async function approveAvailability(id, reviewedBy) {
@@ -352,3 +352,4 @@ export async function approveAvailability(id, reviewedBy) {
   assertData(data, error, 'approveAvailability')
   return data
 }
+

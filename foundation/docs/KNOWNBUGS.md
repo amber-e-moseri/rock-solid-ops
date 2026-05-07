@@ -1,4 +1,4 @@
-# Current Known Issues
+﻿# Current Known Issues
 
 ## Attendance System
 ### Duplicate Attendance Risk
@@ -18,6 +18,7 @@
 ## Moodle Integration
 ### HTTP 403 Errors
 Possible causes:
-- WAF blocking Apps Script
+- WAF blocking external integration endpoints
 - Missing API permissions
 - REST protocol disabled
+

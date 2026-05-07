@@ -1,6 +1,6 @@
-review-findings.md
+﻿review-findings.md
 
-# Foundation School Platform — Review Findings
+# Foundation School Platform â€” Review Findings
 
 Date: 2026-05-06
 
@@ -162,7 +162,7 @@ Use:
 Accepted.
 
 Current state:
-Apps Script + Supabase coexist.
+Legacy archive + Supabase notes coexist.
 
 Risk:
 
@@ -259,16 +259,13 @@ Hybrid migration state.
 LONG-TERM:
 Supabase becomes canonical backend.
 
-Apps Script should eventually become:
-
-* legacy compatibility layer
-* transitional service only
+Legacy backend has been archived and is non-operational.
 
 ---
 
 # APPROVED MIGRATION ORDER
 
-## Phase 1 — UI Consolidation
+## Phase 1 â€” UI Consolidation
 
 * shared shells
 * shared components
@@ -276,7 +273,7 @@ Apps Script should eventually become:
 * nav consistency
 * remove duplicated layouts
 
-## Phase 2 — Supabase Completion
+## Phase 2 â€” Supabase Completion
 
 Migrate:
 
@@ -287,14 +284,14 @@ Migrate:
 * dashboards
 * audit systems
 
-## Phase 3 — Security Hardening
+## Phase 3 â€” Security Hardening
 
 * RLS audit
 * env injection
 * edge auth enforcement
 * remove committed credentials
 
-## Phase 4 — Operational Expansion
+## Phase 4 â€” Operational Expansion
 
 * waitlist system
 * dashboards
@@ -348,3 +345,4 @@ AI should:
 * avoid hidden backend switching
 * avoid giant inline-script pages
 * avoid breaking migration compatibility
+

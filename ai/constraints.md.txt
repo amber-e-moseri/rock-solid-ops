@@ -1,8 +1,8 @@
-constraints.md
+﻿constraints.md
 
 # CORE ENGINEERING CONSTRAINTS
 
-* Do not break existing Apps Script flows
+* Do not reintroduce archived legacy backend flows
 * Preserve existing API action names unless explicitly migrating
 * Preserve Supabase auth/profile flows
 * Preserve mobile responsiveness
@@ -10,6 +10,7 @@ constraints.md
 * Preserve existing registration flows
 * Preserve existing teacher scheduling logic
 * Preserve existing role restrictions
+* Treat `archive/apps-script-legacy/*` as historical-only (never canonical runtime logic)
 
 ---
 
@@ -97,3 +98,4 @@ Avoid:
 * Never hardcode production keys
 * Preserve auth guards
 * Preserve role checks
+

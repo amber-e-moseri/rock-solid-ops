@@ -1,4 +1,4 @@
-# Foundation School System
+ï»¿# Foundation School System
 
 Supabase-first registration and operations platform for Foundation School (staff/admin portals, student lifecycle, attendance/session outcomes, milestones, notifications, and Moodle sync).
 
@@ -7,8 +7,7 @@ Supabase-first registration and operations platform for Foundation School (staff
 ## Canonical Operational Rule
 - Registration processing is single-path only.
 - Canonical path: Supabase Edge Function `registration-processor`.
-- Legacy Apps Script registration processing is disabled after Supabase migration — May 2026.
-- If both legacy Apps Script endpoint and Supabase registration endpoint are configured, treat as release blocker.
+- Legacy registration processing is archived and non-operational.
 
 ## Core Runtime
 - Staff UI: `foundation/staff/*` (plain HTML/CSS/JS)
@@ -34,10 +33,9 @@ Supabase-first registration and operations platform for Foundation School (staff
   - `schedule = "*/20 * * * *"`
 - Auto sweep retries only retryable Moodle sync failures and skips permanent/non-retryable auth/WAF/mapping errors.
 
-## Legacy Apps Script Notes
-- `foundation/apps-script/*` remains reference/legacy.
-- Disabled after Supabase migration — May 2026.
-- Do not re-enable registration Apps Script triggers.
+## Legacy Archive Notes
+- Historical Google Apps Script code is archived at `archive/apps-script-legacy/*`.
+- Archive is reference-only and must not be used as a runtime backend.
 
 ## Docs
 - `foundation/docs/ARCHITECTURE.md`
@@ -87,3 +85,4 @@ supabase secrets set CLICKUP_DEFAULT_ASSIGNEE_ID="..."
 #### Assignment examples
 - `CSGA`: Chloe is primary assignee; Jason is watcher/secondary follower.
 - `CSGB`: Jason is primary assignee (configured in `clickup_admin_mappings`).
+

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -454,7 +454,7 @@
     margin-bottom: 6px; margin-top: 16px;
   }
 
-  /* Step 5 only — compact 3-column radio layout */
+  /* Step 5 only â€” compact 3-column radio layout */
   #screen-5 .q-label { font-size: 22px; }
   #screen-5 .q-hint  { font-size: 13px; margin-bottom: 8px; }
   #screen-5 .radio-grid {
@@ -1105,6 +1105,9 @@ const CONFIG = {
   FELLOWSHIP_CSV:    '',
 };
 
+if (String(CONFIG.APPS_SCRIPT_URL || "").trim() && String(CONFIG.SUPABASE_URL || "").trim()) {
+  console.warn("[REGISTRATION_CONFIG_WARNING] Registration endpoint configuration conflict detected. Use Supabase registration-processor only.");
+}
 // ============================================================
 //  STATE
 // ============================================================
@@ -1591,7 +1594,7 @@ function formatSessionLocal(cls) {
     const fallbackBits = [cleanDay, cleanTime].filter(Boolean);
     const fallbackTitle = fallbackBits.length ? fallbackBits.join(" - ") : "Class time unavailable";
     return {
-      title: `${isRegional ? "Regional — " : ""}${fallbackTitle}`,
+      title: `${isRegional ? "Regional â€” " : ""}${fallbackTitle}`,
       startLine: "",
       teacherLine: teacher,
       mismatch: false,
@@ -1619,7 +1622,7 @@ function formatSessionLocal(cls) {
     .formatToParts(instant).find(p => p.type === "timeZoneName")?.value || classTimeZone;
   const mismatch = classTimeZone !== userTimeZone;
   return {
-    title: `${isRegional ? "Regional — " : ""}${weekday || cleanDay} - ${timePart || cleanTime}${mismatch ? " (Your Time)" : ""}`,
+    title: `${isRegional ? "Regional â€” " : ""}${weekday || cleanDay} - ${timePart || cleanTime}${mismatch ? " (Your Time)" : ""}`,
     startLine: `Starts: ${startsLocal}`,
     teacherLine: teacher,
     mismatch,
@@ -2077,7 +2080,7 @@ function renderClassesForSelectedFellowship(mode = classViewMode) {
   grid.appendChild(none);
 }
 async function preloadData() {
-  // fellowships MUST finish first — loadClasses reads fellowshipTzMap
+  // fellowships MUST finish first â€” loadClasses reads fellowshipTzMap
   // which is empty until loadFellowships completes.
   await loadFellowships();
   await loadClasses();
@@ -2459,30 +2462,30 @@ function showSuccess(data = {}, processorResult = {}) {
     summary.innerHTML = `
       <div class="summary-row">
         <span class="summary-key">Name</span>
-        <span class="summary-val">${fullName || '—'}</span>
+        <span class="summary-val">${fullName || 'â€”'}</span>
       </div>
 
       <div class="summary-row">
         <span class="summary-key">Email</span>
-        <span class="summary-val">${data.email || '—'}</span>
+        <span class="summary-val">${data.email || 'â€”'}</span>
       </div>
 
       <div class="summary-row">
         <span class="summary-key">Phone</span>
-        <span class="summary-val">${data.phone || '—'}</span>
+        <span class="summary-val">${data.phone || 'â€”'}</span>
       </div>
 
       <div class="summary-row">
         <span class="summary-key">Fellowship</span>
         <span class="summary-val">
-          ${data.fellowshipName || data.fellowshipCode || '—'}
+          ${data.fellowshipName || data.fellowshipCode || 'â€”'}
         </span>
       </div>
 
       <div class="summary-row">
         <span class="summary-key">Class</span>
         <span class="summary-val">
-          ${data.classLabel || data.classChoice || '—'}
+          ${data.classLabel || data.classChoice || 'â€”'}
         </span>
       </div>
     `;
@@ -2566,6 +2569,8 @@ window.addEventListener('load', async () => {
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
 
 
 

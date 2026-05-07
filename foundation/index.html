@@ -1,328 +1,64 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rock Solid â€” Staff Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800;900&family=DM+Sans:wght@300;400;500;600&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --navy:        #4C2A92;
-    --navy2:       #321B66;
-    --gold:        #F4BE41;
-    --gold-soft:   #FCE7AE;
-    --purple-mid:  #8E63C7;
-    --purple-soft: #E9DAFB;
-    --cream:       #F4EFE3;
-    --cream-2:     #FBF7EF;
-    --ink:         #2F2250;
-    --muted:       #6F6482;
-    --border:      #E6DDCC;
-    --white:       #FFFFFF;
-    --shadow-sm:   0 2px 8px rgba(50,27,102,0.06);
-    --shadow-md:   0 10px 30px rgba(50,27,102,0.10);
-    --shadow-lg:   0 18px 50px rgba(50,27,102,0.14);
-    --radius:      18px;
-    --font-head:   'League Spartan', sans-serif;
-    --font-body:   'Nunito', sans-serif;
-    --ease:        cubic-bezier(0.25,0.46,0.45,0.94);
-    --ease-bounce: cubic-bezier(0.34,1.56,0.64,1);
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: 16px; scroll-behavior: smooth; }
-
-  body {
-    font-family: var(--font-body);
-    background: var(--cream);
-    color: var(--ink);
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 48px 24px;
-    position: relative;
-    overflow-x: hidden;
-  }
-
-  /* â”€â”€ Background blobs â”€â”€ */
-  body::before {
-    content: '';
-    position: fixed; inset: 0; z-index: 0;
-    background:
-      radial-gradient(ellipse at 15% 20%, rgba(142,99,199,0.13) 0%, transparent 55%),
-      radial-gradient(ellipse at 85% 75%, rgba(244,190,65,0.10) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 100%, rgba(76,42,146,0.08) 0%, transparent 45%);
-    pointer-events: none;
-  }
-
-  /* â”€â”€ Floating dots â”€â”€ */
-  .dot-field {
-    position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
-  }
-  .dot {
-    position: absolute; border-radius: 50%;
-    background: rgba(76,42,146,0.07);
-    animation: drift linear infinite;
-  }
-  @keyframes drift {
-    0%   { transform: translateY(0)    scale(1);   opacity: 0.5; }
-    50%  { opacity: 0.9; }
-    100% { transform: translateY(-80px) scale(0.7); opacity: 0; }
-  }
-
-  /* â”€â”€ Content wrapper â”€â”€ */
-  .portal {
-    position: relative; z-index: 1;
-    width: 100%; max-width: 880px;
-    display: flex; flex-direction: column;
-    align-items: center; gap: 48px;
-  }
-
-  /* â”€â”€ Header â”€â”€ */
-  .portal-header { text-align: center; }
-
-  .eyebrow {
-    font-family: var(--font-body);
-    font-size: 11px; font-weight: 600;
-    letter-spacing: 0.18em; text-transform: uppercase;
-    color: var(--purple-mid);
-    display: inline-flex; align-items: center; gap: 8px;
-    margin-bottom: 16px;
-    animation: fade-up 0.5s 0.05s both var(--ease);
-  }
-  .eyebrow::before, .eyebrow::after {
-    content: '';
-    width: 20px; height: 2px;
-    background: var(--purple-mid); border-radius: 1px;
-  }
-
-  .portal-title {
-    font-family: var(--font-head);
-    font-size: clamp(40px, 6vw, 68px);
-    font-weight: 900; line-height: 0.95;
-    letter-spacing: -0.03em;
-    color: var(--navy);
-    margin-bottom: 14px;
-    animation: fade-up 0.5s 0.12s both var(--ease);
-  }
-  .portal-title em {
-    font-style: normal;
-    color: var(--gold);
-  }
-
-  .portal-sub {
-    font-family: var(--font-body);
-    font-size: 15px; font-weight: 400; line-height: 1.7;
-    color: var(--muted);
-    animation: fade-up 0.5s 0.2s both var(--ease);
-  }
-
-  /* â”€â”€ Card grid â”€â”€ */
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    width: 100%;
-    animation: fade-up 0.5s 0.28s both var(--ease);
-  }
-
-  /* â”€â”€ Card â”€â”€ */
-  .card {
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 32px 28px 28px;
-    display: flex; flex-direction: column; align-items: flex-start;
-    gap: 0;
-    cursor: pointer;
-    text-decoration: none;
-    color: inherit;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.22s var(--ease-bounce),
-                box-shadow 0.22s var(--ease),
-                border-color 0.2s,
-                background 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-  .card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--navy), var(--purple-mid));
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  .card:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-lg);
-    border-color: rgba(142,99,199,0.40);
-    background: var(--cream-2);
-  }
-  .card:hover::before { opacity: 1; }
-  .card:active { transform: translateY(-2px) scale(0.99); }
-
-  .card-icon {
-    font-size: 36px;
-    margin-bottom: 20px;
-    display: block;
-    line-height: 1;
-    transition: transform 0.3s var(--ease-bounce);
-  }
-  .card:hover .card-icon { transform: scale(1.15) rotate(-4deg); }
-
-  .card-title {
-    font-family: var(--font-head);
-    font-size: 20px; font-weight: 800;
-    color: var(--navy);
-    letter-spacing: -0.01em;
-    margin-bottom: 8px;
-    line-height: 1.1;
-  }
-
-  .card-desc {
-    font-family: var(--font-body);
-    font-size: 13px; font-weight: 400; line-height: 1.65;
-    color: var(--muted);
-    flex: 1;
-    margin-bottom: 24px;
-  }
-
-  .card-tag {
-    display: inline-flex; align-items: center;
-    font-family: var(--font-body);
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 0.10em; text-transform: uppercase;
-    color: var(--muted);
-    background: var(--cream);
-    border: 1px solid var(--border);
-    border-radius: 50px;
-    padding: 4px 10px;
-    margin-bottom: 16px;
-  }
-
-  .card-btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--navy);
-    color: var(--white);
-    font-family: var(--font-head);
-    font-size: 12px; font-weight: 800;
-    letter-spacing: 0.06em; text-transform: uppercase;
-    padding: 11px 22px;
-    border-radius: 50px;
-    border: none;
-    box-shadow: 0 4px 18px rgba(50,27,102,0.22);
-    transition: background 0.2s, transform 0.2s var(--ease-bounce), box-shadow 0.2s;
-    pointer-events: none; /* card is the clickable element */
-  }
-  .card:hover .card-btn {
-    background: #3A2075;
-    box-shadow: 0 6px 24px rgba(244,190,65,0.28);
-  }
-  .card-btn .arrow { font-size: 14px; transition: transform 0.2s; }
-  .card:hover .card-btn .arrow { transform: translateX(3px); }
-
-  /* Card accent colours */
-  .card--students .card-icon-bg { background: rgba(76,42,146,0.08); }
-  .card--teachers::before { background: linear-gradient(90deg, #0F766E, #34D399); }
-  .card--admin::before    { background: linear-gradient(90deg, #B52A2A, #F87171); }
-
-  /* â”€â”€ Footer â”€â”€ */
-  .portal-footer {
-    font-family: var(--font-body);
-    font-size: 12px; color: var(--muted);
-    text-align: center;
-    animation: fade-up 0.4s 0.38s both var(--ease);
-  }
-
-  /* â”€â”€ Animations â”€â”€ */
-  @keyframes fade-up {
-    from { opacity: 0; transform: translateY(18px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  /* â”€â”€ Mobile â”€â”€ */
-  @media (max-width: 700px) {
-    body { padding: 36px 16px; justify-content: flex-start; }
-    .card-grid { grid-template-columns: 1fr; gap: 14px; }
-    .portal-title { font-size: 40px; }
-    .card { padding: 24px 22px 22px; }
-  }
-  @media (min-width: 701px) and (max-width: 900px) {
-    .card-grid { grid-template-columns: 1fr 1fr; }
-  }
-</style>
-  <link rel="stylesheet" href="/premium-theme.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Foundation School</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: grid;
+      place-items: center;
+      font-family: "DM Sans", "Manrope", "Inter", system-ui, -apple-system, sans-serif;
+      background: #F7F5F0;
+      color: #1C1610;
+    }
+    p { margin: 0; font-size: 14px; color: #7A6F5E; }
+  </style>
 </head>
 <body>
+  <p>Redirecting to Foundation School Operations...</p>
 
-<div class="dot-field" id="dotField"></div>
+  <script src="./js/config.js"></script>
+  <script src="./js/config-helper.js"></script>
+  <script type="module">
+    import { getSessionOrNull, getCurrentProfile } from "./auth/auth-client.js";
 
-<div class="portal">
+    const loginUrl = "./auth/login.html";
+    const teacherUrl = "./staff/TeacherAttendancePortal.html";
+    const adminUrl = "./staff/admin-portal.html";
+    const adminRoles = new Set(["principal", "admin", "superadmin", "subgroup_admin", "pastor"]);
 
-  <!-- Header -->
-  <header class="portal-header">
-    <div class="eyebrow">BLW Canada Sub-Region</div>
-    <h1 class="portal-title">Rock <em>Solid.</em></h1>
-    <p class="portal-sub">Foundation School Staff Portal â€” select a tool to get started.</p>
-  </header>
+    function go(url) {
+      window.location.replace(url);
+    }
 
-  <!-- Cards -->
-  <div class="card-grid">
+    try {
+      document.documentElement.setAttribute("data-theme", "light");
+      document.documentElement.classList.remove("dark");
+      document.body.classList.add("fs-force-light");
 
-    <!-- Student Registration -->
-    <a class="card card--students" href="registration/form.html">
-      <span class="card-icon">ðŸ“‹</span>
-      <span class="card-tag">Students</span>
-      <div class="card-title">Student Registration</div>
-      <p class="card-desc">Open the Foundation School registration form for the current intake.</p>
-      <div class="card-btn">Open <span class="arrow">â†’</span></div>
-    </a>
+      const session = await getSessionOrNull();
+      if (!session) {
+        go(loginUrl);
+      } else {
+        const profile = await getCurrentProfile();
+        const role = String(profile?.role || "").toLowerCase();
+        const isActive = profile?.is_active !== false && profile?.active !== false;
 
-    <!-- Teacher Availability -->
-    <a class="card card--teachers" href="staff/teacher-schedule.html">
-      <span class="card-icon">ðŸ“…</span>
-      <span class="card-tag">Teachers</span>
-      <div class="card-title">Teacher Schedule</div>
-      <p class="card-desc">Submit your availability for upcoming class schedules and sessions.</p>
-      <div class="card-btn">Open <span class="arrow">â†’</span></div>
-    </a>
-
-    <!-- Admin Review -->
-    <a class="card card--admin" href="staff/admin-review.html">
-      <span class="card-icon">ðŸ›¡ï¸</span>
-      <span class="card-tag">Admin</span>
-      <div class="card-title">Admin Review</div>
-      <p class="card-desc">Review and approve teacher availability submissions by campus.</p>
-      <div class="card-btn">Open <span class="arrow">â†’</span></div>
-    </a>
-
-  </div>
-
-  <!-- Footer -->
-  <footer class="portal-footer">
-    Rock Solid &mdash; BLW Canada &copy; <span id="yr"></span>
-  </footer>
-
-</div>
-
-<script>
-  document.getElementById('yr').textContent = new Date().getFullYear();
-
-  // Floating dots
-  const df = document.getElementById('dotField');
-  for (let i = 0; i < 18; i++) {
-    const d = document.createElement('div');
-    d.className = 'dot';
-    const size = 5 + Math.random() * 14;
-    d.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${5+Math.random()*8}s;animation-delay:${Math.random()*6}s;`;
-    df.appendChild(d);
-  }
-</script>
-  <script src="/premium-shell.js"></script>
+        if (!isActive || role === "pending" || !role) {
+          go(loginUrl);
+        } else if (role === "teacher") {
+          go(teacherUrl);
+        } else if (adminRoles.has(role)) {
+          go(adminUrl);
+        } else {
+          go(loginUrl);
+        }
+      }
+    } catch (_) {
+      go(loginUrl);
+    }
+  </script>
 </body>
 </html>
-
-
