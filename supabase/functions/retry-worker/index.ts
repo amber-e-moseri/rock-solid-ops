@@ -70,13 +70,33 @@ async function triggerClickupEscalation(
 }
 
 async function isAdmin(serviceDb: ReturnType<typeof createClient>, userId: string, email?: string) {
-  // Legacy/current admin table first
-  if (true) {
+  try {
+    const profile = await serviceDb
+      .from("profiles")
+      .select("role,is_active")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (profile.error) return false;
+
+    if (profile.data) {
+      const role = String(profile.data?.role || "").toLowerCase();
+      const active = profile.data?.is_active !== false;
+
+      if (
+        active &&
+        ["admin", "superadmin", "subgroup_admin", "pastor", "principal"].includes(role)
+      ) {
+        return true;
+      }
+      return false;
+    }
+
     const legacy = await serviceDb
       .from("admin_users")
       .select("role,status,active")
       .or(`auth_user_id.eq.${userId}${email ? `,email.eq.${email}` : ""}`)
       .maybeSingle();
+    if (legacy.error) return false;
 
     const legacyRole = String(legacy.data?.role || "").toLowerCase();
     const active =
@@ -89,30 +109,11 @@ async function isAdmin(serviceDb: ReturnType<typeof createClient>, userId: strin
     ) {
       return true;
     }
-  }
 
-  // Optional newer profiles table fallback
-  try {
-    const profile = await serviceDb
-      .from("profiles")
-      .select("role,is_active")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    const role = String(profile.data?.role || "").toLowerCase();
-    const active = profile.data?.is_active !== false;
-
-    if (
-      active &&
-      ["admin", "superadmin", "subgroup_admin", "pastor", "principal"].includes(role)
-    ) {
-      return true;
-    }
+    return false;
   } catch (_) {
-    // profiles table missing -> ignore
+    return false;
   }
-
-  return false;
 }
 
 async function logAudit(
