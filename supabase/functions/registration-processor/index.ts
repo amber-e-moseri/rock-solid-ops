@@ -51,6 +51,47 @@ Deno.serve(async (req) => {
         console.error("REGISTRATION_PROCESSOR_MOODLE_SYNC_TRIGGER_ERROR", { syncId, err });
       }
     };
+    const triggerMailchimpSync = async (contact: {
+      email: string;
+      first_name?: string;
+      last_name?: string;
+      phone?: string;
+      campus?: string;
+      fellowship_code?: string;
+      template_key?: string;
+    }) => {
+      const recipientEmail = String(contact?.email || "").trim().toLowerCase();
+      if (!recipientEmail) return;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/mailchimp-sync`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: recipientEmail,
+            first_name: contact.first_name || "",
+            last_name: contact.last_name || "",
+            phone: contact.phone || "",
+            campus: contact.campus || "",
+            fellowship_code: contact.fellowship_code || "",
+            template_key: contact.template_key || "",
+          }),
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          console.error("REGISTRATION_PROCESSOR_MAILCHIMP_SYNC_TRIGGER_FAILED", {
+            recipientEmail,
+            status: res.status,
+            body: txt,
+          });
+        }
+      } catch (err) {
+        console.error("REGISTRATION_PROCESSOR_MAILCHIMP_SYNC_TRIGGER_ERROR", { recipientEmail, err });
+      }
+    };
 
     const body = await req.json().catch(() => ({}));
     
@@ -242,14 +283,27 @@ Deno.serve(async (req) => {
             assignedAt = nowIso;
             // Resolve batch_id from class_slots if not provided by form
             if (!batch_id && class_option_id) {
-              const { data: slotRow } = await db
-                .from("class_slots")
+              const { data: activeBatch } = await db
+                .from("batches")
                 .select("batch_id")
-                .eq("class_option_id", class_option_id)
-                .eq("batch_id", "BATCH-7CCE881D")
-                .eq("status", "Active")
+                .or("active.eq.true,registration_open.eq.true")
+                .eq("archived", false)
+                .order("start_date", { ascending: false })
+                .limit(1)
                 .maybeSingle();
-              if (slotRow?.batch_id) batch_id = slotRow.batch_id;
+              const activeBatchId = String(activeBatch?.batch_id || "").trim();
+              if (!activeBatchId) {
+                console.warn("REGISTRATION_PROCESSOR_NO_ACTIVE_BATCH_FOUND");
+              } else {
+                const { data: slotRow } = await db
+                  .from("class_slots")
+                  .select("batch_id")
+                  .eq("class_option_id", class_option_id)
+                  .eq("batch_id", activeBatchId)
+                  .eq("status", "Active")
+                  .maybeSingle();
+                if (slotRow?.batch_id) batch_id = slotRow.batch_id;
+              }
             }
           }
         }
@@ -497,6 +551,15 @@ Deno.serve(async (req) => {
       );
     }
     debugTrail.phase = "email_queued";
+    void triggerMailchimpSync({
+      email,
+      first_name,
+      last_name,
+      phone,
+      campus: String(body.fellowship_name || body.fellowship_code || ""),
+      fellowship_code: fellowship_code || "",
+      template_key: templateKey,
+    });
 
     let moodleSyncRowId = "";
     if (registrationStatus === "ASSIGNED") {

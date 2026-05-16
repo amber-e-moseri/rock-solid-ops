@@ -269,6 +269,11 @@ export const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// ALLOWED_ORIGINS must be configured in Supabase Dashboard > Edge Functions > Secrets.
+// Use a comma-separated list of exact Origins (scheme + host [+ port]), e.g.:
+//   https://yourdomain.com,https://www.yourdomain.com
+// Matching is exact. If the registration form Origin is missing or mismatched,
+// Access-Control-Allow-Origin is removed and browsers will block responses.
 export function applyAllowedOrigin(req: Request): void {
   const allowed = String(Deno.env.get("ALLOWED_ORIGINS") || "")
     .split(",")

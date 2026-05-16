@@ -156,22 +156,22 @@ async function findOrCreateMoodleUser(
   moodleToken: string,
   email: string,
   fullName: string,
-): Promise<{ userId: string; tempPassword: string | null }> {
-  const found = await callMoodle(moodleUrl, moodleToken, "core_user_get_users", {
-    "criteria[0][key]": "email",
-    "criteria[0][value]": email,
+): Promise<{ userId: string; tempPassword: string | null; usernameUsed: string }> {
+  const username = safeUsernameFromEmail(email);
+  const found = await callMoodle(moodleUrl, moodleToken, "core_user_get_users_by_field", {
+    field: "email",
+    "values[0]": email,
   });
 
-  const existing = Array.isArray(found?.users) ? found.users[0] : null;
+  const existing = Array.isArray(found) ? found[0] : null;
   if (existing?.id) {
-    return { userId: String(existing.id), tempPassword: null };
+    return { userId: String(existing.id), tempPassword: null, usernameUsed: username };
   }
 
   const { firstName, lastName } = splitName(fullName);
-  const username = safeUsernameFromEmail(email);
+  const tempPassword = crypto.randomUUID().slice(0, 8).toUpperCase() + "a!1";
 
   try {
-    const tempPassword = crypto.randomUUID().slice(0, 8).toUpperCase() + "a!1";
     const created = await callMoodle(moodleUrl, moodleToken, "core_user_create_users", {
       "users[0][username]": username,
       "users[0][firstname]": firstName,
@@ -183,25 +183,51 @@ async function findOrCreateMoodleUser(
 
     const createdId = Array.isArray(created) ? created[0]?.id : null;
     if (!createdId) throw new Error("Moodle user creation returned no id");
-    return { userId: String(createdId), tempPassword };
+    return { userId: String(createdId), tempPassword, usernameUsed: username };
   } catch (error) {
     const c = classifyError(error);
     if (c.code === "ALREADY_EXISTS") {
-      // Try by email first
-      const foundAgain = await callMoodle(moodleUrl, moodleToken, "core_user_get_users", {
-        "criteria[0][key]": "email",
-        "criteria[0][value]": email,
-      });
-      const fallback = Array.isArray(foundAgain?.users) ? foundAgain.users[0] : null;
-      if (fallback?.id) return { userId: String(fallback.id), tempPassword: null };
+      try {
+        const foundAgain = await callMoodle(moodleUrl, moodleToken, "core_user_get_users_by_field", {
+          field: "email",
+          "values[0]": email,
+        });
+        const fallback = Array.isArray(foundAgain) ? foundAgain[0] : null;
+        if (fallback?.id) return { userId: String(fallback.id), tempPassword: null, usernameUsed: username };
+      } catch (_) {
+        // ignore lookup errors, proceed to alt username
+      }
 
-      // Email not found — try by username (Moodle may have a different email on record)
-      const foundByUsername = await callMoodle(moodleUrl, moodleToken, "core_user_get_users", {
-        "criteria[0][key]": "username",
-        "criteria[0][value]": username,
-      });
-      const fallbackByUsername = Array.isArray(foundByUsername?.users) ? foundByUsername.users[0] : null;
-      if (fallbackByUsername?.id) return { userId: String(fallbackByUsername.id), tempPassword: null };
+      try {
+        const foundByUsername = await callMoodle(moodleUrl, moodleToken, "core_user_get_users_by_field", {
+          field: "username",
+          "values[0]": username,
+        });
+        const fallbackByUsername = Array.isArray(foundByUsername) ? foundByUsername[0] : null;
+        if (fallbackByUsername?.id) return { userId: String(fallbackByUsername.id), tempPassword: null, usernameUsed: username };
+      } catch (_) {
+        // ignore lookup errors, proceed to alt username
+      }
+      // Both lookups empty - username reserved by deleted user.
+      // Retry with modified username to avoid conflict.
+      const altUsername = username + "_r" + Date.now().toString().slice(-3);
+      try {
+        const retried = await callMoodle(moodleUrl, moodleToken, "core_user_create_users", {
+          "users[0][username]": altUsername,
+          "users[0][firstname]": firstName,
+          "users[0][lastname]": lastName || "-",
+          "users[0][email]": email,
+          "users[0][auth]": "manual",
+          "users[0][password]": tempPassword,
+        });
+        const retriedId = Array.isArray(retried) ? retried[0]?.id : null;
+        if (retriedId) {
+          console.log("MOODLE_ALT_USERNAME_USED", { original: username, alt: altUsername, email });
+          return { userId: String(retriedId), tempPassword, usernameUsed: altUsername };
+        }
+      } catch (retryErr) {
+        console.error("MOODLE_ALT_USERNAME_FAILED", retryErr);
+      }
     }
     throw error;
   }
@@ -412,7 +438,7 @@ Deno.serve(async (req) => {
           throw new Error("No Moodle course mapping found for this assignment");
         }
 
-        const { userId: moodleUserId, tempPassword } = await findOrCreateMoodleUser(
+        const { userId: moodleUserId, tempPassword, usernameUsed } = await findOrCreateMoodleUser(
           MOODLE_URL,
           MOODLE_TOKEN,
           email,
@@ -420,10 +446,15 @@ Deno.serve(async (req) => {
         );
         await ensureEnrollment(MOODLE_URL, MOODLE_TOKEN, moodleUserId, courseId);
 
+        const existingPayload = (row.payload as Record<string, unknown> | null) ?? {};
         await patchSyncRow(db, id, {
           sync_status: "SYNCED" satisfies SyncStatus,
           moodle_user_id: moodleUserId,
           temp_password: tempPassword,
+          payload: {
+            ...existingPayload,
+            moodle_username: usernameUsed,
+          },
           course_id: courseId,
           moodle_course_id: courseId,
           synced_at: nowIso,
@@ -432,9 +463,8 @@ Deno.serve(async (req) => {
           error_code: null,
         });
 
-        const moodleUsername = safeUsernameFromEmail(email);
         const credentialPatch = {
-          moodle_username: moodleUsername,
+          moodle_username: usernameUsed,
           moodle_temp_password: tempPassword,
           moodle_url: MOODLE_URL,
         };

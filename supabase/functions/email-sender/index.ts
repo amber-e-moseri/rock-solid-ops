@@ -9,6 +9,8 @@ const supabase = createClient(
 )
 
 const RESEND_API_KEY  = Deno.env.get('RESEND_API_KEY')!
+const SENDER_EMAIL    = String(Deno.env.get('SENDER_EMAIL') || '').trim()
+const EMAIL_FROM      = String(Deno.env.get('EMAIL_FROM') || '').trim()
 const BATCH_SIZE      = 50
 
 // ── Types ────────────────────────────────────────────────────
@@ -44,6 +46,10 @@ Deno.serve(async (): Promise<Response> => {
   const result: RunResult = { sent: 0, failed: 0, errors: [] }
 
   try {
+    if (!SENDER_EMAIL && !EMAIL_FROM) {
+      console.warn('EMAIL_SENDER_MISSING_FROM_ADDRESS: configure SENDER_EMAIL (preferred) or EMAIL_FROM to a verified Resend domain address')
+    }
+
     // Read sender identity from config table.
     const { data: configRows } = await supabase
       .from('config')
@@ -90,10 +96,11 @@ Deno.serve(async (): Promise<Response> => {
     for (const row of queue as EmailQueueRow[]) {
       try {
         const { subject, bodyHtml } = resolveContent(row, templateMap)
+        const fromAddress = Deno.env.get('SENDER_EMAIL') || Deno.env.get('EMAIL_FROM') || ''
 
         // Step 5: Send via Resend.
         const sendErr = await sendEmail({
-          from:        'Foundation School Team <onboarding@resend.dev>',
+          from:        `${senderName} <${fromAddress}>`,
           replyTo,
           to:          row.recipient_email,
           subject,
