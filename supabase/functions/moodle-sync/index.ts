@@ -151,7 +151,12 @@ async function callMoodle(url: string, token: string, wsfunction: string, params
   return data;
 }
 
-async function findOrCreateMoodleUser(moodleUrl: string, moodleToken: string, email: string, fullName: string) {
+async function findOrCreateMoodleUser(
+  moodleUrl: string,
+  moodleToken: string,
+  email: string,
+  fullName: string,
+): Promise<{ userId: string; tempPassword: string | null }> {
   const found = await callMoodle(moodleUrl, moodleToken, "core_user_get_users", {
     "criteria[0][key]": "email",
     "criteria[0][value]": email,
@@ -159,34 +164,44 @@ async function findOrCreateMoodleUser(moodleUrl: string, moodleToken: string, em
 
   const existing = Array.isArray(found?.users) ? found.users[0] : null;
   if (existing?.id) {
-    return String(existing.id);
+    return { userId: String(existing.id), tempPassword: null };
   }
 
   const { firstName, lastName } = splitName(fullName);
   const username = safeUsernameFromEmail(email);
 
   try {
+    const tempPassword = crypto.randomUUID().slice(0, 8).toUpperCase() + "a!1";
     const created = await callMoodle(moodleUrl, moodleToken, "core_user_create_users", {
       "users[0][username]": username,
       "users[0][firstname]": firstName,
       "users[0][lastname]": lastName || "-",
       "users[0][email]": email,
       "users[0][auth]": "manual",
-      "users[0][password]": crypto.randomUUID() + "A!1",
+      "users[0][password]": tempPassword,
     });
 
     const createdId = Array.isArray(created) ? created[0]?.id : null;
     if (!createdId) throw new Error("Moodle user creation returned no id");
-    return String(createdId);
+    return { userId: String(createdId), tempPassword };
   } catch (error) {
     const c = classifyError(error);
     if (c.code === "ALREADY_EXISTS") {
+      // Try by email first
       const foundAgain = await callMoodle(moodleUrl, moodleToken, "core_user_get_users", {
         "criteria[0][key]": "email",
         "criteria[0][value]": email,
       });
       const fallback = Array.isArray(foundAgain?.users) ? foundAgain.users[0] : null;
-      if (fallback?.id) return String(fallback.id);
+      if (fallback?.id) return { userId: String(fallback.id), tempPassword: null };
+
+      // Email not found — try by username (Moodle may have a different email on record)
+      const foundByUsername = await callMoodle(moodleUrl, moodleToken, "core_user_get_users", {
+        "criteria[0][key]": "username",
+        "criteria[0][value]": username,
+      });
+      const fallbackByUsername = Array.isArray(foundByUsername?.users) ? foundByUsername.users[0] : null;
+      if (fallbackByUsername?.id) return { userId: String(fallbackByUsername.id), tempPassword: null };
     }
     throw error;
   }
@@ -397,12 +412,18 @@ Deno.serve(async (req) => {
           throw new Error("No Moodle course mapping found for this assignment");
         }
 
-        const moodleUserId = await findOrCreateMoodleUser(MOODLE_URL, MOODLE_TOKEN, email, fullName);
+        const { userId: moodleUserId, tempPassword } = await findOrCreateMoodleUser(
+          MOODLE_URL,
+          MOODLE_TOKEN,
+          email,
+          fullName,
+        );
         await ensureEnrollment(MOODLE_URL, MOODLE_TOKEN, moodleUserId, courseId);
 
         await patchSyncRow(db, id, {
           sync_status: "SYNCED" satisfies SyncStatus,
           moodle_user_id: moodleUserId,
+          temp_password: tempPassword,
           course_id: courseId,
           moodle_course_id: courseId,
           synced_at: nowIso,
@@ -410,6 +431,33 @@ Deno.serve(async (req) => {
           error_message: null,
           error_code: null,
         });
+
+        const moodleUsername = safeUsernameFromEmail(email);
+        const credentialPatch = {
+          moodle_username: moodleUsername,
+          moodle_temp_password: tempPassword,
+          moodle_url: MOODLE_URL,
+        };
+        const queueLookup = db
+          .from("email_queue")
+          .select("id,payload")
+          .eq("recipient_email", email)
+          .eq("template_key", "class_assigned")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const { data: queueRow } = traceId
+          ? await queueLookup.eq("trace_id", traceId).maybeSingle()
+          : await queueLookup.maybeSingle();
+        if (queueRow?.id) {
+          const mergedPayload = {
+            ...(queueRow.payload as Record<string, unknown> | null ?? {}),
+            ...credentialPatch,
+          };
+          await db
+            .from("email_queue")
+            .update({ payload: mergedPayload })
+            .eq("id", queueRow.id);
+        }
 
         await logAudit(db, "MOODLE_SYNC_SUCCESS", id, "SUCCESS", {
           email,

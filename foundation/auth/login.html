@@ -30,14 +30,18 @@
       border-radius: 8px;
     }
     #forgotPasswordBtn {
-      background: none;
-      background-color: transparent;
+      background: transparent !important;
+      background-color: transparent !important;
+      background-image: none !important;
       border: none;
+      box-shadow: none !important;
       color: var(--color-primary, #7c3aed);
       text-decoration: underline;
       padding: 0;
       cursor: pointer;
       font-size: 13px;
+      width: auto !important;
+      display: inline-block;
     }
   </style>
 </head>
@@ -48,7 +52,7 @@
       <input id="email" type="email" required placeholder="Email" class="w-full px-3 py-2 login-input" />
       <input id="password" type="password" required placeholder="Password" class="w-full px-3 py-2 login-input" />
       <button type="submit" class="px-4 py-2 bg-[#4C2A92] text-white font-semibold login-submit">Sign In</button>
-      <button id="forgotPasswordBtn" type="button" class="w-full text-left">Forgot password?</button>
+      <button id="forgotPasswordBtn" type="button" class="text-left">Forgot password?</button>
     </form>
     <p id="msg" class="text-sm text-slate-600 mt-3"></p>
     <p id="supportMsg" class="text-sm text-slate-600 mt-1 hidden"></p>
@@ -183,7 +187,7 @@
       msg.textContent = "Sending reset link...";
       setSupportLine(false);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/foundation/auth/login.html`,
+      redirectTo: `${window.location.origin}/foundation/auth/reset-password.html`,
       });
       if (error) {
         msg.textContent = "Could not send reset link. Please try again or contact support.";

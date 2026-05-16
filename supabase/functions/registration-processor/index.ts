@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     const phone = String(body.phone || "").trim();
     const fellowship_code = String(body.fellowship_code || "").trim() || null;
     const class_option_id = String(body.class_option_id || "").trim() || null;
-    const batch_id = String(body.batch_id || "").trim() || null;
+    let batch_id = String(body.batch_id || "").trim() || null;
     const availability = String(body.availability || "").trim() || null;
 
     // Validate required fields
@@ -240,6 +240,17 @@ Deno.serve(async (req) => {
             registrationStatus = "ASSIGNED";
             availabilityStatus = "CLASS_ASSIGNED";
             assignedAt = nowIso;
+            // Resolve batch_id from class_slots if not provided by form
+            if (!batch_id && class_option_id) {
+              const { data: slotRow } = await db
+                .from("class_slots")
+                .select("batch_id")
+                .eq("class_option_id", class_option_id)
+                .eq("batch_id", "BATCH-7CCE881D")
+                .eq("status", "Active")
+                .maybeSingle();
+              if (slotRow?.batch_id) batch_id = slotRow.batch_id;
+            }
           }
         }
       }

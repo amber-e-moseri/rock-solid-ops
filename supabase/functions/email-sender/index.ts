@@ -18,11 +18,10 @@ interface EmailQueueRow {
   template_key: string | null
   recipient_email: string
   recipient_name: string | null
-  student_id: string | null
   subject: string | null
-  body_html: string | null
   status: string
-  metadata: Record<string, unknown>
+  payload: Record<string, unknown>
+  trace_id: string | null
 }
 
 interface EmailTemplate {
@@ -58,7 +57,7 @@ Deno.serve(async (): Promise<Response> => {
     // Step 1: Fetch up to BATCH_SIZE pending emails.
     const { data: queue, error: qErr } = await supabase
       .from('email_queue')
-      .select('id, template_key, recipient_email, recipient_name, student_id, subject, body_html, status, metadata')
+      .select('id, template_key, recipient_email, recipient_name, subject, status, payload, trace_id')
       .eq('status', 'Pending')
       .order('created_at', { ascending: true })
       .limit(BATCH_SIZE)
@@ -77,7 +76,7 @@ Deno.serve(async (): Promise<Response> => {
     const templateMap = new Map<string, EmailTemplate>()
     if (templateKeys.length) {
       const { data: templates } = await supabase
-        .from('email_templates')
+      .from('notification_templates')
         .select('template_key, subject, body_html')
         .in('template_key', templateKeys)
         .eq('active', true)
@@ -94,7 +93,7 @@ Deno.serve(async (): Promise<Response> => {
 
         // Step 5: Send via Resend.
         const sendErr = await sendEmail({
-          from:        `${senderName} <${replyTo || 'noreply@example.com'}>`,
+          from:        'Foundation School Team <onboarding@resend.dev>',
           replyTo,
           to:          row.recipient_email,
           subject,
@@ -151,11 +150,13 @@ function resolveContent(
   row: EmailQueueRow,
   templateMap: Map<string, EmailTemplate>
 ): { subject: string; bodyHtml: string } {
-  // Step 2: Use row.body_html if present.
-  if (row.body_html) {
+  const rowBodyHtml = String(row.payload?.body_html ?? '')
+
+  // Step 2: Use payload.body_html if present.
+  if (rowBodyHtml) {
     return {
       subject:  row.subject ?? '(No subject)',
-      bodyHtml: substituteVariables(row.body_html, row)
+      bodyHtml: substituteVariables(rowBodyHtml, row)
     }
   }
 
@@ -163,7 +164,7 @@ function resolveContent(
   const template = row.template_key ? templateMap.get(row.template_key) : undefined
   if (!template) {
     throw new Error(
-      `No body_html on row and no template found for key: ${row.template_key ?? '(none)'}`
+      `No payload.body_html on row and no template found for key: ${row.template_key ?? '(none)'}`
     )
   }
 
@@ -174,13 +175,14 @@ function resolveContent(
 }
 
 function substituteVariables(template: string, row: EmailQueueRow): string {
+  const payloadStudentId = row.payload?.student_id
   const vars: Record<string, string> = {
     recipient_name: row.recipient_name ?? '',
     recipient_email: row.recipient_email,
-    student_id: row.student_id ?? '',
-    // Spread metadata fields so {{batch_id}}, {{class_option_id}}, etc. work.
+    student_id: String(payloadStudentId ?? ''),
+    // Spread payload fields so {{batch_id}}, {{class_option_id}}, etc. work.
     ...Object.fromEntries(
-      Object.entries(row.metadata ?? {}).map(([k, v]) => [k, String(v ?? '')])
+      Object.entries(row.payload ?? {}).map(([k, v]) => [k, String(v ?? '')])
     )
   }
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '')

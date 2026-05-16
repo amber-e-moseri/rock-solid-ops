@@ -60,6 +60,22 @@ export function classifyError(error: unknown, defaultRetryable = true): ErrorCla
     };
   }
 
+  // Conflict/duplicate — must be before INVALID_INPUT ("already exists" contains "invalid")
+  if (
+    lower.includes("already exists") ||
+    lower.includes("already enrolled") ||
+    lower.includes("duplicate") ||
+    lower.includes("conflict")
+  ) {
+    return {
+      code: "ALREADY_EXISTS",
+      message: msg,
+      retryable: false,
+      statusCode: 409,
+      isUserError: false,
+    };
+  }
+
   // Input validation errors (non-retryable, user error)
   if (
     lower.includes("invalid") ||
@@ -84,22 +100,6 @@ export function classifyError(error: unknown, defaultRetryable = true): ErrorCla
       retryable: false,
       statusCode: 404,
       isUserError: true,
-    };
-  }
-
-  // Conflict/duplicate (non-retryable but not user error)
-  if (
-    lower.includes("already exists") ||
-    lower.includes("already enrolled") ||
-    lower.includes("duplicate") ||
-    lower.includes("conflict")
-  ) {
-    return {
-      code: "ALREADY_EXISTS",
-      message: msg,
-      retryable: false,
-      statusCode: 409,
-      isUserError: false,
     };
   }
 
