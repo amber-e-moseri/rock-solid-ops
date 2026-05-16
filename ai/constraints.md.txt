@@ -99,3 +99,42 @@ Avoid:
 * Preserve auth guards
 * Preserve role checks
 
+---
+
+### CSS SYSTEM (updated May 2026)
+
+- Use fs-* primitive classes for all new and refactored pages
+- tokens.css and primitives.css are the canonical source
+- Do not introduce new page-specific CSS variables or class systems
+- Do not use: var(--muted), var(--surface), .chip, .summary-card
+  in new pages — use fs-* equivalents
+- Existing pages using old classes are in migration —
+  do not copy old patterns into new work
+
+---
+
+### EDGE FUNCTION SHARED UTILITIES
+
+- Import from supabase/functions/_shared/ when available
+- Do not reimplement retry, audit, or response helpers per-function
+- New functions must use _shared/supabase.ts for client creation
+  once that module exists
+
+---
+
+### MOODLE (updated May 2026)
+
+- HTTP 403 is non-retryable except MOODLE_WAF_BLOCK
+- Always classify 403 cause before marking FAILED
+- failure_reason must be written to the sync row
+- Never silently retry permission or configuration errors
+
+---
+
+### CONFIG GUARD
+
+- Do not copy the FS_CONFIG guard block into new pages
+- The guard must be centralized — use runtime.js or the
+  shared module when available
+- New pages should fail visibly and early if config is absent
+

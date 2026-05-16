@@ -1,27 +1,27 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Foundation School â€” Admin Portal</title>
+  <title>Rock Solid — Admin Portal</title>
   <script src="../js/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --navy: #4C2A92; --navy-d: #3b2080; --navy-l: #6B3FBF;
-      --gold: #F4BE41; --cream: #F4EFE3;
-      --bg: #f5f3fb;
-      --border: #e2ddf0;
-      --text: #1a1230; --muted: #6b7280;
-      --success: #166534; --success-bg: #dcfce7; --success-bd: #86efac;
-      --danger:  #991b1b; --danger-bg:  #fee2e2; --danger-bd:  #fca5a5;
-      --warn:    #92400e; --warn-bg:    #fef3c7; --warn-bd:    #fcd34d;
-      --info:    #1e40af; --info-bg:    #dbeafe; --info-bd:    #93c5fd;
+      --navy: var(--color-primary); --navy-d: var(--color-primary-hover); --navy-l: var(--color-primary-hover);
+      --gold: var(--color-warning); --cream: var(--color-bg);
+      --bg: var(--color-bg);
+      --border: var(--color-border);
+      --text: var(--color-text-primary); --muted: var(--color-text-muted);
+      --success: var(--color-success-fg); --success-bg: var(--color-success-bg); --success-bd: color-mix(in srgb, var(--color-success) 45%, #fff);
+      --danger:  var(--color-danger-fg); --danger-bg:  var(--color-danger-bg); --danger-bd:  color-mix(in srgb, var(--color-danger) 45%, #fff);
+      --warn:    var(--color-warning-fg); --warn-bg:    var(--color-warning-bg); --warn-bd:    color-mix(in srgb, var(--color-warning) 45%, #fff);
+      --info:    var(--color-info-fg); --info-bg:    var(--color-info-bg); --info-bd:    color-mix(in srgb, var(--color-info) 45%, #fff);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
 
-    /* â”€â”€ Loading / Access Denied â”€â”€ */
+    /* ── Loading / Access Denied ── */
     #loading-screen {
       position: fixed; inset: 0; background: var(--cream);
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 100;
@@ -44,10 +44,10 @@
     .denied-card h2 { color: var(--danger); font-size: 20px; margin-bottom: 12px; }
     .denied-card p  { color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
 
-    /* â”€â”€ Portal shell â”€â”€ */
+    /* ── Portal shell ── */
     #portal { display: none; min-height: 100vh; }
 
-    /* â”€â”€ Header â”€â”€ */
+    /* ── Header ── */
     header {
       background: var(--navy); color: #fff;
       position: sticky; top: 0; z-index: 50;
@@ -74,7 +74,7 @@
     }
     .btn-logout:hover { background: rgba(255,255,255,0.25); }
 
-    /* â”€â”€ Toasts â”€â”€ */
+    /* ── Toasts ── */
     #toasts { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
     .toast {
       padding: 12px 18px; border-radius: 9px; font-size: 14px; font-weight: 500;
@@ -86,10 +86,10 @@
     .toast-info    { background: var(--navy); }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* â”€â”€ Main layout â”€â”€ */
+    /* ── Main layout ── */
     main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; display: flex; flex-direction: column; gap: 28px; }
 
-    /* â”€â”€ Section cards â”€â”€ */
+    /* ── Section cards ── */
     .section { background: #fff; border-radius: 14px; border: 1px solid var(--border); overflow: hidden; }
     .section-header {
       padding: 18px 24px 16px; border-bottom: 1px solid var(--border);
@@ -98,7 +98,7 @@
     .section-header h2 { font-size: 16px; font-weight: 700; color: var(--navy); }
     .section-body { padding: 20px 24px; }
 
-    /* â”€â”€ Badges â”€â”€ */
+    /* ── Badges ── */
     .badge {
       display: inline-block; padding: 2px 10px; border-radius: 20px;
       font-size: 12px; font-weight: 600; white-space: nowrap;
@@ -117,7 +117,7 @@
     .gate-ok  { color: #16a34a; font-size: 16px; }
     .gate-no  { color: #d1d5db; font-size: 16px; }
 
-    /* â”€â”€ Tables â”€â”€ */
+    /* ── Tables ── */
     .table-wrap { overflow-x: auto; margin-top: 4px; }
     table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
     thead tr { background: #f8f6ff; }
@@ -138,7 +138,7 @@
     .table-mobile-meta .meta-row { font-size: 12px; color: var(--muted); }
     .table-mobile-actions { margin-top: 8px; }
 
-    /* â”€â”€ Buttons â”€â”€ */
+    /* ── Buttons ── */
     .btn-sm {
       padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
       cursor: pointer; border: none; transition: opacity 0.15s; white-space: nowrap;
@@ -173,7 +173,7 @@
     .btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
-    /* â”€â”€ States â”€â”€ */
+    /* ── States ── */
     .empty-state { color: var(--muted); padding: 24px 0; text-align: center; font-size: 14px; }
     .loading-state { color: var(--muted); padding: 24px 0; text-align: center; }
     .error-state {
@@ -182,7 +182,7 @@
     }
     .error-state small { display: block; margin-top: 4px; opacity: 0.75; }
 
-    /* â”€â”€ Dashboard grid â”€â”€ */
+    /* ── Dashboard grid ── */
     .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
     .dash-card { background: #f8f6ff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
     .dash-card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
@@ -192,11 +192,11 @@
     .metric-val { display: block; font-size: 22px; font-weight: 800; color: var(--navy); line-height: 1; }
     .metric-label { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
 
-    /* â”€â”€ Attention flag â”€â”€ */
+    /* ── Attention flag ── */
     .flag-on { color: #d97706; font-weight: 700; }
     .flag-off { color: #d1d5db; }
 
-    /* â”€â”€ Modal â”€â”€ */
+    /* ── Modal ── */
     #modal-overlay {
       display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
       align-items: center; justify-content: center; z-index: 150; padding: 20px;
@@ -221,16 +221,16 @@
     .modal-error.show { display: block; }
     .modal-foot { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
 
-    /* â”€â”€ Section header actions â”€â”€ */
+    /* ── Section header actions ── */
     .section-header-actions { display: flex; gap: 8px; align-items: center; }
 
-    /* â”€â”€ Batch status badges â”€â”€ */
+    /* ── Batch status badges ── */
     .badge-draft     { background: #f1f5f9; color: #475569; }
     .badge-open      { background: var(--info-bg); color: var(--info); }
     .badge-completed { background: #f0fdf4; color: #15803d; }
     .badge-archived  { background: #f3f4f6; color: #9ca3af; }
 
-    /* â”€â”€ Form fields (batch + moodle modals) â”€â”€ */
+    /* ── Form fields (batch + moodle modals) ── */
     .modal-form   { display: flex; flex-direction: column; gap: 14px; }
     .form-row     { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-group   { display: flex; flex-direction: column; gap: 5px; }
@@ -248,7 +248,7 @@
     }
     .form-group input:disabled { background: #f1f5f9; color: #9ca3af; cursor: not-allowed; }
 
-    /* â”€â”€ Moodle group rows â”€â”€ */
+    /* ── Moodle group rows ── */
     .moodle-group-row {
       background: #f8f6ff; border: 1px solid var(--border); border-radius: 10px;
       padding: 14px 16px; margin-bottom: 10px;
@@ -268,7 +268,10 @@
       .table-mobile-cards { display: grid; }
     }
   </style>
+  <link rel="stylesheet" href="../ui/tokens.css" />
   <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
 </head>
@@ -277,7 +280,7 @@
   <!-- Loading -->
   <div id="loading-screen">
     <div class="spinner"></div>
-    <p>Loading portalâ€¦</p>
+    <p>Loading portal…</p>
   </div>
 
   <!-- Access denied -->
@@ -285,28 +288,12 @@
     <div class="denied-card">
       <h2>Access Denied</h2>
       <p id="denied-msg">No admin profile is associated with this account. Please contact your administrator.</p>
-      <button class="btn-primary" onclick="logout()">Sign Out</button>
+      <button class="btn fs-btn fs-btn-secondary-primary" onclick="logout()">Sign Out</button>
     </div>
   </div>
 
   <!-- Portal -->
   <div id="portal">
-    <header>
-      <div class="header-inner">
-        <div class="header-brand">
-          <div class="logo-mark">FS</div>
-          <div>
-            <div class="brand-name">Foundation School</div>
-            <div class="brand-sub">Admin Portal</div>
-          </div>
-        </div>
-        <div class="header-right">
-          <span id="hdr-name" class="user-name"></span>
-          <span id="hdr-role" class="badge"></span>
-          <button class="btn-logout" onclick="logout()">Sign Out</button>
-        </div>
-      </div>
-    </header>
     <main id="main"></main>
   </div>
 
@@ -319,12 +306,12 @@
       </div>
       <div class="modal-body">
         <label class="modal-label" for="modal-reason">Reason for Suspension <span class="required">*</span></label>
-        <textarea id="modal-reason" placeholder="Describe the reasonâ€¦"></textarea>
+        <textarea id="modal-reason" placeholder="Describe the reason…"></textarea>
         <div class="modal-error" id="modal-err"></div>
       </div>
       <div class="modal-foot">
-        <button class="btn-outline" onclick="closeModal()">Cancel</button>
-        <button class="btn-danger" id="modal-submit" onclick="confirmSuspend()">Confirm Suspension</button>
+        <button class="btn fs-btn fs-btn-secondary-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn fs-btn fs-btn-secondary-danger" id="modal-submit" onclick="confirmSuspend()">Confirm Suspension</button>
       </div>
     </div>
   </div>
@@ -356,7 +343,7 @@
           </div>
           <div class="form-group">
             <label for="bm-batch-name">Batch Name <span class="required">*</span></label>
-            <input id="bm-batch-name" type="text" placeholder="e.g. Foundation School 2026 â€” Batch A">
+            <input id="bm-batch-name" type="text" placeholder="e.g. Rock Solid 2026 — Batch A">
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -376,8 +363,8 @@
         <div class="modal-error" id="bm-err"></div>
       </div>
       <div class="modal-foot">
-        <button class="btn-outline" onclick="closeBatchModal()">Cancel</button>
-        <button class="btn-primary" id="bm-submit" onclick="saveBatch()">Save Batch</button>
+        <button class="btn fs-btn fs-btn-secondary-outline" onclick="closeBatchModal()">Cancel</button>
+        <button class="btn fs-btn fs-btn-secondary-primary" id="bm-submit" onclick="saveBatch()">Save Batch</button>
       </div>
     </div>
   </div>
@@ -395,7 +382,7 @@
           Subgroups (e.g. CSGA, CSGB) inherit their parent group's course automatically.
         </p>
         <div class="moodle-group-row">
-          <div class="moodle-group-label">CE â€” Central East</div>
+          <div class="moodle-group-label">CE — Central East</div>
           <div class="modal-form">
             <div class="form-group">
               <label for="mm-CE-id">Moodle Course ID <span class="required">*</span></label>
@@ -408,13 +395,13 @@
               </div>
               <div class="form-group">
                 <label for="mm-CE-url">Course URL</label>
-                <input id="mm-CE-url" type="text" placeholder="https://â€¦">
+                <input id="mm-CE-url" type="text" placeholder="https://…">
               </div>
             </div>
           </div>
         </div>
         <div class="moodle-group-row">
-          <div class="moodle-group-label">CS â€” Central South</div>
+          <div class="moodle-group-label">CS — Central South</div>
           <div class="modal-form">
             <div class="form-group">
               <label for="mm-CS-id">Moodle Course ID <span class="required">*</span></label>
@@ -433,7 +420,7 @@
           </div>
         </div>
         <div class="moodle-group-row">
-          <div class="moodle-group-label">WS â€” West</div>
+          <div class="moodle-group-label">WS — West</div>
           <div class="modal-form">
             <div class="form-group">
               <label for="mm-WS-id">Moodle Course ID <span class="required">*</span></label>
@@ -454,8 +441,8 @@
         <div class="modal-error" id="mm-err"></div>
       </div>
       <div class="modal-foot">
-        <button class="btn-outline" onclick="closeMoodleModal()">Cancel</button>
-        <button class="btn-primary" id="mm-submit" onclick="saveMoodleMappings()">Save Mappings</button>
+        <button class="btn fs-btn fs-btn-secondary-outline" onclick="closeMoodleModal()">Cancel</button>
+        <button class="btn fs-btn fs-btn-secondary-primary" id="mm-submit" onclick="saveMoodleMappings()">Save Mappings</button>
       </div>
     </div>
   </div>
@@ -465,10 +452,13 @@
 
   <script src="../js/admin-ui.js"></script>
   <script src="../js/admin-api.js"></script>
+  <script src="../js/admin-shell.js"></script>
   <script src="../js/admin-portal.js"></script>
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
+
 
 
 

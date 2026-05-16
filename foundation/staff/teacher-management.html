@@ -1,0 +1,168 @@
+﻿<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Teacher Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel='stylesheet' href='../ui/primitives.css' />
+  <style>
+    body { font-family: "Manrope", system-ui, sans-serif; }
+    .filters { display: grid; grid-template-columns: 1.2fr repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .tab { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .tab.active { background: var(--soft-lavender); color: var(--primary); border-color: color-mix(in srgb, var(--primary), transparent 65%); }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+    table { width: 100%; min-width: 980px; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; background: var(--surface-2); }
+    .chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 800; border: 1px solid var(--border); }
+    .chip.pending { background: #fff4db; color: #8a5600; }
+    .chip.active { background: var(--success-soft); color: #1f7a4a; }
+    .chip.suspended { background: #fff0d9; color: #b45309; }
+    .chip.inactive { background: #f1f1f4; color: #565e6c; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .state { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--muted); }
+    .mobile-cards { display: none; gap: 10px; }
+    .teacher-card { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 12px; }
+    .teacher-card h3 { margin: 0 0 6px; font-size: 15px; }
+    .teacher-card p { margin: 4px 0; font-size: 12px; color: var(--muted); }
+    @media (max-width: 980px) { .filters { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 760px) {
+      .filters { grid-template-columns: 1fr; }
+      .table-wrap { display: none; }
+      .mobile-cards { display: grid; }
+    }
+    .tm-modal-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--color-text-primary), transparent 60%); display: none; align-items: center; justify-content: center; z-index: 1200; padding: var(--space-4); }
+    .tm-modal-overlay.open { display: flex; }
+    .tm-modal { width: min(760px, 100%); max-height: 92vh; overflow: auto; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-raised); padding: var(--space-4); display: grid; gap: var(--space-3); }
+    .tm-modal h2 { margin: 0; font-size: var(--fs-section-title); color: var(--color-text-primary); }
+    .tm-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .tm-field { display: grid; gap: var(--space-2); }
+    .tm-field-full { grid-column: 1 / -1; }
+    .tm-label { font-size: var(--fs-label); letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-text-secondary); font-weight: 600; }
+    .tm-password-wrap { display: grid; grid-template-columns: 1fr auto; gap: var(--space-2); align-items: center; }
+    .tm-note { margin: 0; font-size: var(--fs-meta); color: var(--color-text-muted); }
+    .tm-result { border: 1px solid var(--color-border); background: var(--color-surface-raised); border-radius: var(--radius-md); padding: var(--space-3); display: grid; gap: var(--space-2); }
+    .tm-result pre { margin: 0; padding: var(--space-2); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-primary); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px; overflow: auto; }
+    .tm-modal-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+    @media (max-width: 760px) { .tm-modal-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="fs-page fs-wrap-xl">
+    <section class="hero">
+      <h1 class="hero-title">Teacher Management</h1>
+      <p class="hero-sub">Primary lifecycle workflow for approving, activating, suspending, unsuspending, and deactivating teachers.</p>
+    </section>
+
+    <section class="card">
+      <div class="tabs" id="statusTabs"></div>
+      <div class="filters fs-action-bar">
+        <input id="searchInput" class="fs-input" placeholder="Search name, email, subgroup" aria-label="Search teachers" />
+        <input id="groupFilter" class="fs-input" placeholder="Group" aria-label="Filter by group" />
+        <input id="subgroupFilter" class="fs-input" placeholder="Subgroup" aria-label="Filter by subgroup" />
+        <button id="addTeacherBtn" class="btn primary fs-btn fs-btn-primary">Add Teacher</button>
+        <button id="refreshBtn" class="btn fs-btn fs-btn-secondary">Refresh</button>
+        <a href="admin-portal.html" class="btn fs-btn fs-btn-secondary">Back to Admin Portal</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="fs-row" style="margin-bottom:10px;">
+        <strong id="countLabel">0 teachers</strong>
+      </div>
+      <div id="state" class="state">Loading teachers...</div>
+      <div id="tableWrap" class="table-wrap fs-table-wrap hidden">
+        <table class="fs-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Group</th>
+              <th>Subgroup</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div id="mobileCards" class="mobile-cards"></div>
+    </section>
+  </main>
+
+  <div id="addTeacherModal" class="tm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addTeacherModalTitle">
+    <div class="tm-modal">
+      <h2 id="addTeacherModalTitle">Add Teacher</h2>
+      <form id="addTeacherForm" class="tm-modal-grid">
+        <div class="tm-field">
+          <label class="tm-label" for="addTeacherFullName">Full Name</label>
+          <input id="addTeacherFullName" class="fs-input" type="text" required />
+        </div>
+        <div class="tm-field">
+          <label class="tm-label" for="addTeacherEmail">Email</label>
+          <input id="addTeacherEmail" class="fs-input" type="email" required />
+        </div>
+        <div class="tm-field">
+          <label class="tm-label" for="addTeacherTempPassword">Temporary Password (Share this with the teacher directly)</label>
+          <div class="tm-password-wrap">
+            <input id="addTeacherTempPassword" class="fs-input" type="password" minlength="8" required />
+            <button id="toggleTempPasswordBtn" type="button" class="btn fs-btn fs-btn-secondary">Show</button>
+          </div>
+        </div>
+        <div class="tm-field">
+          <label class="tm-label" for="addTeacherPhone">Phone</label>
+          <input id="addTeacherPhone" class="fs-input" type="tel" />
+        </div>
+        <div class="tm-field">
+          <label class="tm-label" for="addTeacherGroupId">Group ID</label>
+          <input id="addTeacherGroupId" class="fs-input" type="text" />
+        </div>
+        <div class="tm-field">
+          <label class="tm-label" for="addTeacherSubgroupId">Subgroup ID</label>
+          <input id="addTeacherSubgroupId" class="fs-input" type="text" />
+        </div>
+        <div class="tm-field tm-field-full">
+          <label class="tm-label" for="addTeacherNotes">Notes</label>
+          <textarea id="addTeacherNotes" class="fs-input" rows="3"></textarea>
+        </div>
+        <div id="addTeacherResult" class="tm-result tm-field-full hidden">
+          <strong>Credentials Created</strong>
+          <p class="tm-note">Email: <span id="addTeacherResultEmail"></span></p>
+          <pre id="addTeacherResultPassword"></pre>
+          <p class="tm-note">Login URL: <code>/foundation/auth/login.html</code></p>
+          <p class="tm-note">Status is PENDING — use Activate to enable portal access</p>
+        </div>
+        <div class="tm-modal-actions tm-field-full">
+          <button id="cancelAddTeacherBtn" type="button" class="btn fs-btn fs-btn-secondary">Cancel</button>
+          <button id="submitAddTeacherBtn" type="submit" class="btn primary fs-btn fs-btn-primary">Create Teacher</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script src="../js/admin-ui.js"></script>
+  <script src="../js/admin-api.js"></script>
+  <script src="../js/modal.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/api-client.js"></script>
+  <script src="../js/teacher-management.js"></script>
+  <script>
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "", pageTitle: "Teacher Management" });
+  </script>
+</body>
+</html>
+
+
+

@@ -1,36 +1,28 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Foundation School - Milestones Admin</title>
+  <title>Rock Solid - Milestones Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel='stylesheet' href='../ui/primitives.css' />
   <style>
     :root { --line: color-mix(in srgb, var(--border) 90%, transparent); }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: "DM Sans", sans-serif; background: var(--bg); color: var(--text); }
-    .shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
-    .side { border-right: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 92%, transparent); padding: 14px; position: sticky; top: 0; height: 100vh; overflow: auto; }
     .main { padding: 14px; }
-    .top {
-      position: sticky; top: 8px; z-index: 20;
-      border: 1px solid var(--line); border-radius: 16px; padding: 12px;
-      backdrop-filter: blur(10px); background: color-mix(in srgb, var(--surface) 84%, transparent);
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
-    }
-    .top h1 { margin: 0; font-size: 24px; }
-    .top p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
-    .icon-btn, .btn, select, input {
-      border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--text); font: inherit;
-    }
-    .icon-btn { width: 42px; height: 42px; cursor: pointer; font-size: 18px; }
+    .btn, select, input { border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--text); font: inherit; }
     .btn { padding: 10px 14px; cursor: pointer; font-weight: 700; }
     .btn.primary { background: var(--primary); color: #fff; border-color: color-mix(in srgb, var(--primary) 80%, black); }
+    .btn.warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-bd); }
+    .btn.small { padding: 6px 10px; font-size: 12px; }
     .card { margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px; box-shadow: var(--shadow-soft); }
     .filters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+    .def-form { display: grid; grid-template-columns: 1.2fr 1.6fr .9fr .8fr auto; gap: 8px; align-items: end; }
     label { display: block; margin-bottom: 4px; font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700; letter-spacing: .05em; }
     input, select { width: 100%; padding: 10px; }
     .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
@@ -38,12 +30,9 @@
     th, td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; font-size: 12px; }
     th { background: var(--surface-2); color: var(--muted); font-size: 11px; text-transform: uppercase; }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .chip {
-      border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--soft-lavender) 70%, var(--surface));
-      color: var(--primary); font-size: 11px; font-weight: 700; padding: 5px 9px; cursor: pointer;
-    }
+    .chip { border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--soft-lavender) 70%, var(--surface)); color: var(--primary); font-size: 11px; font-weight: 700; padding: 5px 9px; cursor: pointer; }
     .chip.on { background: var(--primary); color: #fff; border-color: var(--primary); }
-    .pill { border-radius: 999px; font-size: 11px; font-weight: 700; padding: 4px 9px; border: 1px solid var(--line); }
+    .fs-badge { border-radius: 999px; font-size: 11px; font-weight: 700; padding: 4px 9px; border: 1px solid var(--line); }
     .ok { color: #166534; background: color-mix(in srgb, #22c55e 12%, var(--surface)); border-color: color-mix(in srgb, #22c55e 34%, var(--surface)); }
     .warn { color: #b45309; background: color-mix(in srgb, #f59e0b 14%, var(--surface)); border-color: color-mix(in srgb, #f59e0b 35%, var(--surface)); }
     .timeline { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
@@ -53,35 +42,48 @@
     .msg { margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12px; }
     .bad { color: #b42318; background: color-mix(in srgb, #ef4444 13%, var(--surface)); border-color: color-mix(in srgb, #ef4444 34%, var(--surface)); }
     .good { color: #166534; background: color-mix(in srgb, #22c55e 12%, var(--surface)); border-color: color-mix(in srgb, #22c55e 34%, var(--surface)); }
+    .hidden { display: none !important; }
     @media (max-width: 1080px) {
-      .shell { grid-template-columns: 1fr; }
-      .side { position: relative; height: auto; }
       .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .def-form { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <aside class="side">
-      <h3 style="margin:0">Foundation School</h3>
-      <p class="muted" style="font-size:12px;margin-top:4px">Milestones Admin</p>
-      <div id="roleSidebar" style="margin-top:10px;display:grid;gap:8px"></div>
-    </aside>
-    <main class="main">
-      <section class="top">
-        <div>
-          <h1>Milestones Admin</h1>
-          <p>Edit milestones anytime across the student journey</p>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button id="themeBtn" class="icon-btn">🌙</button>
-          <button id="logoutBtn" class="btn">Logout</button>
+  <main class="main fs-content">
+      <section class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div>
+            <h1 style="margin:0;font-size:24px;">Milestones Admin</h1>
+            <p class="muted" style="margin:4px 0 0;font-size:12px;">Configure milestones and track completion per student</p>
+          </div>
+          <button id="logoutBtn" class="fs-btn fs-btn-secondary">Logout</button>
         </div>
       </section>
       <section id="flash"></section>
 
       <section class="card">
-        <div class="filters">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <strong>Milestone Definitions</strong>
+          <span id="defsRoleNote" class="muted" style="font-size:12px"></span>
+        </div>
+        <div id="defsManage" class="def-form" style="margin-top:8px;">
+          <div><label>Code</label><input id="defCode" placeholder="SOUL_WINNING" /></div>
+          <div><label>Label</label><input id="defLabel" placeholder="Soul Winning" /></div>
+          <div><label>Class Session</label><input id="defSession" type="number" min="1" placeholder="(blank = general)" /></div>
+          <div><label>Active</label><select id="defActive"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+          <div><button id="defSaveBtn" class="fs-btn fs-btn-primary primary">Save Milestone</button></div>
+        </div>
+        <div class="table-wrap fs-table-wrap" style="margin-top:8px;">
+          <table class="fs-table">
+            <thead><tr><th>Code</th><th>Label</th><th>Class Tie</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="defRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="filters fs-action-bar">
           <div><label>Search</label><input id="searchInput" placeholder="Name / email" /></div>
           <div><label>Fellowship</label><select id="fellowshipFilter"><option value="">All</option></select></div>
           <div><label>Class</label><select id="classFilter"><option value="">All</option></select></div>
@@ -95,8 +97,8 @@
           <strong>Students</strong>
           <span id="rowMeta" class="muted" style="font-size:12px"></span>
         </div>
-        <div class="table-wrap" style="margin-top:8px">
-          <table>
+        <div class="table-wrap fs-table-wrap" style="margin-top:8px">
+          <table class="fs-table">
             <thead>
               <tr>
                 <th>Student</th><th>Fellowship</th><th>Class</th><th>Status</th><th>Milestones</th><th>Actions</th>
@@ -111,25 +113,15 @@
         <strong>Student Milestone Timeline</strong>
         <div id="timeline" class="timeline" style="margin-top:8px"></div>
       </section>
-    </main>
-  </div>
+  </main>
 
 <script src="../js/config.js"></script>
+<script src="../js/config-helper.js"></script>
 <script type="module">
 import { CONFIG, supabase } from "../auth/auth-client.js";
-import { requireAuth } from "../auth/auth-guards.js";
+import { requireAuth } from "../auth/auth-client.js";
 import { logout } from "../auth/logout.js";
-import { renderRoleSidebar } from "../auth/role-sidebar.js";
 
-const MILESTONES = [
-  "Born Again",
-  "Filled with the Spirit",
-  "Partnership",
-  "Joined Cell",
-  "Serving Team Interest",
-  "Needs Follow-up",
-  "Foundation Completed"
-];
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;" }[c]));
 const fmt = (v) => v ? new Date(v).toLocaleString() : "-";
@@ -137,31 +129,39 @@ const state = {
   auth: null,
   applicants: [],
   classOptions: [],
-  milestones: [],
   milestoneDefs: [],
+  milestoneStatus: [],
   audits: [],
   filters: { search: "", fellowship: "", classOption: "", milestone: "", status: "" },
-  selectedApplicantId: null
+  selectedApplicantId: null,
+  milestonesReady: true,
+  isSuperadmin: false,
+  editingDefCode: null
 };
 
-function setTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("fs_theme", theme);
-  $("themeBtn").textContent = theme === "dark" ? "☀️" : "🌙";
+function setTheme() {
+  document.documentElement.setAttribute("data-theme", "light");
+  document.documentElement.classList.remove("dark");
+  document.body.classList.add("fs-force-light");
+  localStorage.setItem("fs_theme", "light");
 }
-function flash(msg, cls = "good") { $("flash").innerHTML = msg ? `<div class="msg ${cls}">${esc(msg)}</div>` : ""; }
 
-function milestoneIdByName(name) {
-  const row = state.milestoneDefs.find((m) => String(m.name || m.question || "").toLowerCase() === String(name).toLowerCase());
-  return row?.id || row?.milestone_id || name;
+function flash(msg, cls = "good") { $("flash").innerHTML = msg ? `<div class="fs-banner ${cls === "good" ? "fs-banner-info" : "fs-banner-danger"}">${esc(msg)}</div>` : ""; }
+
+function getDefByCode(code) {
+  return state.milestoneDefs.find((m) => String(m.code) === String(code));
 }
-function milestonesForApplicant(id) {
-  return state.milestones.filter((m) => String(m.applicant_id || m.student_id || "") === String(id));
+
+function statusesForApplicant(applicantId) {
+  return state.milestoneStatus.filter((m) => String(m.applicant_id || m.student_id || "") === String(applicantId));
 }
-function isCompleted(ms) { return ms.completed === true || ms.status === "completed" || String(ms.value || "").toLowerCase() === "yes"; }
-function completedMilestones(id) {
-  const list = milestonesForApplicant(id);
-  return new Set(list.filter(isCompleted).map((m) => String(m.milestone_name || m.name || m.milestone_id || "")));
+
+function isCompleted(ms) {
+  return String(ms.status || "pending") === "completed";
+}
+
+function completedCodes(applicantId) {
+  return new Set(statusesForApplicant(applicantId).filter(isCompleted).map((m) => String(m.milestone_code || "")));
 }
 
 function buildFilterOptions() {
@@ -171,19 +171,38 @@ function buildFilterOptions() {
   };
   setOpts("fellowshipFilter", state.applicants.map((a) => a.fellowship_code || a.fellowship || a.subgroup_id));
   setOpts("classFilter", state.applicants.map((a) => a.class_option_id));
-  setOpts("milestoneFilter", MILESTONES);
+  setOpts("milestoneFilter", state.milestoneDefs.filter((m) => m.is_active).map((m) => m.code));
+}
+
+function renderDefinitionRows() {
+  const defs = [...state.milestoneDefs].sort((a,b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
+  $("defRows").innerHTML = defs.map((d) => `
+    <tr>
+      <td><code>${esc(d.code)}</code></td>
+      <td>${esc(d.label)}</td>
+      <td>${d.class_session_number ? `Class ${esc(d.class_session_number)}` : "General"}</td>
+      <td><span class="fs-badge ${d.is_active ? "fs-badge-success" : "fs-badge-warning"}">${d.is_active ? "Active" : "Inactive"}</span></td>
+      <td>
+        ${state.isSuperadmin ? `<button class="fs-btn fs-btn-secondary fs-btn-sm" data-edit-def="${esc(d.code)}">Edit</button> <button class="fs-btn fs-btn-danger fs-btn-sm" data-toggle-def="${esc(d.code)}">${d.is_active ? "Deactivate" : "Activate"}</button>` : "<span class=\"muted\">View only</span>"}
+      </td>
+    </tr>
+  `).join("") || `<tr><td colspan="5" class="muted">No milestone definitions found.</td></tr>`;
+
+  if (!state.isSuperadmin) return;
+  document.querySelectorAll("[data-edit-def]").forEach((btn) => btn.addEventListener("click", () => startEditDefinition(btn.dataset.editDef)));
+  document.querySelectorAll("[data-toggle-def]").forEach((btn) => btn.addEventListener("click", () => toggleDefinitionActive(btn.dataset.toggleDef)));
 }
 
 function filteredApplicants() {
   return state.applicants.filter((a) => {
     const text = `${a.full_name || ""} ${a.email || ""}`.toLowerCase();
-    const done = completedMilestones(a.id);
+    const done = completedCodes(a.id);
     if (state.filters.search && !text.includes(state.filters.search.toLowerCase())) return false;
     if (state.filters.fellowship && String(a.fellowship_code || a.fellowship || a.subgroup_id || "") !== state.filters.fellowship) return false;
     if (state.filters.classOption && String(a.class_option_id || "") !== state.filters.classOption) return false;
-    if (state.filters.milestone && !done.has(state.filters.milestone) && !done.has(milestoneIdByName(state.filters.milestone))) return false;
+    if (state.filters.milestone && !done.has(state.filters.milestone)) return false;
     if (state.filters.status === "completed" && !done.size) return false;
-    if (state.filters.status === "pending" && done.size === MILESTONES.length) return false;
+    if (state.filters.status === "pending" && done.size === state.milestoneDefs.filter((d) => d.is_active).length) return false;
     return true;
   });
 }
@@ -192,132 +211,253 @@ function renderRows() {
   const rows = filteredApplicants();
   $("rowMeta").textContent = `${rows.length} of ${state.applicants.length} students`;
   $("rows").innerHTML = rows.map((a) => {
-    const done = completedMilestones(a.id);
-    const chips = MILESTONES.map((m) => {
-      const on = done.has(m) || done.has(milestoneIdByName(m));
-      return `<button class="chip ${on ? "on" : ""}" data-app="${esc(a.id)}" data-m="${esc(m)}">${esc(m)}</button>`;
+    const done = completedCodes(a.id);
+    const chips = state.milestoneDefs.filter((d) => d.is_active).sort((x,y) => (x.sort_order ?? 999) - (y.sort_order ?? 999)).map((d) => {
+      const on = done.has(d.code);
+      return `<button class="fs-badge ${on ? "fs-badge-success" : "fs-badge-neutral"}" data-app="${esc(a.id)}" data-code="${esc(d.code)}">${esc(d.label)}</button>`;
     }).join("");
     return `<tr>
       <td><strong>${esc(a.full_name || "-")}</strong><div class="muted">${esc(a.email || "-")}</div></td>
       <td>${esc(a.fellowship_code || a.fellowship || a.subgroup_id || "-")}</td>
       <td>${esc(a.class_option_id || "-")}</td>
-      <td><span class="pill ${done.size ? "ok" : "warn"}">${done.size ? "Active Progress" : "No Milestones Yet"}</span></td>
+      <td><span class="fs-badge ${done.size ? "fs-badge-success" : "fs-badge-warning"}">${done.size ? "Active Progress" : "No Milestones Yet"}</span></td>
       <td><div class="chips">${chips}</div></td>
-      <td><button class="btn" data-open="${esc(a.id)}">Open Timeline</button></td>
+      <td><button class="fs-btn fs-btn-secondary fs-btn-sm" data-open="${esc(a.id)}">Open Timeline</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="6" class="muted">No students match the selected filters.</td></tr>`;
 
-  document.querySelectorAll("[data-m]").forEach((btn) => {
-    btn.addEventListener("click", () => toggleMilestone(btn.dataset.app, btn.dataset.m));
-  });
-  document.querySelectorAll("[data-open]").forEach((btn) => {
-    btn.addEventListener("click", () => openTimeline(btn.dataset.open));
-  });
+  document.querySelectorAll("[data-code]").forEach((btn) => btn.addEventListener("click", () => toggleMilestone(btn.dataset.app, btn.dataset.code)));
+  document.querySelectorAll("[data-open]").forEach((btn) => btn.addEventListener("click", () => openTimeline(btn.dataset.open)));
 }
 
-async function toggleMilestone(applicantId, milestoneName) {
+async function toggleMilestone(applicantId, milestoneCode) {
+  if (!state.milestonesReady) {
+    flash("Milestones are not configured yet. Run migrations first.", "bad");
+    return;
+  }
+
   const now = new Date().toISOString();
-  const id = milestoneIdByName(milestoneName);
-  const existing = state.milestones.find((m) => String(m.applicant_id || m.student_id || "") === String(applicantId) && String(m.milestone_id || m.milestone_name || m.name || "") === String(id));
+  const existing = state.milestoneStatus.find((m) => String(m.applicant_id || "") === String(applicantId) && String(m.milestone_code || "") === String(milestoneCode));
   const nextCompleted = !(existing && isCompleted(existing));
+
   const payload = {
-    applicant_id: applicantId,
-    student_id: applicantId,
-    milestone_id: id,
-    milestone_name: milestoneName,
+    applicant_id: String(applicantId),
+    student_id: String(applicantId),
+    milestone_code: String(milestoneCode),
     status: nextCompleted ? "completed" : "pending",
-    completed: nextCompleted,
+    completed_at: nextCompleted ? now : null,
+    completed_by: nextCompleted ? (state.auth.profile.email || null) : null,
     updated_at: now,
-    updated_by: state.auth.profile.email
+    updated_by: state.auth.profile.email || null
   };
-  const { error } = await supabase.from("student_milestones").upsert(payload, { onConflict: "applicant_id,milestone_id" });
-  if (error) { flash(`Milestone update failed: ${error.message}`, "bad"); return; }
+
+  const { error } = await supabase.from("student_milestone_status").upsert(payload, { onConflict: "applicant_id,milestone_code" });
+  if (error) {
+    flash(`Milestone update failed: ${error.message}`, "bad");
+    return;
+  }
 
   await supabase.from("audit_logs").insert({
-    action: "MILESTONE_UPDATED",
-    entity_type: "student_milestones",
-    entity_id: `${applicantId}:${id}`,
+    action: "MILESTONE_STATUS_UPDATED",
+    entity_type: "student_milestone_status",
+    entity_id: `${applicantId}:${milestoneCode}`,
     actor_email: state.auth.profile.email,
     status: "SUCCESS",
-    details: { applicant_id: applicantId, milestone_id: id, milestone_name: milestoneName, completed: nextCompleted },
+    details: { applicant_id: applicantId, milestone_code: milestoneCode, completed: nextCompleted },
     created_at: now
   });
 
   await loadData();
   openTimeline(applicantId);
-  flash("Milestone updated.");
+  flash("Milestone status updated.");
 }
 
 function openTimeline(applicantId) {
   state.selectedApplicantId = applicantId;
   const app = state.applicants.find((a) => String(a.id) === String(applicantId));
-  const ms = milestonesForApplicant(applicantId).sort((a,b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
-  const aud = state.audits
-    .filter((a) => String(a.details?.applicant_id || a.entity_id || "").includes(String(applicantId)))
-    .slice(0, 30);
+  const ms = statusesForApplicant(applicantId).sort((a,b) => new Date(b.updated_at || b.completed_at || 0) - new Date(a.updated_at || a.completed_at || 0));
+  const aud = state.audits.filter((a) => String(a.details?.applicant_id || "") === String(applicantId)).slice(0, 30);
+
   const merged = [
     ...ms.map((m) => ({
-      label: `Milestone: ${m.milestone_name || m.name || m.milestone_id}`,
+      label: `Milestone: ${getDefByCode(m.milestone_code)?.label || m.milestone_code}`,
       state: isCompleted(m) ? "Completed" : "Pending",
-      at: m.updated_at || m.created_at
+      at: m.updated_at || m.completed_at
     })),
-    ...aud.map((a) => ({
-      label: a.action || "ADMIN_ACTION",
-      state: a.status || "SUCCESS",
-      at: a.created_at
-    }))
+    ...aud.map((a) => ({ label: a.action || "ADMIN_ACTION", state: a.status || "SUCCESS", at: a.created_at }))
   ].sort((a,b) => new Date(b.at || 0) - new Date(a.at || 0));
+
   $("timeline").innerHTML = `<div class="event"><strong>${esc(app?.full_name || "Student")}</strong><span class="muted">${esc(app?.email || "-")}</span></div>` +
     (merged.map((e) => `<div class="event"><span>${esc(e.label)} · ${esc(e.state)}</span><span class="muted">${esc(fmt(e.at))}</span></div>`).join("") || `<div class="event"><span class="muted">No milestone or audit history found yet.</span></div>`);
+
+  $("timeline").closest("section").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function startEditDefinition(code) {
+  const d = getDefByCode(code);
+  if (!d) return;
+  state.editingDefCode = d.code;
+  $("defCode").value = d.code;
+  $("defLabel").value = d.label;
+  $("defSession").value = d.class_session_number || "";
+  $("defActive").value = d.is_active ? "true" : "false";
+  $("defSaveBtn").textContent = "Update Milestone";
+}
+
+async function saveDefinition() {
+  if (!state.isSuperadmin) return;
+  const code = String($("defCode").value || "").trim().toUpperCase().replace(/\s+/g, "_");
+  const label = String($("defLabel").value || "").trim();
+  const sessionRaw = String($("defSession").value || "").trim();
+  const active = $("defActive").value === "true";
+
+  if (!code || !label) {
+    flash("Code and label are required.", "bad");
+    return;
+  }
+
+  const classSessionNumber = sessionRaw ? Number(sessionRaw) : null;
+  if (sessionRaw && (!Number.isInteger(classSessionNumber) || classSessionNumber < 1)) {
+    flash("Class session must be a positive integer.", "bad");
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const payload = {
+    code,
+    label,
+    class_session_number: classSessionNumber,
+    is_active: active,
+    updated_at: now
+  };
+
+  const { error } = await supabase.from("milestone_definitions").upsert(payload, { onConflict: "code" });
+  if (error) {
+    flash(`Definition save failed: ${error.message}`, "bad");
+    return;
+  }
+
+  await supabase.from("audit_logs").insert({
+    action: state.editingDefCode ? "MILESTONE_DEFINITION_UPDATED" : "MILESTONE_DEFINITION_CREATED",
+    entity_type: "milestone_definitions",
+    entity_id: code,
+    actor_email: state.auth.profile.email,
+    status: "SUCCESS",
+    details: payload,
+    created_at: now
+  });
+
+  state.editingDefCode = null;
+  $("defCode").value = "";
+  $("defLabel").value = "";
+  $("defSession").value = "";
+  $("defActive").value = "true";
+  $("defSaveBtn").textContent = "Save Milestone";
+  await loadData();
+  flash("Milestone definition saved.");
+}
+
+async function toggleDefinitionActive(code) {
+  if (!state.isSuperadmin) return;
+  const d = getDefByCode(code);
+  if (!d) return;
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("milestone_definitions").update({ is_active: !d.is_active, updated_at: now }).eq("code", d.code);
+  if (error) {
+    flash(`Definition update failed: ${error.message}`, "bad");
+    return;
+  }
+  await supabase.from("audit_logs").insert({
+    action: "MILESTONE_DEFINITION_TOGGLED",
+    entity_type: "milestone_definitions",
+    entity_id: d.code,
+    actor_email: state.auth.profile.email,
+    status: "SUCCESS",
+    details: { code: d.code, is_active: !d.is_active },
+    created_at: now
+  });
+  await loadData();
+  flash("Milestone definition updated.");
 }
 
 async function loadData() {
-  const [apps, classes, defs, miles, audits] = await Promise.all([
+  const [apps, classes, defs, statuses, audits] = await Promise.all([
     supabase.from("applicants").select("*").limit(6000),
     supabase.from("class_options").select("*").limit(2000),
-    supabase.from("milestone_definitions").select("*").limit(300),
-    supabase.from("student_milestones").select("*").limit(30000),
+    supabase.from("milestone_definitions").select("*").order("sort_order", { ascending: true }),
+    supabase.from("student_milestone_status").select("*").limit(30000),
     supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(8000)
   ]);
-  if (apps.error || classes.error || miles.error) throw new Error(apps.error?.message || classes.error?.message || miles.error?.message);
+
+  if (apps.error || classes.error) throw new Error(apps.error?.message || classes.error?.message);
+
+  state.milestonesReady = !(defs.error || statuses.error);
   state.applicants = apps.data || [];
   state.classOptions = classes.data || [];
-  state.milestoneDefs = defs.data || [];
-  state.milestones = miles.data || [];
-  state.audits = audits.data || [];
+  state.milestoneDefs = defs.error ? [] : (defs.data || []);
+  state.milestoneStatus = statuses.error ? [] : (statuses.data || []);
+  state.audits = audits.error ? [] : (audits.data || []);
+
+  if (!state.milestonesReady) {
+    flash("Milestone tables are not available yet. Apply migrations and refresh.", "bad");
+  } else {
+    flash("");
+  }
+
   buildFilterOptions();
+  renderDefinitionRows();
   renderRows();
-  if (state.selectedApplicantId) openTimeline(state.selectedApplicantId);
+
+  if (!state.applicants.length) {
+    $("timeline").innerHTML = '<div class="event"><span class="muted">No students found. Milestones will appear when applicant/student data exists.</span></div>';
+  } else if (state.selectedApplicantId) {
+    openTimeline(state.selectedApplicantId);
+  }
 }
 
 function wire() {
-  $("themeBtn").addEventListener("click", () => {
-    const current = document.documentElement.getAttribute("data-theme") || "light";
-    setTheme(current === "dark" ? "light" : "dark");
-  });
   $("logoutBtn").addEventListener("click", logout);
   $("searchInput").addEventListener("input", (e) => { state.filters.search = e.target.value || ""; renderRows(); });
   $("fellowshipFilter").addEventListener("change", (e) => { state.filters.fellowship = e.target.value || ""; renderRows(); });
   $("classFilter").addEventListener("change", (e) => { state.filters.classOption = e.target.value || ""; renderRows(); });
   $("milestoneFilter").addEventListener("change", (e) => { state.filters.milestone = e.target.value || ""; renderRows(); });
   $("statusFilter").addEventListener("change", (e) => { state.filters.status = e.target.value || ""; renderRows(); });
+
+  if (state.isSuperadmin) {
+    $("defSaveBtn").addEventListener("click", saveDefinition);
+  }
 }
 
 async function boot() {
-  setTheme(localStorage.getItem("fs_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+  setTheme();
   if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY || CONFIG.SUPABASE_URL.includes("YOUR-PROJECT-REF")) {
     flash("Supabase config missing in foundation/auth/auth-client.js.", "bad");
     return;
   }
-  const auth = await requireAuth(["admin", "superadmin", "principal"]);
+
+  const auth = await requireAuth(["admin", "superadmin"]);
   if (!auth) return;
   state.auth = auth;
-  renderRoleSidebar(auth.profile, "roleSidebar");
+  state.isSuperadmin = String(auth.profile?.role || "").toLowerCase() === "superadmin";
+
+  $("defsRoleNote").textContent = state.isSuperadmin ? "Superadmin: full definition management" : "Admin: definition view only";
+  if (!state.isSuperadmin) {
+    $("defsManage").classList.add("hidden");
+  }
+
   wire();
   await loadData();
 }
 
 boot().catch((e) => flash(`Failed to load milestones admin: ${e.message || e}`, "bad"));
 </script>
+  <script src="../js/admin-shell.js"></script>
+  <script>
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "milestones", pageTitle: "Milestones" });
+  </script>
 </body>
 </html>
+
+
+
+

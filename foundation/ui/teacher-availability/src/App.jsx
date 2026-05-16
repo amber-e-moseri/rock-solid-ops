@@ -183,6 +183,29 @@ export default function App() {
   const currentMonth = monthOpts.find((m) => m.key === monthKey) || monthOpts[0];
 
   React.useEffect(() => {
+    const urlEmail = String(new URLSearchParams(window.location.search).get("email") || "").trim();
+    if (urlEmail) {
+      setTeacher((prev) => ({ ...prev, email: prev.email || urlEmail }));
+    }
+
+    function onTeacherContext(event) {
+      const data = event?.data || {};
+      if (data.type !== "FS_TEACHER_CONTEXT") return;
+      const contextEmail = String(data.email || "").trim();
+      const contextName = String(data.name || "").trim();
+      if (!contextEmail && !contextName) return;
+      setTeacher((prev) => ({
+        ...prev,
+        email: contextEmail || prev.email,
+        name: contextName || prev.name
+      }));
+    }
+
+    window.addEventListener("message", onTeacherContext);
+    return () => window.removeEventListener("message", onTeacherContext);
+  }, []);
+
+  React.useEffect(() => {
     (async () => {
       setBootLoading(true);
       try {
@@ -228,6 +251,20 @@ export default function App() {
       }
     })();
   }, []);
+
+  React.useEffect(() => {
+    const email = String(teacher.email || "").trim().toLowerCase();
+    if (!email || !Array.isArray(teachers) || !teachers.length) return;
+    const match = teachers.find((t) => String(t.teacherEmail || "").trim().toLowerCase() === email);
+    if (!match) return;
+    setSelectedTeacherId((prev) => prev || String(match.teacherID || ""));
+    setTeacher((prev) => ({
+      ...prev,
+      name: prev.name || String(match.teacherName || ""),
+      email: prev.email || String(match.teacherEmail || ""),
+      timezone: prev.timezone || String(match.teacherTimezone || "America/Toronto")
+    }));
+  }, [teachers, teacher.email]);
 
   React.useEffect(() => {
     const email = teacher.email.trim();
@@ -327,8 +364,8 @@ export default function App() {
     const names = selectedCampusList.map((c) => c.name || c.code);
     if (!names.length) return "No campus selected";
     if (names.length === 1) return names[0];
-    if (names.length <= 3) return names.join(" + ");
-    return `${names[0]} + ${names[1]} + ${names.length - 2} more`;
+    if (names.length <= 2) return names.join(", ");
+    return `${names[0]} + ${names.length - 1} more`;
   }, [selectedCampusList]);
   const totalCount = Array.from(selectedCampusCodes).reduce((acc, code) => acc + (selectionsByCampus[code] || new Set()).size, 0);
 

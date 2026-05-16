@@ -1,11 +1,55 @@
-﻿import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+﻿/**
+ * DEPRECATED — DO NOT SCHEDULE
+ *
+ * sender-worker is a legacy reconciliation function. It is NOT the canonical
+ * email delivery path and MUST NOT be scheduled alongside reminder-processor
+ * or scheduled-notification-sender.
+ *
+ * Canonical pipeline (as of May 2026):
+ *   scheduled_notifications
+ *   → reminder-processor             (batch: inserts email_queue rows, marks SENT)
+ *   → email_queue
+ *   → email-sender                   (Resend delivery, cron daily 07:00 EST)
+ *   → Resend
+ *
+ * scheduled-notification-sender is a single-item retry helper that resets one
+ * notification to PENDING on operator request; it is not the batch processor.
+ *
+ * What this function does (legacy reconciliation only):
+ *   - Reads PENDING scheduled_notifications where scheduled_for <= now
+ *   - For TRACKED_TEMPLATES: checks if email_queue already has a matching row
+ *     (by recipient_email + template_key). Marks notification SENT if found,
+ *     FAILED if not. Does NOT insert new email_queue rows.
+ *   - For UNSUPPORTED_TEMPLATES and unknown templates: marks SKIPPED_UNSUPPORTED.
+ *   - Never calls Resend.
+ *
+ * Running this alongside reminder-processor risks marking in-flight PENDING
+ * notifications FAILED before reminder-processor has queued them.
+ *
+ * Status: unscheduled (no config.toml, not in supabase/config.toml).
+ * Retained for: manual reconciliation of legacy stuck PENDING rows only.
+ * Do not delete until all historical PENDING rows have been resolved.
+ */
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+function applyAllowedOrigin(req: Request) {
+  const allowed = String(Deno.env.get("ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const origin = String(req.headers.get("Origin") || "").trim();
+  if (origin && allowed.includes(origin)) {
+    corsHeaders["Access-Control-Allow-Origin"] = origin;
+  } else {
+    delete corsHeaders["Access-Control-Allow-Origin"];
+  }
+}
 
 const TRACKED_TEMPLATES = new Set([
   "foundation_welcome",
@@ -24,9 +68,18 @@ const UNSUPPORTED_TEMPLATES = new Set([
 ]);
 
 Deno.serve(async (req) => {
+  applyAllowedOrigin(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  return new Response(
+    JSON.stringify({ error: "sender-worker is deprecated. Use email-sender." }),
+    {
+      status: 410,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
 
   if (req.method !== "POST") {
     return new Response(

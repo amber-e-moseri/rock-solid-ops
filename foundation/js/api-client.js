@@ -3,7 +3,19 @@
 
   function formatError(err, fallback) {
     const msg = err?.message || err?.error_description || err?.error || fallback || "Unexpected error";
-    return new Error(String(msg));
+    const next = new Error(String(msg));
+    if (err?.code) next.code = err.code;
+    if (err?.details) next.details = err.details;
+    if (err?.hint) next.hint = err.hint;
+    return next;
+  }
+  function withTimeout(promise, label, ms = 15000) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)), ms);
+      })
+    ]);
   }
 
   API._requireSupabase = function () {
@@ -18,7 +30,7 @@
       const client = API._requireSupabase();
       let q = client.from(table).select("*");
       if (typeof queryBuilder === "function") q = queryBuilder(q) || q;
-      const { data, error } = await q;
+      const { data, error } = await withTimeout(q, `Select ${table}`);
       if (error) throw error;
       return data || [];
     } catch (err) {
@@ -31,7 +43,7 @@
       const client = API._requireSupabase();
       let q = client.from(table).insert(payload);
       if (select) q = q.select();
-      const { data, error } = await q;
+      const { data, error } = await withTimeout(q, `Insert ${table}`);
       if (error) throw error;
       return data || [];
     } catch (err) {
@@ -47,7 +59,7 @@
         q = q.eq(k, v);
       });
       if (select) q = q.select();
-      const { data, error } = await q;
+      const { data, error } = await withTimeout(q, `Update ${table}`);
       if (error) throw error;
       return data || [];
     } catch (err) {
@@ -60,7 +72,7 @@
       const client = API._requireSupabase();
       let q = client.from(table).upsert(payload, options);
       if (select) q = q.select();
-      const { data, error } = await q;
+      const { data, error } = await withTimeout(q, `Upsert ${table}`);
       if (error) throw error;
       return data || [];
     } catch (err) {
@@ -75,7 +87,7 @@
       Object.entries(match || {}).forEach(([k, v]) => {
         q = q.eq(k, v);
       });
-      const { error } = await q;
+      const { error } = await withTimeout(q, `Delete ${table}`);
       if (error) throw error;
     } catch (err) {
       throw formatError(err, `Failed to delete from ${table}`);
@@ -85,7 +97,7 @@
   API.rpc = async function (fn, params = {}) {
     try {
       const client = API._requireSupabase();
-      const { data, error } = await client.rpc(fn, params);
+      const { data, error } = await withTimeout(client.rpc(fn, params), `RPC ${fn}`);
       if (error) throw error;
       return data;
     } catch (err) {
@@ -96,10 +108,24 @@
   API.invokeEdge = async function (functionName, body = {}) {
     try {
       const client = API._requireSupabase();
-      const { data, error } = await client.functions.invoke(functionName, {
+      const { data, error } = await withTimeout(client.functions.invoke(functionName, {
         body,
-      });
-      if (error) throw error;
+      }), `Edge function ${functionName}`, 20000);
+      if (error) {
+        let detail = "";
+        try {
+          const ctx = error?.context;
+          if (ctx && typeof ctx.json === "function") {
+            const parsed = await ctx.json();
+            if (parsed?.code || parsed?.error) {
+              detail = ` [${parsed.code || "UNKNOWN"}] ${parsed.error || ""}`.trim();
+            }
+          }
+        } catch (_) {}
+        const wrapped = new Error(`${error.message || "Edge function request failed"}${detail ? ` ${detail}` : ""}`);
+        wrapped.code = error?.code || null;
+        throw wrapped;
+      }
       return data;
     } catch (err) {
       throw formatError(err, `Failed to invoke ${functionName}`);
@@ -108,7 +134,7 @@
 
   API.getSession = async function () {
     const client = API._requireSupabase();
-    const { data, error } = await client.auth.getSession();
+    const { data, error } = await withTimeout(client.auth.getSession(), "Auth session", 10000);
     if (error) throw formatError(error, "Failed to load auth session");
     return data?.session || null;
   };

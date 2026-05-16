@@ -1,0 +1,31 @@
+[build]
+  command = "node scripts/generate-netlify-config.mjs"
+  publish = "."
+
+[[redirects]]
+  from = "/"
+  to = "/foundation/auth/login.html"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/staff"
+  to = "/foundation/staff/admin-portal.html"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/auth"
+  to = "/foundation/auth/login.html"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/staff/*"
+  to = "/foundation/staff/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/auth/*"
+  to = "/foundation/auth/:splat"
+  status = 200

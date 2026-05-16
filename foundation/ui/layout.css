@@ -1,5 +1,11 @@
+@import './tokens.css';
+
+/* ============================================================
+   FOUNDATION SCHOOL — PAGE LAYOUT HELPERS
+   ============================================================ */
+
 /* ================================================
-   PAGE SHELL
+   PAGE SHELL  (teacher portal / non-admin pages)
    ================================================ */
 .fs-page {
   max-width: 1240px;
@@ -7,7 +13,6 @@
   padding: 20px 16px 60px;
 }
 
-/* Narrow wrap used by teacher portal pages */
 .wrap {
   max-width: 1240px;
   margin: 0 auto;
@@ -42,14 +47,14 @@
 
 
 /* ================================================
-   HERO SECTION
+   HERO SECTION  (teacher portal pages)
    ================================================ */
 .hero { margin-bottom: 22px; padding: 8px 4px; }
 .hero-title {
   font-size: clamp(2rem, 4vw, 2.8rem);
   font-weight: 800;
   letter-spacing: -0.04em;
-  color: var(--ink, var(--text));
+  color: var(--text);
   line-height: 1.02;
 }
 .hero-sub {
@@ -61,7 +66,7 @@
 
 
 /* ================================================
-   STICKY FAB ROW (bottom of scrollable sections)
+   STICKY FAB ROW
    ================================================ */
 .fab-row {
   position: sticky;
@@ -69,19 +74,20 @@
   z-index: 20;
   padding: 10px;
   border-radius: 10px;
-  background: var(--surface, #fff);
+  background: var(--surface);
   border: 1px solid var(--border);
 }
 
 
 /* ================================================
-   SPLIT LAYOUT  (main content + sidebar)
+   SPLIT LAYOUT  (main + aside)
    ================================================ */
 .split { display: grid; grid-template-columns: 1fr 320px; gap: 14px; }
 
 
 /* ================================================
-   SHELL NAV (teacher portal shared nav)
+   TEACHER PORTAL SHELL NAV
+   (sticky floating nav for teacher-facing pages)
    ================================================ */
 .fs-shell-nav {
   position: sticky;
@@ -92,7 +98,7 @@
   border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 86%, transparent);
   backdrop-filter: blur(10px);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--sh);
 }
 .fs-shell-nav,
 .fs-shell-nav * { box-sizing: border-box; }
@@ -112,10 +118,9 @@
   flex: 1;
 }
 .fs-shell-brand {
-  width: 32px;
-  height: 32px;
+  width: 32px; height: 32px;
   border-radius: 9px;
-  background: var(--primary);
+  background: var(--navy);
   color: #fff;
   font-size: 12px;
   font-weight: 800;
@@ -135,14 +140,14 @@
 .fs-shell-link-icon { display: inline-flex; align-items: center; }
 .fs-shell-link:hover,
 .fs-shell-link.active {
-  color: var(--primary);
-  background: var(--soft-lavender);
-  border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+  color: var(--navy);
+  background: var(--navy-ghost);
+  border-color: color-mix(in srgb, var(--navy) 18%, var(--border));
 }
 .fs-shell-theme-btn {
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--surface-2);
+  background: var(--surface-alt);
   color: var(--text);
   min-width: 38px;
   height: 38px;
@@ -160,25 +165,19 @@
 }
 
 @media (max-width: 760px) {
-  .wrap       { padding: 14px 12px 60px; }
+  .wrap          { padding: 14px 12px 60px; }
   .fs-wrap-narrow { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
-  .stats,
-  .action-grid { grid-template-columns: 1fr; }
-  .hero-title  { font-size: 2rem; }
-  .btn         { width: 100%; justify-content: center; }
-  .spacer      { display: none; }
-  .toolbar .btn    { width: auto; }
-  .fab-row .btn    { width: auto; flex: 1; }
+  .hero-title    { font-size: 2rem; }
+  .btn           { width: 100%; justify-content: center; }
+  .spacer        { display: none; }
+  .toolbar .btn  { width: auto; }
+  .fab-row .btn  { width: auto; flex: 1; }
   .fab-row .spacer { display: block; }
-  .fs-grid-two { grid-template-columns: 1fr; }
+  .fs-grid-two   { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 680px) {
   .fs-page { padding: 14px 10px 50px; }
   .fs-shell-link span:not(.fs-shell-link-icon) { display: none; }
   .fs-shell-nav { top: 4px; margin: 0 8px 8px; }
-}
-
-@media (max-width: 600px) {
-  .stats-strip { gap: 7px; }
 }

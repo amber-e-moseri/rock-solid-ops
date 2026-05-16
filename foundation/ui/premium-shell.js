@@ -1,17 +1,15 @@
-﻿(function(){
+(function(){
   const key = "fs_theme";
 
-  function getPreferredTheme(){
-    const saved = localStorage.getItem(key);
-    if(saved === "light" || saved === "dark") return saved;
-    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  }
-
-  function applyTheme(theme){
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem(key, theme);
+  function applyTheme(){
+    document.documentElement.setAttribute("data-theme", "light");
+    document.documentElement.classList.remove("dark");
+    document.body.classList.remove("dark");
+    localStorage.setItem(key, "light");
+    localStorage.setItem("fs_admin_theme", "light");
+    localStorage.setItem("fs_batch_theme", "light");
     const btn = document.getElementById("codex-theme-toggle");
-    if(btn) btn.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
+    if(btn) btn.style.display = "none";
   }
 
   function ensureToggle(){
@@ -19,16 +17,13 @@
     const btn = document.createElement("button");
     btn.id = "codex-theme-toggle";
     btn.type = "button";
-    btn.textContent = "Dark Mode";
-    btn.addEventListener("click", function(){
-      const current = document.documentElement.getAttribute("data-theme") || "light";
-      applyTheme(current === "dark" ? "light" : "dark");
-    });
+    btn.textContent = "Light Mode";
+    btn.style.display = "none";
     document.body.appendChild(btn);
   }
 
   function boot(){
-    applyTheme(getPreferredTheme());
+    applyTheme();
     ensureToggle();
   }
 

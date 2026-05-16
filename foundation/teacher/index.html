@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Portal</title>
+  <link rel="stylesheet" href="../ui/tokens.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; }
+    body { font-family: "Manrope", system-ui, -apple-system, sans-serif; }
+    .main { padding: 0 !important; }
+    .teacher-frame { width: 100%; height: calc(100vh - 56px); border: none; display: block; background: var(--color-surface); }
+    .teacher-loading {
+      height: calc(100vh - 56px);
+      display: grid;
+      place-items: center;
+      color: var(--color-text-secondary);
+      font-size: var(--fs-body);
+      background: var(--color-bg);
+    }
+  </style>
+</head>
+<body class="fs-shell-mounted">
+  <aside class="sidebar" id="sidebar" aria-label="Teacher Navigation">
+    <div class="sb-logo">
+      <div class="sb-mark">RS</div>
+      <div>
+        <div class="sb-name">Rock Solid</div>
+        <div class="sb-sub">Teacher Portal</div>
+      </div>
+    </div>
+
+    <nav class="sb-nav" id="sbNav"></nav>
+
+    <div class="sb-footer">
+      <div class="sb-name" id="teacherName">Teacher</div>
+      <div class="sb-sub"><span class="fs-badge fs-badge-info">Teacher</span></div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <div class="topbar-l" style="display:flex;align-items:center;gap:8px;min-width:0;">
+      <button class="ham" id="ham" aria-label="Open menu">&#9776;</button>
+      <div class="breadcrumb">
+        <span>Rock Solid</span>
+        <span class="bc-sep">/</span>
+        <span class="bc-now" id="sectionTitle">Attendance</span>
+      </div>
+    </div>
+    <div class="topbar-r">
+      <div class="user-chip"><span class="user-av">T</span><span id="profileName">Teacher</span></div>
+      <button id="btnOut" class="btn-out" type="button">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <div id="loading" class="teacher-loading" aria-live="polite">Loading teacher portal...</div>
+    <iframe id="teacherFrame" class="teacher-frame" title="Teacher Section" hidden></iframe>
+  </main>
+  <div class="s-ov" id="overlay" aria-hidden="true"></div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script type="module">
+    import { getSessionOrNull, getCurrentProfile, isRoleAllowed, supabase } from "../auth/auth-client.js";
+
+    const allowedRoles = new Set(["teacher", "admin", "superadmin", "subgroup_admin", "pastor", "principal"]);
+    const sections = {
+      "attendance":   { title: "Attendance",   src: "../staff/TeacherAttendancePortal.html" },
+      "my-class":     { title: "My Class",     src: "./sections/my-class.html" },
+      "availability": { title: "Availability", src: "../ui/teacher-availability/index.html" },
+    };
+
+    const navItems = [
+      { key: "attendance", icon: "&#x2705;", label: "Attendance" },
+      { key: "my-class", icon: "&#x1F465;", label: "My Class" },
+      { key: "availability", icon: "&#x1F4C5;", label: "Availability" },
+    ];
+
+    let profile = null;
+    let sectionKey = new URLSearchParams(window.location.search).get("section") || "attendance";
+    if (!sections[sectionKey]) sectionKey = "attendance";
+
+    const sbNav = document.getElementById("sbNav");
+    const sectionTitle = document.getElementById("sectionTitle");
+    const teacherFrame = document.getElementById("teacherFrame");
+    const loading = document.getElementById("loading");
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+    const ham = document.getElementById("ham");
+
+    function closeMobileNav() {
+      sidebar.classList.remove("open");
+      overlay.classList.remove("show");
+    }
+
+    function renderNav() {
+      sbNav.innerHTML = navItems.map((item) => {
+        const active = item.key === sectionKey ? "active" : "";
+        return `<a class="sb-link ${active}" href="?section=${encodeURIComponent(item.key)}" data-section="${item.key}">
+          <span class="sb-icon">${item.icon}</span>
+          <span>${item.label}</span>
+        </a>`;
+      }).join("");
+
+      sbNav.querySelectorAll("a[data-section]").forEach((el) => {
+        el.addEventListener("click", (event) => {
+          event.preventDefault();
+          const key = el.getAttribute("data-section");
+          if (!key || !sections[key]) return;
+          switchSection(key);
+          closeMobileNav();
+        });
+      });
+    }
+
+    function switchSection(nextKey) {
+      if (!sections[nextKey]) return;
+      sectionKey = nextKey;
+      sectionTitle.textContent = sections[nextKey].title;
+      renderNav();
+      history.replaceState({}, "", `?section=${encodeURIComponent(nextKey)}`);
+      teacherFrame.src = `${sections[nextKey].src}?email=${encodeURIComponent(profile?.email || "")}`;
+    }
+
+    async function boot() {
+      const session = await getSessionOrNull();
+      if (!session) {
+        window.location.replace("../auth/login.html");
+        return;
+      }
+
+      profile = await getCurrentProfile();
+      const role = String(profile?.role || "").toLowerCase();
+      if (!profile || !isRoleAllowed(role, allowedRoles)) {
+        window.location.replace("../auth/login.html?error=unauthorized");
+        return;
+      }
+
+      document.getElementById("profileName").textContent = profile.full_name || profile.email || "Teacher";
+      document.getElementById("teacherName").textContent = profile.full_name || profile.email || "Teacher";
+
+      document.getElementById("btnOut").addEventListener("click", async () => {
+        await supabase.auth.signOut();
+        window.location.replace("../auth/login.html");
+      });
+
+      ham.addEventListener("click", () => {
+        sidebar.classList.add("open");
+        overlay.classList.add("show");
+      });
+      overlay.addEventListener("click", closeMobileNav);
+
+      renderNav();
+      sectionTitle.textContent = sections[sectionKey].title;
+      teacherFrame.hidden = false;
+      teacherFrame.style.display = 'block';
+      loading.hidden = true;
+      loading.style.display = 'none';
+      switchSection(sectionKey);
+    }
+
+    // Fallback: if boot doesn't show frame within 3s, show it anyway
+    setTimeout(() => {
+      if (document.getElementById('teacherFrame').hidden) {
+        document.getElementById('teacherFrame').hidden = false;
+        document.getElementById('teacherFrame').style.display = 'block';
+        document.getElementById('loading').hidden = true;
+        document.getElementById('loading').style.display = 'none';
+      }
+    }, 3000);
+
+    boot().catch((err) => {
+      console.error('BOOT CATCH:', err.message, err.stack);
+    });
+  </script>
+</body>
+</html>

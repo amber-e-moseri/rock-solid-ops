@@ -1,4 +1,17 @@
-﻿(function () {
+(function () {
+  const BOOT_STYLE_ID = "fs-shell-boot-opacity-style";
+  const existingBootStyle = document.getElementById(BOOT_STYLE_ID);
+  if (!existingBootStyle) {
+    const bootStyle = document.createElement("style");
+    bootStyle.id = BOOT_STYLE_ID;
+    bootStyle.textContent = "body { opacity: 0; transition: opacity 150ms ease; }";
+    const head = document.head || document.getElementsByTagName("head")[0];
+    if (head) head.prepend(bootStyle);
+  }
+  const mountFailSafeTimer = window.setTimeout(function () {
+    document.body.style.opacity = "1";
+  }, 2000);
+
   const THEME_KEY = "fs_admin_theme";
   const COLLAPSE_KEY = "fs_admin_sidebar_collapsed";
   const Shell = (window.FSAdminShell = window.FSAdminShell || {});
@@ -174,7 +187,16 @@
 
   Shell.mount = async function mount(options) {
     options = options || {};
-    if (document.getElementById("fs-admin-sb")) return;
+    if (document.getElementById("fs-admin-sb")) {
+      window.clearTimeout(mountFailSafeTimer);
+      document.body.style.opacity = "1";
+      return;
+    }
+
+    // Null-safe config guard: if FS_CONFIG is absent show "Not connected" rather than failing silently.
+    if (!options.profileName && (!window.FS_CONFIG || !window.FS_CONFIG.SUPABASE_URL)) {
+      options = Object.assign({}, options, { profileName: "Not connected" });
+    }
 
     const active = options.active || inferActive();
     const profileName = options.profileName || "Admin";
@@ -187,6 +209,8 @@
       } catch (_) {}
     }
     if (isTeacherBlockedPage(active, role)) {
+      window.clearTimeout(mountFailSafeTimer);
+      document.body.style.opacity = "1";
       renderDenied();
       return;
     }
@@ -195,7 +219,7 @@
     const badgeCounts = options.badgeCounts || {};
 
     const sidebar = document.createElement("aside");
-    sidebar.className = "sidebar";
+    sidebar.className = "fs-shell sidebar";
     sidebar.id = "fs-admin-sb";
     sidebar.innerHTML = `
       <div class="sb-logo">
@@ -216,15 +240,15 @@
     `;
 
     const topbar = document.createElement("div");
-    topbar.className = "topbar";
+    topbar.className = "fs-topbar topbar";
     topbar.id = "fs-admin-topbar";
     topbar.innerHTML = `
-      <div class="breadcrumb">
+      <div class="fs-topbar-left breadcrumb">
         <span>Admin</span>
         <span class="bc-sep">/</span>
         <span class="bc-now" id="fs-bc-now">${pageTitle}</span>
       </div>
-      <div class="topbar-r">
+      <div class="fs-topbar-right topbar-r">
         <span class="user-chip">
           <span class="user-av" id="fs-user-av">${profileInitial}</span>
           <span id="fs-user-name">${profileName}</span>
@@ -243,10 +267,13 @@
     document.body.prepend(sidebar);
     document.body.classList.add("fs-shell-mounted");
     document.body.classList.add("fs-force-light");
+    window.clearTimeout(mountFailSafeTimer);
+    document.body.style.opacity = "1";
 
     const mainEl = document.querySelector("main") || document.querySelector("[role='main']") || document.querySelector("#app");
-    if (mainEl && !mainEl.classList.contains("main")) {
-      mainEl.classList.add("main");
+    if (mainEl) {
+      if (!mainEl.classList.contains("main")) mainEl.classList.add("main");
+      if (!mainEl.classList.contains("fs-content")) mainEl.classList.add("fs-content");
     }
 
     initTheme();

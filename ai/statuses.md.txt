@@ -85,5 +85,47 @@ REVIEW means:
 * invalid assignment state
 * migration inconsistency
 
-```
-```
+---
+
+### MOODLE SYNC FAILURE REASONS
+
+MOODLE_WAF_BLOCK — retryable
+MOODLE_REST_DISABLED — non-retryable
+MOODLE_PERMISSION_DENIED — non-retryable
+MOODLE_403_UNKNOWN — non-retryable (conservative)
+
+---
+
+### TEACHER MAPPING STATUS
+
+LINKED — teacher_user_id set, portal access works
+UNLINKED — no teacher_user_id, portal returns INVALID_TEACHER_MAPPING
+  Fix: run link_teacher_to_auth_user(email) or use admin UI
+
+---
+
+### NOTIFICATION PIPELINE FUNCTIONS
+
+reminder-processor — CANONICAL batch processor
+  Reads: scheduled_notifications (PENDING, due)
+  Writes: email_queue (Pending)
+  Schedule: on-demand / trigger
+  Must not be duplicated or run in parallel with sender-worker
+
+email-sender — CANONICAL delivery worker
+  Reads: email_queue (Pending)
+  Writes: Resend API + delivery status (Sent | Failed)
+  Schedule: cron daily 07:00 EST (0 12 * * *)
+
+scheduled-notification-sender — RETRY HELPER ONLY
+  Not the canonical batch sender
+  Resets one scheduled_notification to PENDING on operator request
+  Used by Retry Center only
+  Must not be given a cron schedule
+
+sender-worker — DEPRECATED
+  Legacy reconciliation worker, superseded by reminder-processor
+  Checks email_queue for existing rows; marks notifications SENT or FAILED
+  Never inserts email_queue rows, never calls Resend
+  Must remain unscheduled
+  Candidate for removal after audit confirms no active callers

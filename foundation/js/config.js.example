@@ -1,4 +1,20 @@
+// Runtime config template.
+// Copy this file to foundation/js/config.js and fill in real values.
+// foundation/js/config.js is gitignored — NEVER commit it.
+//
+// How to find each value:
+//   SUPABASE_URL  → Supabase Dashboard → your project → Settings → API
+//                   "Project URL" (looks like https://abcdefghij.supabase.co)
+//
+//   SUPABASE_ANON_KEY → same Settings → API page
+//                       "anon / public" key under "Project API keys"
+//                       (safe for client-side use; enforces Row Level Security)
+//
 window.FS_CONFIG = {
   SUPABASE_URL: "https://YOUR-PROJECT-REF.supabase.co",
   SUPABASE_ANON_KEY: "YOUR_SUPABASE_ANON_KEY",
+  SUPPORT_EMAIL: "admin@rocksolid.school",
+  // Temporary only. Example: "admin" or "superadmin" to bypass role checks.
+  // Remove (set to "") after troubleshooting.
+  BYPASS_ROLE: "",
 };

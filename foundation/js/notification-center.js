@@ -1,5 +1,5 @@
 import { supabase, getCurrentProfile } from "../auth/auth-client.js";
-import { requireAuth } from "../auth/auth-guards.js";
+import { requireAuth } from "../auth/auth-client.js";
 import { logout } from "../auth/logout.js";
 
 const AdminApi = window.FSAdminApi;
@@ -37,7 +37,7 @@ function esc(v) {
 }
 
 function fmtDate(v) {
-  if (!v) return "—";
+  if (!v) return "ï¿½";
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return String(v);
   return d.toLocaleString();
@@ -74,7 +74,7 @@ function setError(msg) {
   n.classList.remove("hidden");
 }
 
-function setLoading(loading, text = "Loading operational data…") {
+function setLoading(loading, text = "Loading operational dataï¿½") {
   state.busy = !!loading;
   $("loadingState").textContent = text;
   $("loadingState").classList.toggle("hidden", !loading);
@@ -101,7 +101,7 @@ function chip(status) {
   if (s.includes("fail") || s.includes("error")) cls = "chip bad";
   else if (s.includes("pending") || s.includes("retry")) cls = "chip warn";
   else if (s.includes("sent") || s.includes("resolved") || s.includes("success")) cls = "chip good";
-  return `<span class="${cls}">${esc(status || "—")}</span>`;
+  return `<span class="${cls}">${esc(status || "ï¿½")}</span>`;
 }
 
 async function selectSafe(table, query) {
@@ -295,10 +295,10 @@ function renderTable() {
         <td><input type="checkbox" data-key="${esc(key)}" ${state.selected.has(key) ? "checked" : ""}></td>
         <td>${esc(sourceLabel(r.source))}</td>
         <td>${esc(r.type)}</td>
-        <td>${esc(r.recipient || "—")}</td>
-        <td>${esc(r.subject || "—")}</td>
+        <td>${esc(r.recipient || "ï¿½")}</td>
+        <td>${esc(r.subject || "ï¿½")}</td>
         <td>${chip(r.status)}</td>
-        <td class="muted-cell" title="${esc(r.error || "")}">${esc(r.error || "—")}</td>
+        <td class="muted-cell" title="${esc(r.error || "")}">${esc(r.error || "ï¿½")}</td>
         <td>${fmtDate(r.created_at)}</td>
         <td>${rowActions(r)}</td>
       </tr>`;

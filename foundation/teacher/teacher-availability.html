@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Foundation School - Teacher Availability</title>
+  <title>Rock Solid - Teacher Availability</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
@@ -72,7 +72,7 @@
         <p>Submit weekly availability by fellowship and month</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button id="themeBtn" class="icon-btn" aria-label="Theme toggle">🌙</button>
+        
         <button id="logoutBtn" class="btn">Logout</button>
       </div>
     </section>
@@ -132,9 +132,10 @@
   </main>
 
 <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
 <script type="module">
 import { CONFIG, supabase } from "../auth/auth-client.js";
-import { requireAuth } from "../auth/auth-guards.js";
+import { requireAuth } from "../auth/auth-client.js";
 import { logout } from "../auth/logout.js";
 
 const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -153,12 +154,12 @@ const state = {
   existing: []
 };
 
-function setTheme(theme) {
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("fs_theme", theme);
-  $("themeBtn").textContent = theme === "dark" ? "☀️" : "🌙";
+function setTheme() {
+  document.documentElement.setAttribute("data-theme", "light");
+  document.documentElement.classList.remove("dark");
+  document.body.classList.add("fs-force-light");
+  localStorage.setItem("fs_theme", "light");
 }
-
 function flash(msg, type = "ok") {
   $("flash").innerHTML = `<div class="msg ${type}">${esc(msg)}</div>`;
 }
@@ -229,31 +230,50 @@ function renderStatus() {
 }
 
 async function loadCampuses() {
-  const { data, error } = await supabase.from("class_options").select("code:subgroup_id,campusName:fellowship_codes,subgroup_id").not("subgroup_id", "is", null).limit(500);
-  if (error) throw error;
-  const uniq = new Map();
-  (data || []).forEach((r) => {
-    const code = String(r.code || "").trim();
-    if (!code) return;
-    if (!uniq.has(code)) uniq.set(code, { code, campusName: code });
-  });
-  state.campusRows = [...uniq.values()];
-  if (!state.campusRows.length) {
+  try {
+    const res = await fetch('/functions/v1/teacher-portal-api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.auth.access_token}`,
+      },
+      body: JSON.stringify({ action: 'getTeacherCampusOptions' }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Failed to load campuses');
+    
+    state.campusRows = data.data || [];
+    if (!state.campusRows.length) {
+      state.campusRows = [{ code: "GENERAL", campusName: "General Fellowship" }];
+    }
+    if (!state.selectedCampusCodes.size && state.campusRows[0]) state.selectedCampusCodes.add(state.campusRows[0].code);
+  } catch (error) {
+    console.error('Failed to load campuses:', error);
+    flash(`Could not load campus options: ${error.message}`, "bad");
     state.campusRows = [{ code: "GENERAL", campusName: "General Fellowship" }];
+    if (!state.selectedCampusCodes.size) state.selectedCampusCodes.add("GENERAL");
   }
-  if (!state.selectedCampusCodes.size && state.campusRows[0]) state.selectedCampusCodes.add(state.campusRows[0].code);
 }
 
 async function loadExisting() {
-  const email = state.auth.profile.email;
-  const { data, error } = await supabase
-    .from("teacher_availability")
-    .select("*")
-    .eq("teacher_email", email)
-    .order("created_at", { ascending: false })
-    .limit(300);
-  if (error) throw error;
-  state.existing = data || [];
+  try {
+    const res = await fetch('/functions/v1/teacher-portal-api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.auth.access_token}`,
+      },
+      body: JSON.stringify({ action: 'getTeacherAvailabilityHistory' }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Failed to load availability history');
+    
+    state.existing = data.data || [];
+  } catch (error) {
+    console.error('Failed to load existing availability:', error);
+    flash(`Could not load availability history: ${error.message}`, "bad");
+    state.existing = [];
+  }
   renderStatus();
 }
 
@@ -292,10 +312,7 @@ async function submitAvailability() {
 }
 
 function wire() {
-  $("themeBtn").addEventListener("click", () => {
-    const current = document.documentElement.getAttribute("data-theme") || "light";
-    setTheme(current === "dark" ? "light" : "dark");
-  });
+  
   $("logoutBtn").addEventListener("click", logout);
   $("campusSelect").addEventListener("change", (e) => { state.activeCampusCode = e.target.value; });
   $("monthSelect").addEventListener("change", async (e) => { state.monthKey = e.target.value; await loadExisting(); });
@@ -303,7 +320,7 @@ function wire() {
 }
 
 async function boot() {
-  setTheme(localStorage.getItem("fs_theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+  setTheme();
   if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY || CONFIG.SUPABASE_URL.includes("YOUR-PROJECT-REF")) {
     flash("Supabase config is missing in foundation/auth/auth-client.js.", "bad");
     return;
@@ -324,3 +341,6 @@ boot().catch((e) => flash(`Failed to load teacher availability: ${e.message || e
 </script>
 </body>
 </html>
+
+
+

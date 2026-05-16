@@ -333,23 +333,25 @@ export async function submitAvailability(payload) {
  * Replaces: POST ?action=approveAvailability
  * @param {string} id         â€” teacher_availability UUID
  * @param {string} reviewedBy â€” name or email of the approving admin
- * @returns {Promise<{ id: string, status: string }>}
+ * @returns {Promise<{ id: string, class_option_id: string, class_slot_id: string }>}
  */
 export async function approveAvailability(id, reviewedBy) {
   if (!id)         throw new Error('approveAvailability: id is required')
   if (!reviewedBy) throw new Error('approveAvailability: reviewedBy is required')
 
-  const { data, error } = await supabase
-    .from('teacher_availability')
-    .update({
-      status:     'Available',
-      updated_by: reviewedBy
-    })
-    .eq('id', id)
-    .select('id, status')
-    .single()
+  const { data, error } = await supabase.rpc('approve_teacher_availability_atomic', {
+    p_availability_id: id,
+    p_actor_email:     reviewedBy,
+    p_actor_id:        null,
+  })
 
-  assertData(data, error, 'approveAvailability')
-  return data
+  if (error) throw new Error(error.message || 'Approval RPC failed')
+
+  const result = Array.isArray(data) ? data[0] : data
+  if (!result?.ok) {
+    throw new Error(result?.error || 'Approval failed')
+  }
+
+  return { id, class_option_id: result.class_option_id, class_slot_id: result.class_slot_id }
 }
 

@@ -3,121 +3,149 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Foundation School - Admin Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Dashboard — Rock Solid Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@500;700;800;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            fsPurple: '#4C2A92',
-            fsGold: '#F4BE41',
-            fsCream: '#F4EFE3',
-            fsInk: '#1E1630',
-            fsMuted: '#7A6E90',
-            fsDanger: '#B42318',
-            fsSuccess: '#157347',
-            fsLilac: '#F3ECFB'
-          },
-          fontFamily: {
-            heading: ['League Spartan','sans-serif'],
-            body: ['Nunito','sans-serif']
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    .skeleton { background: linear-gradient(90deg, rgba(76,42,146,.08) 25%, rgba(76,42,146,.18) 40%, rgba(76,42,146,.08) 60%); background-size: 200% 100%; animation: sh 1.2s linear infinite; }
-    @keyframes sh { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-  </style>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel='stylesheet' href='../ui/primitives.css' />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <style>
+    /* Skeleton loader */
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(76,42,146,.06) 25%,
+        rgba(76,42,146,.13) 40%,
+        rgba(76,42,146,.06) 60%);
+      background-size: 200% 100%;
+      animation: sh 1.2s linear infinite;
+      border-radius: var(--r-sm);
+    }
+    @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* Page-specific overrides */
+    #statsGrid { margin-bottom: 18px; }
+    .fs-metric:nth-child(1) { animation-delay:.04s } .fs-metric:nth-child(2) { animation-delay:.08s }
+    .fs-metric:nth-child(3) { animation-delay:.12s } .fs-metric:nth-child(4) { animation-delay:.16s }
+    .fs-metric:nth-child(5) { animation-delay:.20s } .fs-metric:nth-child(6) { animation-delay:.24s }
+    .fs-metric:nth-child(7) { animation-delay:.28s } .fs-metric:nth-child(8) { animation-delay:.32s }
+
+    .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); margin-bottom: 14px; box-shadow: var(--sh-xs); overflow: hidden; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--border-l); }
+    .section-title { font-size: 13.5px; font-weight: 700; color: var(--text); }
+    .section-body  { padding: 14px 16px; }
+    .diag-panel { display: none; background: var(--danger-bg); border: 1px solid var(--danger-bd); border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 14px; color: var(--danger); font-size: 13px; }
+    .diag-panel.visible { display: block; }
+    .grid-half { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 768px) { .grid-half { grid-template-columns: 1fr; } }
+  </style>
 </head>
-<body class="bg-fsCream text-fsInk font-body">
-  <header class="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-fsPurple/10">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-fsGold text-fsPurple font-heading font-black grid place-items-center">FS</div>
-        <div>
-          <h1 class="font-heading text-2xl text-fsPurple leading-none">Foundation School</h1>
-          <p class="text-xs text-fsMuted">Admin Dashboard</p>
+<body>
+
+<main>
+  <div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub">Overview of registrations, email queue, and system status.</p>
+  </div>
+
+  <!-- Role Navigation -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-title">Role Navigation</span>
+    </div>
+    <div class="section-body">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <label for="roleNavSelect" style="font-size:12px;color:var(--muted);font-weight:700;">Open page</label>
+        <select id="roleNavSelect" class="form-control" style="max-width:340px;">
+          <option value="">Select destination...</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagnostics (hidden until issues) -->
+  <div id="diagPanel" class="diag-panel">
+    <strong style="display:block;margin-bottom:6px;">Connection Diagnostics</strong>
+    <div id="diagBody"></div>
+  </div>
+
+  <!-- KPI stats grid -->
+  <div id="statsGrid" class="fs-metric-grid"></div>
+
+  <!-- Filters -->
+  <div class="section-card" style="margin-bottom:14px;">
+    <div class="section-head">
+      <span class="section-title">Filters</span>
+      <button id="refreshBtn" class="fs-btn fs-btn-primary fs-btn-sm">Refresh</button>
+    </div>
+    <div class="section-body">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:span 2;">
+          <label class="form-label">Search</label>
+          <input id="searchInput" class="form-control" placeholder="Name or email…" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select id="statusFilter" class="form-control"><option value="">All Status</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fellowship</label>
+          <select id="fellowshipFilter" class="form-control"><option value="">All Fellowship</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duplicates</label>
+          <select id="duplicateFilter" class="form-control">
+            <option value="">All</option>
+            <option value="yes">Duplicates Only</option>
+            <option value="no">Non-duplicates</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input id="dateFilter" type="date" class="form-control" />
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <span id="whoami" class="text-xs text-fsMuted"></span>
-        <button id="refreshBtn" class="px-4 py-2 rounded-lg bg-fsPurple text-white text-sm font-bold hover:opacity-90">Refresh</button>
-        <button id="logoutBtn" class="px-4 py-2 rounded-lg bg-fsLilac text-fsPurple text-sm font-bold hover:opacity-90">Logout</button>
+    </div>
+  </div>
+
+  <!-- Applicants table -->
+  <div class="section-card">
+    <div class="section-head">
+      <span class="section-title">Applicants</span>
+      <span id="pageInfo" style="font-size:12px;color:var(--muted);"></span>
+    </div>
+    <div class="section-body" style="padding:0;">
+      <div id="applicantsError" style="padding:14px 16px;"></div>
+      <div class="table-wrap fs-table-wrap" id="applicantsWrap"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border-l);">
+        <button id="prevBtn" class="fs-btn fs-btn-secondary fs-btn-sm">Prev</button>
+        <button id="nextBtn" class="fs-btn fs-btn-secondary fs-btn-sm">Next</button>
       </div>
     </div>
-  </header>
+  </div>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-    <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
-      <h2 class="font-heading text-xl text-fsPurple mb-3">Role Navigation</h2>
-      <div id="roleSidebar" class="flex flex-wrap gap-2"></div>
-    </section>
-
-    <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
-      <h2 class="font-heading text-xl text-fsPurple mb-3">Configuration</h2>
-      <p class="text-sm text-fsMuted">Set these values in <code>foundation/auth/auth-client.js</code> before production use.</p>
-      <ul class="list-disc ml-6 mt-2 text-sm text-fsMuted">
-        <li><code>SUPABASE_URL</code> must be your project URL.</li>
-        <li><code>SUPABASE_ANON_KEY</code> must be a valid anon key.</li>
-      </ul>
-    </section>
-
-    <section id="diagPanel" class="hidden bg-red-50 border border-red-200 rounded-2xl p-4">
-      <h2 class="font-heading text-lg text-red-700">Connection Diagnostics</h2>
-      <div id="diagBody" class="text-sm text-red-700 mt-2"></div>
-    </section>
-
-    <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
-      <h2 class="font-heading text-xl text-fsPurple mb-3">Filters</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
-        <input id="searchInput" placeholder="Search name/email..." class="lg:col-span-2 px-3 py-2 rounded-lg border border-fsPurple/20" />
-        <select id="statusFilter" class="px-3 py-2 rounded-lg border border-fsPurple/20"><option value="">All Status</option></select>
-        <select id="fellowshipFilter" class="px-3 py-2 rounded-lg border border-fsPurple/20"><option value="">All Fellowship</option></select>
-        <select id="duplicateFilter" class="px-3 py-2 rounded-lg border border-fsPurple/20"><option value="">All Duplicates</option><option value="yes">Duplicates Only</option><option value="no">Non-duplicates</option></select>
-        <input id="dateFilter" type="date" class="px-3 py-2 rounded-lg border border-fsPurple/20" />
-      </div>
-    </section>
-
-    <section id="statsGrid" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"></section>
-
-    <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
-      <h2 class="font-heading text-xl text-fsPurple mb-3">Applicants</h2>
-      <div id="applicantsError"></div>
-      <div id="applicantsWrap" class="overflow-auto"></div>
-      <div class="mt-3 flex items-center justify-between">
-        <button id="prevBtn" class="px-3 py-2 rounded bg-fsLilac text-fsPurple font-bold text-sm">Prev</button>
-        <span id="pageInfo" class="text-sm text-fsMuted"></span>
-        <button id="nextBtn" class="px-3 py-2 rounded bg-fsLilac text-fsPurple font-bold text-sm">Next</button>
-      </div>
-    </section>
-
-    <div class="grid lg:grid-cols-2 gap-6">
-      <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
-        <h2 class="font-heading text-xl text-fsPurple mb-3">Email Queue</h2>
-        <div id="emailQueueError"></div>
-        <div id="emailQueueWrap" class="overflow-auto"></div>
-      </section>
-      <section class="bg-white rounded-2xl border border-fsPurple/10 p-4">
-        <h2 class="font-heading text-xl text-fsPurple mb-3">Failed Email Retry</h2>
-        <div id="failedError"></div>
-        <div id="failedWrap" class="overflow-auto"></div>
-      </section>
+  <!-- Email queue + failed emails -->
+  <div class="grid-half">
+    <div class="section-card">
+      <div class="section-head"><span class="section-title">Email Queue</span></div>
+      <div id="emailQueueError" style="padding:0 16px;"></div>
+      <div class="table-wrap fs-table-wrap" id="emailQueueWrap" style="max-height:280px;overflow:auto;"></div>
     </div>
-  </main>
+    <div class="section-card">
+      <div class="section-head"><span class="section-title">Failed Email Retry</span></div>
+      <div id="failedError" style="padding:0 16px;"></div>
+      <div class="table-wrap fs-table-wrap" id="failedWrap" style="max-height:280px;overflow:auto;"></div>
+    </div>
+  </div>
+</main>
 
 <script src="../js/config.js"></script>
+<script src="../js/config-helper.js"></script>
 <script type="module">
 import { CONFIG, supabase } from "../auth/auth-client.js";
-import { requireAuth } from "../auth/auth-guards.js";
+import { requireAuth } from "../auth/auth-client.js";
 import { logout } from "../auth/logout.js";
-import { renderRoleSidebar } from "../auth/role-sidebar.js";
 
 const PAGE_SIZE = 12;
 const state = {
@@ -137,252 +165,207 @@ const fmt = v => v ? new Date(v).toLocaleString() : '—';
 const ymd = v => v ? new Date(v).toISOString().slice(0,10) : '';
 const badge = s => {
   const t = String(s || '').toLowerCase();
-  const cls = t.includes('fail') ? 'bg-red-100 text-red-700' : t.includes('pending') ? 'bg-amber-100 text-amber-700' : t.includes('sent') || t.includes('active') ? 'bg-green-100 text-green-700' : 'bg-fsLilac text-fsPurple';
-  return `<span class="px-2 py-1 rounded-full text-xs font-bold ${cls}">${esc(s || 'Unknown')}</span>`;
+  let cls = 'fs-badge-neutral';
+  if (t.includes('fail')) cls = 'fs-badge-danger';
+  else if (t.includes('pend')) cls = 'fs-badge-warning';
+  else if (t.includes('sent') || t.includes('active') || t.includes('assigned')) cls = 'fs-badge-success';
+  else if (t.includes('wait')) cls = 'fs-badge-info';
+  return `<span class="fs-badge ${cls}">${esc(s || 'Unknown')}</span>`;
 };
 
-function sectionError(msg){ return `<div class="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">${esc(msg)}</div>`; }
-function emptyState(msg){ return `<div class="text-sm text-fsMuted py-5 text-center">${esc(msg)}</div>`; }
-function skeletonRows(n=6){ return `<div class="space-y-2">${Array.from({length:n}).map(()=>'<div class="h-9 rounded skeleton"></div>').join('')}</div>`; }
+function sectionError(msg) { return `<div class="diag-panel visible" style="margin:14px 16px;">${esc(msg)}</div>`; }
+function emptyState(msg)   { return `<div class="fs-table-empty">${esc(msg)}</div>`; }
+function skeletonRows(n=6) { return `<div style="padding:12px 16px;display:grid;gap:6px;">${Array.from({length:n}).map(()=>'<div class="skeleton" style="height:36px;"></div>').join('')}</div>`; }
 
 function classifyFetchError(err){
   const raw = String(err?.message || err || 'Unknown error');
-  if (!CONFIG.SUPABASE_ANON_KEY || CONFIG.SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY')) return 'Missing anon key. Set CONFIG.SUPABASE_ANON_KEY in foundation/auth/auth-client.js.';
-  if (!CONFIG.SUPABASE_URL || CONFIG.SUPABASE_URL.includes('YOUR-PROJECT-REF')) return 'Wrong Supabase URL. Set CONFIG.SUPABASE_URL in foundation/auth/auth-client.js.';
-  if (raw.includes('Failed to fetch')) return 'Network/CORS issue. Check browser network access, URL, and CORS.';
+  if (!CONFIG.SUPABASE_ANON_KEY || CONFIG.SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY')) return 'Missing anon key — set CONFIG.SUPABASE_ANON_KEY in foundation/auth/auth-client.js.';
+  if (!CONFIG.SUPABASE_URL || CONFIG.SUPABASE_URL.includes('YOUR-PROJECT-REF'))  return 'Wrong Supabase URL — set CONFIG.SUPABASE_URL in foundation/auth/auth-client.js.';
+  if (raw.includes('Failed to fetch'))  return 'Network/CORS issue. Check browser network access, URL, and CORS.';
   if (raw.includes('JWT') || raw.includes('permission') || raw.includes('row-level security') || raw.includes('42501')) return 'RLS/policy blocked this query. Verify authenticated policies for your role.';
   return raw;
 }
 
 async function pingSupabase(){
-  const diagPanel = $('diagPanel');
-  const diagBody = $('diagBody');
-  diagPanel.classList.add('hidden');
-  diagBody.innerHTML = '';
-
+  const panel = $('diagPanel');
+  const body  = $('diagBody');
+  panel.classList.remove('visible');
+  body.innerHTML = '';
   const issues = [];
-  if (!CONFIG.SUPABASE_URL || CONFIG.SUPABASE_URL.includes('YOUR-PROJECT-REF')) issues.push('SUPABASE_URL is not configured.');
+  if (!CONFIG.SUPABASE_URL || CONFIG.SUPABASE_URL.includes('YOUR-PROJECT-REF'))   issues.push('SUPABASE_URL is not configured.');
   if (!CONFIG.SUPABASE_ANON_KEY || CONFIG.SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY')) issues.push('SUPABASE_ANON_KEY is not configured.');
-
   if (!issues.length) {
     try {
       const { error } = await state.supabase.from('applicants').select('id', { count:'exact', head:true });
       if (error) issues.push(classifyFetchError(error));
-    } catch (e) {
-      issues.push(classifyFetchError(e));
-    }
+    } catch (e) { issues.push(classifyFetchError(e)); }
   }
-
   if (issues.length) {
-    diagPanel.classList.remove('hidden');
-    diagBody.innerHTML = `<ul class="list-disc ml-5 space-y-1">${issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`;
+    panel.classList.add('visible');
+    body.innerHTML = `<ul style="margin:0;padding-left:18px;">${issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`;
   }
 }
 
-async function loadApplicants(){
-  state.errors.applicants = null;
-  try {
-    const { data, error } = await state.supabase.from('applicants').select('*').order('created_at',{ascending:false}).limit(1000);
-    if (error) throw error;
-    state.applicants = data || [];
-  } catch (e) {
-    state.errors.applicants = classifyFetchError(e);
-    state.applicants = [];
-  }
-}
-
-async function loadEmailQueue(){
-  state.errors.emailQueue = null;
-  try {
-    const { data, error } = await state.supabase.from('email_queue').select('*').order('created_at',{ascending:false}).limit(1000);
-    if (error) throw error;
-    state.emailQueue = data || [];
-  } catch (e) {
-    state.errors.emailQueue = classifyFetchError(e);
-    state.emailQueue = [];
-  }
-}
-
-async function loadClassOptions(){
-  state.errors.classOptions = null;
-  try {
-    const { data, error } = await state.supabase.from('class_options').select('*').limit(1000);
-    if (error) throw error;
-    state.classOptions = data || [];
-  } catch (e) {
-    state.errors.classOptions = classifyFetchError(e);
-    state.classOptions = [];
-  }
-}
-
-async function loadFellowshipMap(){
-  state.errors.fellowshipMap = null;
-  try {
-    const { data, error } = await state.supabase.from('fellowship_map').select('*').limit(1000);
-    if (error) throw error;
-    state.fellowshipMap = data || [];
-  } catch (e) {
-    state.errors.fellowshipMap = classifyFetchError(e);
-    state.fellowshipMap = [];
-  }
-}
+async function loadApplicants(){ state.errors.applicants=null; try { const{data,error}=await state.supabase.from('applicants').select('*').order('created_at',{ascending:false}).limit(1000); if(error)throw error; state.applicants=data||[]; } catch(e){ state.errors.applicants=classifyFetchError(e); state.applicants=[]; } }
+async function loadEmailQueue(){ state.errors.emailQueue=null; try { const{data,error}=await state.supabase.from('email_queue').select('*').order('created_at',{ascending:false}).limit(1000); if(error)throw error; state.emailQueue=data||[]; } catch(e){ state.errors.emailQueue=classifyFetchError(e); state.emailQueue=[]; } }
+async function loadClassOptions(){ state.errors.classOptions=null; try { const{data,error}=await state.supabase.from('class_options').select('*').limit(1000); if(error)throw error; state.classOptions=data||[]; } catch(e){ state.errors.classOptions=classifyFetchError(e); state.classOptions=[]; } }
+async function loadFellowshipMap(){ state.errors.fellowshipMap=null; try { const{data,error}=await state.supabase.from('fellowship_map').select('*').limit(1000); if(error)throw error; state.fellowshipMap=data||[]; } catch(e){ state.errors.fellowshipMap=classifyFetchError(e); state.fellowshipMap=[]; } }
 
 function hydrateFilters(){
-  const statuses = [...new Set(state.applicants.map(a => a.registration_status || a.status).filter(Boolean))];
+  const statuses    = [...new Set(state.applicants.map(a => a.registration_status || a.status).filter(Boolean))];
   const fellowships = [...new Set(state.applicants.map(a => a.fellowship_code || a.fellowship).filter(Boolean))];
-  $('statusFilter').innerHTML = '<option value="">All Status</option>' + statuses.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
-  $('fellowshipFilter').innerHTML = '<option value="">All Fellowship</option>' + fellowships.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  $('statusFilter').innerHTML    = '<option value="">All Status</option>'    + statuses.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  $('fellowshipFilter').innerHTML= '<option value="">All Fellowship</option>' + fellowships.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
 }
 
-function isDuplicate(a){ return Number(a.duplicate_count || 0) > 1 || Boolean(a.needs_admin_review); }
+function isDuplicate(a){ return Number(a.duplicate_count||0)>1||Boolean(a.needs_admin_review); }
 
 function filteredApplicants(){
-  return state.applicants.filter(a => {
-    const text = `${a.full_name || ''} ${a.email || ''}`.toLowerCase();
-    if (state.filters.search && !text.includes(state.filters.search.toLowerCase())) return false;
-    if (state.filters.status && String(a.registration_status || a.status || '') !== state.filters.status) return false;
-    if (state.filters.fellowship && String(a.fellowship_code || a.fellowship || '') !== state.filters.fellowship) return false;
-    if (state.filters.duplicate === 'yes' && !isDuplicate(a)) return false;
-    if (state.filters.duplicate === 'no' && isDuplicate(a)) return false;
-    if (state.filters.date && ymd(a.created_at) !== state.filters.date) return false;
+  return state.applicants.filter(a=>{
+    const text=`${a.full_name||''} ${a.email||''}`.toLowerCase();
+    if(state.filters.search&&!text.includes(state.filters.search.toLowerCase()))return false;
+    if(state.filters.status&&String(a.registration_status||a.status||'')!==state.filters.status)return false;
+    if(state.filters.fellowship&&String(a.fellowship_code||a.fellowship||'')!==state.filters.fellowship)return false;
+    if(state.filters.duplicate==='yes'&&!isDuplicate(a))return false;
+    if(state.filters.duplicate==='no'&&isDuplicate(a))return false;
+    if(state.filters.date&&ymd(a.created_at)!==state.filters.date)return false;
     return true;
   });
 }
 
 function renderStats(){
-  const cards = [
-    ['Applicants', state.applicants.length],
-    ['Waitlisted', state.applicants.filter(a => String(a.registration_status || '').toUpperCase() === 'WAITLISTED').length],
-    ['Pending Review', state.applicants.filter(a => String(a.registration_status || '').toUpperCase() === 'REVIEW').length],
-    ['Assigned', state.applicants.filter(a => String(a.registration_status || '').toUpperCase() === 'ASSIGNED').length],
-    ['Duplicates', state.applicants.filter(isDuplicate).length],
-    ['Needs Review', state.applicants.filter(a => Boolean(a.needs_admin_review)).length],
-    ['Pending Emails', state.emailQueue.filter(r => String(r.status||'').toLowerCase()==='pending').length],
-    ['Failed Emails', state.emailQueue.filter(r => String(r.status||'').toLowerCase()==='failed').length],
-    ['Class Options', state.classOptions.length]
+  const cards=[
+    ['Total Applicants',state.applicants.length],
+    ['Waitlisted',state.applicants.filter(a=>String(a.registration_status||'').toUpperCase()==='WAITLISTED').length],
+    ['Pending Review',state.applicants.filter(a=>String(a.registration_status||'').toUpperCase()==='REVIEW').length],
+    ['Assigned',state.applicants.filter(a=>String(a.registration_status||'').toUpperCase()==='ASSIGNED').length],
+    ['Duplicates',state.applicants.filter(isDuplicate).length],
+    ['Needs Review',state.applicants.filter(a=>Boolean(a.needs_admin_review)).length],
+    ['Pending Emails',state.emailQueue.filter(r=>String(r.status||'').toLowerCase()==='pending').length],
+    ['Failed Emails',state.emailQueue.filter(r=>String(r.status||'').toLowerCase()==='failed').length],
+    ['Class Options',state.classOptions.length],
   ];
-  $('statsGrid').innerHTML = cards.map(([k,v]) => `<div class="bg-white rounded-2xl border border-fsPurple/10 p-4"><p class="text-xs text-fsMuted font-bold uppercase">${esc(k)}</p><p class="font-heading text-3xl text-fsPurple">${esc(v)}</p></div>`).join('');
+  $('statsGrid').innerHTML=cards.map(([k,v],i)=>`<div class="fs-metric"><div class="fs-metric-label">${esc(k)}</div><div class="fs-metric-value">${esc(v)}</div></div>`).join('');
 }
 
 function renderApplicants(){
-  $('applicantsError').innerHTML = state.errors.applicants ? sectionError(state.errors.applicants) : '';
-  const wrap = $('applicantsWrap');
-  const rows = filteredApplicants();
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  state.page = Math.min(state.page, totalPages);
-  const start = (state.page - 1) * PAGE_SIZE;
-  const pageRows = rows.slice(start, start + PAGE_SIZE);
-  $('pageInfo').textContent = `Page ${state.page} / ${totalPages}`;
-  $('prevBtn').disabled = state.page <= 1;
-  $('nextBtn').disabled = state.page >= totalPages;
-
-  if (!pageRows.length) { wrap.innerHTML = emptyState('No applicants found for current filters.'); return; }
-  wrap.innerHTML = `<table class="min-w-full text-sm"><thead class="bg-fsLilac text-fsPurple"><tr><th class="px-3 py-2 text-left">Name</th><th class="px-3 py-2 text-left">Email</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Availability</th><th class="px-3 py-2 text-left">Fellowship</th><th class="px-3 py-2 text-left">Dupes</th><th class="px-3 py-2 text-left">Review</th><th class="px-3 py-2 text-left">Created</th><th class="px-3 py-2 text-left">Actions</th></tr></thead><tbody>${pageRows.map(a=>`<tr class="border-t border-fsPurple/10 ${isDuplicate(a)?'bg-red-50/40':''}"><td class="px-3 py-2 font-semibold">${esc(a.full_name || '—')}</td><td class="px-3 py-2">${esc(a.email || '—')}</td><td class="px-3 py-2">${badge(a.registration_status || a.status)}</td><td class="px-3 py-2">${badge(a.availability_status || '—')}</td><td class="px-3 py-2">${esc(a.fellowship_code || a.fellowship || '—')}</td><td class="px-3 py-2">${esc(a.duplicate_count || 1)}</td><td class="px-3 py-2">${a.needs_admin_review ? '<span class="text-xs px-2 py-1 rounded bg-amber-100 text-amber-700 font-bold">Yes</span>' : 'No'}</td><td class="px-3 py-2">${fmt(a.created_at)}</td><td class="px-3 py-2"><div class="flex gap-2"><button class="px-2 py-1 rounded bg-fsPurple text-white text-xs font-bold js-retry" data-id="${esc(a.id)}">Retry</button><button class="px-2 py-1 rounded bg-fsGold text-fsPurple text-xs font-bold js-note" data-id="${esc(a.id)}">Note</button><button class="px-2 py-1 rounded bg-green-600 text-white text-xs font-bold js-resolve" data-id="${esc(a.id)}">Resolve</button></div></td></tr>`).join('')}</tbody></table>`;
-
-  wrap.querySelectorAll('.js-retry').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      const id = btn.getAttribute('data-id');
-      const now = new Date().toISOString();
-      await state.supabase.from('applicants').update({ retry_assignment: true, assignment_attempts: 1, reviewed_at: now, review_notes: 'Retry requested by admin', updated_at: now }).eq('id', id);
-      await loadAll();
-    });
-  });
-  wrap.querySelectorAll('.js-note').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const id = btn.getAttribute('data-id');
-      const note = prompt('Add review note');
-      if (note == null) return;
-      const now = new Date().toISOString();
-      await state.supabase.from('applicants').update({ review_notes: note, reviewed_at: now, updated_at: now }).eq('id', id);
-      await loadAll();
-    });
-  });
-  wrap.querySelectorAll('.js-resolve').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      const id = btn.getAttribute('data-id');
-      const now = new Date().toISOString();
-      await state.supabase.from('applicants').update({ retry_assignment: false, needs_admin_review: false, registration_status: 'PENDING', reviewed_at: now, updated_at: now }).eq('id', id);
-      await loadAll();
-    });
-  });
+  $('applicantsError').innerHTML=state.errors.applicants?sectionError(state.errors.applicants):'';
+  const rows=filteredApplicants();
+  const totalPages=Math.max(1,Math.ceil(rows.length/PAGE_SIZE));
+  state.page=Math.min(state.page,totalPages);
+  const start=(state.page-1)*PAGE_SIZE;
+  const pageRows=rows.slice(start,start+PAGE_SIZE);
+  $('pageInfo').textContent=`Page ${state.page} / ${totalPages}`;
+  $('prevBtn').disabled=state.page<=1;
+  $('nextBtn').disabled=state.page>=totalPages;
+  if(!pageRows.length){ $('applicantsWrap').innerHTML=emptyState('No applicants match current filters.'); return; }
+  $('applicantsWrap').innerHTML=`<table class="fs-table"><thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Availability</th><th>Fellowship</th><th>Dupes</th><th>Review</th><th>Created</th><th>Actions</th></tr></thead><tbody>${pageRows.map(a=>`<tr style="${isDuplicate(a)?'background:rgba(201,72,48,.04)':''}"><td style="font-weight:700;">${esc(a.full_name||'—')}</td><td class="mono">${esc(a.email||'—')}</td><td>${badge(a.registration_status||a.status)}</td><td>${badge(a.availability_status||'—')}</td><td>${esc(a.fellowship_code||a.fellowship||'—')}</td><td style="text-align:center;">${esc(a.duplicate_count||1)}</td><td>${a.needs_admin_review?'<span class="fs-badge fs-badge-warning">Yes</span>':'<span class="fs-badge fs-badge-neutral">No</span>'}</td><td class="mono">${fmt(a.created_at)}</td><td><div style="display:flex;gap:4px;"><button class="fs-btn fs-btn-primary fs-btn-sm js-retry" data-id="${esc(a.id)}">Retry</button><button class="fs-btn fs-btn-secondary fs-btn-sm js-note" data-id="${esc(a.id)}">Note</button><button class="fs-btn fs-btn-secondary fs-btn-sm js-resolve" data-id="${esc(a.id)}">Resolve</button></div></td></tr>`).join('')}</tbody></table>`;
+  $('applicantsWrap').querySelectorAll('.js-retry').forEach(btn=>btn.addEventListener('click',async()=>{ btn.disabled=true; const id=btn.getAttribute('data-id'); const now=new Date().toISOString(); await state.supabase.from('applicants').update({retry_assignment:true,assignment_attempts:1,reviewed_at:now,review_notes:'Retry requested by admin',updated_at:now}).eq('id',id); await loadAll(); }));
+  $('applicantsWrap').querySelectorAll('.js-note').forEach(btn=>btn.addEventListener('click',async()=>{ const id=btn.getAttribute('data-id'); const note=prompt('Add review note'); if(note==null)return; const now=new Date().toISOString(); await state.supabase.from('applicants').update({review_notes:note,reviewed_at:now,updated_at:now}).eq('id',id); await loadAll(); }));
+  $('applicantsWrap').querySelectorAll('.js-resolve').forEach(btn=>btn.addEventListener('click',async()=>{ btn.disabled=true; const id=btn.getAttribute('data-id'); const now=new Date().toISOString(); await state.supabase.from('applicants').update({retry_assignment:false,needs_admin_review:false,registration_status:'PENDING',reviewed_at:now,updated_at:now}).eq('id',id); await loadAll(); }));
 }
 
 function renderEmailQueue(){
-  $('emailQueueError').innerHTML = state.errors.emailQueue ? sectionError(state.errors.emailQueue) : '';
-  const rows = state.emailQueue.slice(0, 30);
-  $('emailQueueWrap').innerHTML = rows.length ? `<table class="min-w-full text-sm"><thead class="bg-fsLilac text-fsPurple"><tr><th class="px-3 py-2 text-left">Recipient</th><th class="px-3 py-2 text-left">Template</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Created</th></tr></thead><tbody>${rows.map(r=>`<tr class="border-t border-fsPurple/10"><td class="px-3 py-2">${esc(r.recipient_email || '—')}</td><td class="px-3 py-2">${esc(r.template_key || '—')}</td><td class="px-3 py-2">${badge(r.status)}</td><td class="px-3 py-2">${fmt(r.created_at)}</td></tr>`).join('')}</tbody></table>` : emptyState('Email queue empty.');
+  $('emailQueueError').innerHTML=state.errors.emailQueue?sectionError(state.errors.emailQueue):'';
+  const rows=state.emailQueue.slice(0,30);
+  $('emailQueueWrap').innerHTML=rows.length?`<table class="fs-table"><thead><tr><th>Recipient</th><th>Template</th><th>Status</th><th>Created</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="mono">${esc(r.recipient_email||'—')}</td><td>${esc(r.template_key||'—')}</td><td>${badge(r.status)}</td><td class="mono">${fmt(r.created_at)}</td></tr>`).join('')}</tbody></table>`:emptyState('Email queue empty.');
 }
 
 async function retryEmail(id){
-  alert(`Mock retryEmail() for queue id: ${id}`);
+  const queueId = String(id || '').trim();
+  if (!queueId) return;
+  try {
+    const payload = { source: "email_queue", id: queueId, action: "retry" };
+    const { data, error } = await state.supabase.functions.invoke("retry-worker", { body: payload });
+    if (error) throw error;
+    if (!data?.ok) throw new Error(data?.error || "Retry worker failed");
+    alert(`Retry queued successfully for email job ${queueId}.`);
+    await loadAll();
+  } catch (e) {
+    const msg = String(e?.message || e);
+    alert(`Email retry failed: ${msg}`);
+  }
 }
-window.retryEmail = retryEmail;
+window.retryEmail=retryEmail;
 
 function renderFailed(){
-  $('failedError').innerHTML = state.errors.emailQueue ? sectionError(state.errors.emailQueue) : '';
-  const failed = state.emailQueue.filter(r => String(r.status||'').toLowerCase()==='failed').slice(0,20);
-  $('failedWrap').innerHTML = failed.length ? `<table class="min-w-full text-sm"><thead class="bg-fsLilac text-fsPurple"><tr><th class="px-3 py-2 text-left">Recipient</th><th class="px-3 py-2 text-left">Template</th><th class="px-3 py-2 text-left">Error</th><th class="px-3 py-2 text-left">Action</th></tr></thead><tbody>${failed.map(r=>`<tr class="border-t border-fsPurple/10"><td class="px-3 py-2">${esc(r.recipient_email || '—')}</td><td class="px-3 py-2">${esc(r.template_key || '—')}</td><td class="px-3 py-2 text-red-700 text-xs">${esc(r.error_message || 'Unknown error')}</td><td class="px-3 py-2"><button class="px-2 py-1 rounded bg-fsPurple text-white text-xs font-bold" onclick="retryEmail('${esc(r.id)}')">Retry</button></td></tr>`).join('')}</tbody></table>` : emptyState('No failed emails.');
+  $('failedError').innerHTML=state.errors.emailQueue?sectionError(state.errors.emailQueue):'';
+  const failed=state.emailQueue.filter(r=>String(r.status||'').toLowerCase()==='failed').slice(0,20);
+  $('failedWrap').innerHTML=failed.length?`<table class="fs-table"><thead><tr><th>Recipient</th><th>Template</th><th>Error</th><th>Action</th></tr></thead><tbody>${failed.map(r=>`<tr><td class="mono">${esc(r.recipient_email||'—')}</td><td>${esc(r.template_key||'—')}</td><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--danger);">${esc(r.error_message||'Unknown error')}</td><td><button class="fs-btn fs-btn-primary fs-btn-sm" onclick="retryEmail('${esc(r.id)}')">Retry</button></td></tr>`).join('')}</tbody></table>`:emptyState('No failed emails.');
 }
 
-function renderAll(){
-  renderStats();
-  renderApplicants();
-  renderEmailQueue();
-  renderFailed();
-}
+function renderAll(){ renderStats(); renderApplicants(); renderEmailQueue(); renderFailed(); }
 
 async function loadAll(){
-  $('applicantsWrap').innerHTML = skeletonRows(8);
-  $('emailQueueWrap').innerHTML = skeletonRows(6);
-  $('failedWrap').innerHTML = skeletonRows(4);
+  $('applicantsWrap').innerHTML=skeletonRows(8);
+  $('emailQueueWrap').innerHTML=skeletonRows(5);
+  $('failedWrap').innerHTML=skeletonRows(3);
   await pingSupabase();
-
-  await Promise.allSettled([
-    loadApplicants(),
-    loadEmailQueue(),
-    loadClassOptions(),
-    loadFellowshipMap()
-  ]);
-
+  await Promise.allSettled([loadApplicants(),loadEmailQueue(),loadClassOptions(),loadFellowshipMap()]);
   hydrateFilters();
   renderAll();
 }
 
 function wireEvents(){
-  $('refreshBtn').addEventListener('click', loadAll);
-  $('logoutBtn').addEventListener('click', logout);
-  $('searchInput').addEventListener('input', e => { state.filters.search = e.target.value; state.page = 1; renderApplicants(); });
-  $('statusFilter').addEventListener('change', e => { state.filters.status = e.target.value; state.page = 1; renderApplicants(); });
-  $('fellowshipFilter').addEventListener('change', e => { state.filters.fellowship = e.target.value; state.page = 1; renderApplicants(); });
-  $('duplicateFilter').addEventListener('change', e => { state.filters.duplicate = e.target.value; state.page = 1; renderApplicants(); });
-  $('dateFilter').addEventListener('change', e => { state.filters.date = e.target.value; state.page = 1; renderApplicants(); });
-  $('prevBtn').addEventListener('click', () => { if (state.page > 1) { state.page -= 1; renderApplicants(); } });
-  $('nextBtn').addEventListener('click', () => { state.page += 1; renderApplicants(); });
+  $('refreshBtn').addEventListener('click',loadAll);
+  $('searchInput').addEventListener('input',e=>{state.filters.search=e.target.value;state.page=1;renderApplicants();});
+  $('statusFilter').addEventListener('change',e=>{state.filters.status=e.target.value;state.page=1;renderApplicants();});
+  $('fellowshipFilter').addEventListener('change',e=>{state.filters.fellowship=e.target.value;state.page=1;renderApplicants();});
+  $('duplicateFilter').addEventListener('change',e=>{state.filters.duplicate=e.target.value;state.page=1;renderApplicants();});
+  $('dateFilter').addEventListener('change',e=>{state.filters.date=e.target.value;state.page=1;renderApplicants();});
+  $('prevBtn').addEventListener('click',()=>{if(state.page>1){state.page-=1;renderApplicants();}});
+  $('nextBtn').addEventListener('click',()=>{state.page+=1;renderApplicants();});
+  $('roleNavSelect').addEventListener('change', (e) => {
+    const v = String(e.target.value || '');
+    if (!v) return;
+    if (v === '#logout') { logout(); return; }
+    window.location.href = v;
+  });
+}
+
+function buildRoleNavDropdown(profile){
+  const role = String(profile?.role || '').toLowerCase();
+  const canAdmin = ["admin","superadmin"].includes(role);
+  const canPrincipal = ["principal","admin","superadmin"].includes(role);
+  const canTeacher = ["teacher","principal","admin","superadmin"].includes(role);
+  const items = [
+    { label: "Dashboard", href: "admin-dashboard.html", show: canPrincipal },
+    { label: "Batch Management", href: "batch-management.html", show: canPrincipal },
+    { label: "Registrations", href: "admin-review.html", show: canPrincipal },
+    { label: "Teacher Management", href: "teacher-management.html", show: canPrincipal },
+    { label: "Attendance", href: "TeacherAttendancePortal.html", show: canTeacher },
+    { label: "Student Progress", href: "StudentProgressView.html", show: canTeacher },
+    { label: "Schedule", href: "teacher-schedule.html", show: canTeacher },
+    { label: "Moodle Settings", href: "moodle-settings.html", show: canAdmin },
+    { label: "System Health", href: "system-health.html", show: canAdmin },
+    { label: "Failed Syncs", href: "failed-sync-retry-center.html", show: canAdmin },
+    { label: "Notifications", href: "notification-center.html", show: canAdmin },
+    { label: "Logout", href: "#logout", show: true },
+  ].filter((x) => x.show);
+  $('roleNavSelect').innerHTML =
+    '<option value="">Select destination...</option>' +
+    items.map((x) => `<option value="${esc(x.href)}">${esc(x.label)}</option>`).join('');
 }
 
 (async function boot(){
   try {
     const auth = await requireAuth(['admin','superadmin']);
     if (!auth) return;
-
-    $('whoami').textContent = `${auth.profile.email || ''} (${auth.profile.role || ''})`;
-    renderRoleSidebar(auth.profile, 'roleSidebar');
-
+    window.FSAdminShell && window.FSAdminShell.setProfile(auth.profile.email || auth.profile.name, null);
+    buildRoleNavDropdown(auth.profile);
     wireEvents();
     await loadAll();
   } catch (e) {
-    $('diagPanel').classList.remove('hidden');
-    $('diagBody').innerHTML = sectionError(classifyFetchError(e));
+    $('diagPanel').classList.add('visible');
+    $('diagBody').innerHTML = `<p>${esc(classifyFetchError(e))}</p>`;
   }
 })();
 </script>
-  <script src="../ui/premium-shell.js"></script>
+<script src="../js/admin-shell.js"></script>
+<script>
+  window.FSAdminShell && window.FSAdminShell.mount({ active: "dashboard", pageTitle: "Dashboard" });
+</script>
 </body>
 </html>
-
-
-
 
 

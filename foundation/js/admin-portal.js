@@ -1,4 +1,4 @@
-// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+﻿// ── Config ────────────────────────────────────────────────────
 const SUPABASE_URL = String(window.FS_CONFIG?.SUPABASE_URL || '').trim()
 const SUPABASE_ANON_KEY = String(window.FS_CONFIG?.SUPABASE_ANON_KEY || '').trim()
 const AdminUi = window.FSAdminUi
@@ -6,7 +6,7 @@ if (!AdminUi) {
   throw new Error('Missing shared admin module: ../js/admin-ui.js')
 }
 
-// â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── State ─────────────────────────────────────────────────────
 let db, currentUser, adminProfile
 let suspendTarget    = null   // { type: 'teacher'|'availability', id, label }
 let currentBatches   = []     // cached batch list for batch management
@@ -14,7 +14,7 @@ let batchModalMode   = 'create' // 'create' | 'edit'
 let batchModalId     = null   // batch_id being edited
 let moodleModalBatchId = null // batch_id open in Moodle config modal
 
-// â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Init ──────────────────────────────────────────────────────
 async function init() {
   const { createClient } = window.supabase
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
@@ -81,7 +81,7 @@ function safeInvokeLoader(fnName, moduleName, targetSectionId) {
   }
 }
 
-// â”€â”€ Role helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Role helpers ──────────────────────────────────────────────
 function isSuperadmin()    { return adminProfile?.role === 'superadmin' }
 function isSubgroupAdmin() { return adminProfile?.role === 'subgroup_admin' }
 function isPastor()        { return adminProfile?.role === 'pastor' }
@@ -96,15 +96,22 @@ function scopeQuery(query, col) {
   return sg.length ? query.in(col, sg) : query.in(col, ['__NONE__'])
 }
 
-// â”€â”€ Render portal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Render portal ─────────────────────────────────────────────
 function renderPortal() {
   document.getElementById('loading-screen').style.display = 'none'
   document.getElementById('portal').style.display = 'block'
-
-  document.getElementById('hdr-name').textContent = adminProfile.full_name
-  const roleBadgeEl = document.getElementById('hdr-role')
-  roleBadgeEl.className = `badge badge-${adminProfile.role}`
-  roleBadgeEl.textContent = { superadmin: 'Superadmin', subgroup_admin: 'Subgroup Admin', pastor: 'Pastor' }[adminProfile.role] || adminProfile.role
+  if (window.FSAdminShell && !document.getElementById('fs-admin-sb')) {
+    window.FSAdminShell.mount({
+      active: 'portal',
+      pageTitle: 'Admin Portal',
+      role: adminProfile.role,
+      profileName: adminProfile.full_name,
+      onLogout: logout
+    })
+  } else if (window.FSAdminShell) {
+    window.FSAdminShell.setPageTitle('Admin Portal')
+    window.FSAdminShell.setProfile(adminProfile.full_name, null)
+  }
 
   const main = document.getElementById('main')
   main.innerHTML = ''
@@ -153,7 +160,7 @@ function renderPortal() {
   }
 }
 
-// â”€â”€ Section helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Section helpers ───────────────────────────────────────────
 function mkSection(id, title, headerActionsHtml) {
   const s = document.createElement('section')
   s.className = 'section'
@@ -163,7 +170,7 @@ function mkSection(id, title, headerActionsHtml) {
       <h2>${title}</h2>
       ${headerActionsHtml ? `<div class="section-header-actions">${headerActionsHtml}</div>` : ''}
     </div>
-    <div class="section-body" id="sb-${id}"><div class="loading-state">Loadingâ€¦</div></div>`
+    <div class="section-body" id="sb-${id}"><div class="loading-state">Loading…</div></div>`
   return s
 }
 
@@ -265,12 +272,12 @@ function statusBadge(s) {
 async function btnAction(btn, label, fn) {
   const orig = btn.textContent
   btn.disabled = true
-  btn.textContent = label || 'Loadingâ€¦'
+  btn.textContent = label || 'Loading…'
   try { await fn() }
   finally { btn.disabled = false; btn.textContent = orig }
 }
 
-// â”€â”€ Superadmin: Pending Teacher Approvals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Superadmin: Pending Teacher Approvals ─────────────────────
 async function loadPendingTeachers() {
   try {
     const { data, error } = await db.from('teachers')
@@ -282,8 +289,8 @@ async function loadPendingTeachers() {
     if (error) throw error
 
     const rows = (data || []).map(t => [
-      esc(t.full_name), esc(t.email || 'â€”'), esc(t.subgroup_id || 'â€”'),
-      esc(t.group_id || 'â€”'), fmtDate(t.created_at),
+      esc(t.full_name), esc(t.email || '—'), esc(t.subgroup_id || '—'),
+      esc(t.group_id || '—'), fmtDate(t.created_at),
       `<div class="actions">
         <button class="btn-sm btn-approve" onclick="approveTeacher('${esc(t.teacher_id)}', this)">Approve</button>
         <button class="btn-sm btn-reject"  onclick="rejectTeacher('${esc(t.teacher_id)}', this)">Reject</button>
@@ -297,11 +304,14 @@ async function loadPendingTeachers() {
 }
 
 async function approveTeacher(id, btn) {
-  await btnAction(btn, 'Approvingâ€¦', async () => {
-    const { error } = await db.from('teachers')
-      .update({ active: true, status: 'Active' })
-      .eq('teacher_id', id)
-    if (error) throw error
+  await btnAction(btn, 'Approving...', async () => {
+    const actorEmail = String(adminProfile?.email || currentUser?.email || '').trim() || null
+    const updated = await FSAdminApi.updateTeacherStatus(db, id, 'ACTIVE', actorEmail)
+    await FSAdminApi.logTeacherAudit(db, 'TEACHER_APPROVED', id, {
+      to_status: 'ACTIVE',
+      teacher_name: updated?.full_name || null,
+      teacher_email: updated?.email || null,
+    }, actorEmail)
     toast('Teacher approved.')
     loadPendingTeachers()
   })
@@ -309,17 +319,22 @@ async function approveTeacher(id, btn) {
 
 async function rejectTeacher(id, btn) {
   if (!confirm('Reject this teacher application? This cannot be undone.')) return
-  await btnAction(btn, 'Rejectingâ€¦', async () => {
-    const { error } = await db.from('teachers')
-      .update({ active: false, status: 'Rejected' })
-      .eq('teacher_id', id)
-    if (error) throw error
+  const reason = String(prompt('Optional rejection reason:', '') || '').trim() || null
+  await btnAction(btn, 'Rejecting...', async () => {
+    const actorEmail = String(adminProfile?.email || currentUser?.email || '').trim() || null
+    const updated = await FSAdminApi.updateTeacherStatus(db, id, 'INACTIVE', actorEmail, reason)
+    await FSAdminApi.logTeacherAudit(db, 'TEACHER_REJECTED', id, {
+      to_status: 'INACTIVE',
+      reason,
+      teacher_name: updated?.full_name || null,
+      teacher_email: updated?.email || null,
+    }, actorEmail)
     toast('Teacher rejected.', 'error')
     loadPendingTeachers()
   })
 }
 
-// â”€â”€ Superadmin: Suspended Teachers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Superadmin: Suspended Teachers ───────────────────────────
 async function loadSuspendedTeachers() {
   try {
     const { data, error } = await db.from('teachers')
@@ -331,8 +346,8 @@ async function loadSuspendedTeachers() {
     if (error) throw error
 
     const rows = (data || []).map(t => [
-      esc(t.full_name), esc(t.email || 'â€”'), esc(t.subgroup_id || 'â€”'),
-      esc(t.suspended_reason || 'â€”'), esc(t.suspended_by || 'â€”'), fmtDate(t.suspended_at),
+      esc(t.full_name), esc(t.email || '—'), esc(t.subgroup_id || '—'),
+      esc(t.suspended_reason || '—'), esc(t.suspended_by || '—'), fmtDate(t.suspended_at),
       `<div class="actions">
         <button class="btn-sm btn-confirm"   onclick="confirmSuspension('${esc(t.teacher_id)}', this)">Confirm Suspension</button>
         <button class="btn-sm btn-reinstate" onclick="reinstateTeacher('${esc(t.teacher_id)}', this)">Override & Reinstate</button>
@@ -347,7 +362,7 @@ async function loadSuspendedTeachers() {
 
 async function confirmSuspension(id, btn) {
   if (!confirm('Confirm this suspension? The teacher will remain inactive.')) return
-  await btnAction(btn, 'Confirmingâ€¦', async () => {
+  await btnAction(btn, 'Confirming…', async () => {
     const { error } = await db.from('teachers')
       .update({ active: false, status: 'SuspendedConfirmed', reviewed_at: new Date().toISOString(), reviewed_by: currentUser.id })
       .eq('teacher_id', id)
@@ -359,7 +374,7 @@ async function confirmSuspension(id, btn) {
 
 async function reinstateTeacher(id, btn) {
   if (!confirm('Override suspension and reinstate this teacher?')) return
-  await btnAction(btn, 'Reinstatingâ€¦', async () => {
+  await btnAction(btn, 'Reinstating…', async () => {
     const { error } = await db.from('teachers')
       .update({ active: true, status: 'Active', suspended_reason: null, suspended_by: null, suspended_at: null, reviewed_at: new Date().toISOString(), reviewed_by: currentUser.id })
       .eq('teacher_id', id)
@@ -369,7 +384,7 @@ async function reinstateTeacher(id, btn) {
   })
 }
 
-// â”€â”€ Superadmin: Pending Availability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Superadmin: Pending Availability ─────────────────────────
 async function loadPendingAvail() {
   try {
     const { data, error } = await db.from('teacher_availability')
@@ -380,8 +395,8 @@ async function loadPendingAvail() {
     if (error) throw error
 
     const rows = (data || []).map(r => [
-      esc(r.teachers?.full_name || r.teacher_id), esc(r.subgroup_id || 'â€”'),
-      esc(r.day || 'â€”'), fmtTime(r.time_slot), esc(r.batch_id || '2025A'),
+      esc(r.teachers?.full_name || r.teacher_id), esc(r.subgroup_id || '—'),
+      esc(r.day || '—'), fmtTime(r.time_slot), esc(r.batch_id || '2025A'),
       `<div class="actions">
         <button class="btn-sm btn-approve" onclick="approveAvail('${esc(r.id)}', this)">Approve</button>
         <button class="btn-sm btn-reject"  onclick="rejectAvail('${esc(r.id)}', this)">Reject</button>
@@ -395,59 +410,55 @@ async function loadPendingAvail() {
 }
 
 async function approveAvail(id, btn) {
-  await btnAction(btn, 'Approvingâ€¦', async () => {
-    // Fetch full availability row with teacher info
-    const { data: avail, error: ae } = await db.from('teacher_availability')
-      .select('*, teachers(full_name, group_id, subgroup_id)')
-      .eq('id', id)
-      .single()
-    if (ae || !avail) throw new Error('Availability row not found.')
+  await btnAction(btn, 'Approving…', async () => {
+    const actorEmail = String(adminProfile?.email || currentUser?.email || '').trim() || null
+    const actorId = String(currentUser?.id || '').trim() || null
+    const { data, error } = await db.rpc('approve_teacher_availability_atomic', {
+      p_availability_id: id,
+      p_actor_email: actorEmail,
+      p_actor_id: actorId
+    })
 
-    const batchId    = avail.batch_id || '2025A'
-    const teacherId  = avail.teacher_id
-    const teacherName = avail.teachers?.full_name || ''
-    const subgroupId  = avail.subgroup_id || avail.teachers?.subgroup_id || ''
-    const groupId     = avail.teachers?.group_id || ''
-    const day         = avail.day || ''
-    const timeSlot    = avail.time_slot || ''
-
-    // Generate deterministic IDs
-    const d   = day.substring(0, 3).toUpperCase()
-    const t   = timeSlot.replace(':', '').substring(0, 4)
-    const tid = teacherId.replace(/[^A-Za-z0-9]/g, '').substring(0, 8).toUpperCase()
-    const sg  = subgroupId.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-    const coId = `CO-${sg}-${d}-${t}-${tid}`
-    const csId = `CS-${coId}-${batchId}`
-
-    // Check / create class_options
-    const { data: existCO } = await db.from('class_options').select('class_option_id').eq('class_option_id', coId).maybeSingle()
-    if (!existCO) {
-      const { error: coErr } = await db.from('class_options').insert({
-        class_option_id: coId, class_id: coId,
-        teacher_id: teacherId, teacher_name: teacherName,
-        fellowship_codes: [], group_id: groupId, subgroup_id: subgroupId,
-        day, class_time: timeSlot, active: true, enrollment_open: true
-      })
-      if (coErr) throw new Error('Could not create class_options: ' + coErr.message)
+    if (error) {
+      const message = error.message || 'RPC approval failed.'
+      try {
+        await db.from('audit_logs').insert({
+          actor_email: actorEmail,
+          actor_id: actorId,
+          action: 'TEACHER_AVAIL_APPROVAL_FAILED',
+          entity_type: 'teacher_availability',
+          entity_id: id,
+          status: 'FAILED',
+          details: { reason: message }
+        })
+      } catch (_) {
+        // best-effort audit
+      }
+      throw new Error(message)
     }
 
-    // Check / create class_slots
-    const { data: existCS } = await db.from('class_slots').select('class_slot_id').eq('class_slot_id', csId).maybeSingle()
-    if (!existCS) {
-      const { error: csErr } = await db.from('class_slots').insert({
-        class_slot_id: csId, class_option_id: coId,
-        teacher_id: teacherId, teacher_name: teacherName,
-        group_id: groupId, subgroup_id: subgroupId,
-        batch_id: batchId, status: 'Active', current_enrolment: 0
-      })
-      if (csErr) throw new Error('Could not create class_slots: ' + csErr.message)
+    const result = Array.isArray(data) ? data[0] : data
+    if (!result?.ok) {
+      const message = String(result?.error || 'Approval failed.').trim()
+      try {
+        await db.from('audit_logs').insert({
+          actor_email: actorEmail,
+          actor_id: actorId,
+          action: 'TEACHER_AVAIL_APPROVAL_FAILED',
+          entity_type: 'teacher_availability',
+          entity_id: id,
+          status: 'FAILED',
+          details: {
+            reason: message,
+            class_option_id: result?.class_option_id || null,
+            class_slot_id: result?.class_slot_id || null
+          }
+        })
+      } catch (_) {
+        // best-effort audit
+      }
+      throw new Error(message)
     }
-
-    // Mark availability Available
-    const { error: avErr } = await db.from('teacher_availability')
-      .update({ status: 'Available' })
-      .eq('id', id)
-    if (avErr) throw avErr
 
     toast('Availability approved. Class created.')
     loadPendingAvail()
@@ -456,7 +467,7 @@ async function approveAvail(id, btn) {
 
 async function rejectAvail(id, btn) {
   if (!confirm('Reject this availability slot?')) return
-  await btnAction(btn, 'Rejectingâ€¦', async () => {
+  await btnAction(btn, 'Rejecting…', async () => {
     const { error } = await db.from('teacher_availability')
       .update({ status: 'Unavailable' })
       .eq('id', id)
@@ -466,7 +477,7 @@ async function rejectAvail(id, btn) {
   })
 }
 
-// â”€â”€ Superadmin: Dashboards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Superadmin: Dashboards ────────────────────────────────────
 async function loadDashboards() {
   try {
     const [fmRes, stuRes, attRes, gradRes] = await Promise.all([
@@ -506,7 +517,7 @@ async function loadDashboards() {
   }
 }
 
-// â”€â”€ Superadmin: Admin Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Superadmin: Admin Users ───────────────────────────────────
 async function loadAdminUsers() {
   try {
     const { data, error } = await db.from('admin_users')
@@ -516,8 +527,8 @@ async function loadAdminUsers() {
 
     const rows = (data || []).map(u => [
       esc(u.full_name), esc(u.email), roleBadgeHtml(u.role),
-      esc((u.subgroups || []).join(', ') || 'â€”'),
-      esc((u.group_ids || []).join(', ') || 'â€”')
+      esc((u.subgroups || []).join(', ') || '—'),
+      esc((u.group_ids || []).join(', ') || '—')
     ])
     setHtml('admin-users', mkTable(['Name','Email','Role','Subgroups','Groups'], rows))
   } catch (e) {
@@ -526,7 +537,7 @@ async function loadAdminUsers() {
   }
 }
 
-// â”€â”€ Shared: Students â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Shared: Students ──────────────────────────────────────────
 async function loadStudents() {
   try {
     let q = db.from('students')
@@ -539,11 +550,11 @@ async function loadStudents() {
     if (error) throw error
 
     const rows = (data || []).map(s => [
-      esc(s.student_id), esc(s.full_name), esc(s.email || 'â€”'),
-      esc(s.fellowship_code || 'â€”'), statusBadge(s.status || 'Active'),
+      esc(s.student_id), esc(s.full_name), esc(s.email || '—'),
+      esc(s.fellowship_code || '—'), statusBadge(s.status || 'Active'),
       s.needs_attention_flag
-        ? `<span class="flag-on" title="${esc(s.needs_attention_reason || '')}">âš‘ Flagged</span>`
-        : `<span class="flag-off">â€”</span>`
+        ? `<span class="flag-on" title="${esc(s.needs_attention_reason || '')}">⚑ Flagged</span>`
+        : `<span class="flag-off">—</span>`
     ])
     const note = (data || []).length === 150 ? '<p style="color:var(--muted);font-size:12px;margin-top:10px">Showing first 150 records.</p>' : ''
     setHtml('students', mkTable(['ID','Name','Email','Fellowship','Status','Attention'], rows) + note)
@@ -553,7 +564,7 @@ async function loadStudents() {
   }
 }
 
-// â”€â”€ Shared: Attendance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Shared: Attendance ────────────────────────────────────────
 async function loadAttendance() {
   try {
     let q = db.from('attendance_log').select('subgroup_id, present')
@@ -583,7 +594,7 @@ async function loadAttendance() {
   }
 }
 
-// â”€â”€ Shared: Graduation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Shared: Graduation ────────────────────────────────────────
 async function loadGraduation() {
   try {
     let q = db.from('graduation_review')
@@ -594,10 +605,10 @@ async function loadGraduation() {
     const { data, error } = await q
     if (error) throw error
 
-    function gIcon(v) { return v ? '<span class="gate-ok">âœ“</span>' : '<span class="gate-no">âœ—</span>' }
+    function gIcon(v) { return v ? '<span class="gate-ok">✓</span>' : '<span class="gate-no">✗</span>' }
     const rows = (data || []).map(r => [
       esc(r.students?.full_name || r.student_id),
-      esc(r.subgroup_id || 'â€”'),
+      esc(r.subgroup_id || '—'),
       gIcon(r.gate1_attendance), gIcon(r.gate2_assignments),
       gIcon(r.gate3_exam_passed), gIcon(r.gate4_cell_integrated),
       statusBadge(r.graduation_status || 'Not Ready')
@@ -609,7 +620,7 @@ async function loadGraduation() {
   }
 }
 
-// â”€â”€ Subgroup Admin: Notes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Subgroup Admin: Notes ─────────────────────────────────────
 async function loadNotes() {
   try {
     let q = db.from('students')
@@ -622,7 +633,7 @@ async function loadNotes() {
     if (error) throw error
 
     const rows = (data || []).map(s => [
-      esc(s.full_name), esc(s.subgroup_id || 'â€”'), esc(s.needs_attention_reason || 'â€”')
+      esc(s.full_name), esc(s.subgroup_id || '—'), esc(s.needs_attention_reason || '—')
     ])
     setHtml('notes', mkTable(['Student','Subgroup','Reason / Note'], rows))
   } catch (e) {
@@ -631,7 +642,7 @@ async function loadNotes() {
   }
 }
 
-// â”€â”€ Pastor: Teachers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Pastor: Teachers ──────────────────────────────────────────
 async function loadTeachers() {
   try {
     let q = db.from('teachers')
@@ -645,7 +656,7 @@ async function loadTeachers() {
     const rows = (data || []).map(t => {
       const canSusp = t.status !== 'Suspended' && t.status !== 'SuspendedConfirmed'
       return [
-        esc(t.full_name), esc(t.email || 'â€”'), esc(t.subgroup_id || 'â€”'),
+        esc(t.full_name), esc(t.email || '—'), esc(t.subgroup_id || '—'),
         statusBadge(t.status || (t.active ? 'Active' : 'Inactive')),
         canSusp
           ? `<button class="btn-sm btn-suspend" onclick="openModal('teacher','${esc(t.teacher_id)}','${esc(t.full_name)}')">Suspend</button>`
@@ -659,7 +670,7 @@ async function loadTeachers() {
   }
 }
 
-// â”€â”€ Pastor: Availability â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Pastor: Availability ──────────────────────────────────────
 async function loadAvailPastor() {
   try {
     // Get teacher IDs in this pastor's subgroups
@@ -681,10 +692,10 @@ async function loadAvailPastor() {
     const rows = (data || []).map(r => {
       const canSusp = r.status !== 'Suspended'
       return [
-        esc(r.teachers?.full_name || r.teacher_id), esc(r.day || 'â€”'), fmtTime(r.time_slot),
-        statusBadge(r.status), esc(r.batch_id || 'â€”'),
+        esc(r.teachers?.full_name || r.teacher_id), esc(r.day || '—'), fmtTime(r.time_slot),
+        statusBadge(r.status), esc(r.batch_id || '—'),
         canSusp
-          ? `<button class="btn-sm btn-suspend" onclick="openModal('availability','${esc(r.id)}','${esc(r.teachers?.full_name || r.teacher_id)} â€” ${esc(r.day)} ${fmtTime(r.time_slot)}')">Suspend</button>`
+          ? `<button class="btn-sm btn-suspend" onclick="openModal('availability','${esc(r.id)}','${esc(r.teachers?.full_name || r.teacher_id)} — ${esc(r.day)} ${fmtTime(r.time_slot)}')">Suspend</button>`
           : `<span style="color:var(--muted);font-size:12px">Suspended</span>`
       ]
     })
@@ -695,7 +706,7 @@ async function loadAvailPastor() {
   }
 }
 
-// â”€â”€ Modal: Suspend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Modal: Suspend ────────────────────────────────────────────
 function openModal(type, id, label) {
   suspendTarget = { type, id, label }
   document.getElementById('modal-title').textContent  = type === 'teacher' ? 'Suspend Teacher' : 'Suspend Availability'
@@ -725,7 +736,7 @@ async function confirmSuspend() {
 
   const btn = document.getElementById('modal-submit')
   btn.disabled = true
-  btn.textContent = 'Suspendingâ€¦'
+  btn.textContent = 'Suspending…'
 
   try {
     const now = new Date().toISOString()
@@ -775,7 +786,7 @@ document.getElementById('modal-overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-overlay')) closeModal()
 })
 
-// â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Toast ─────────────────────────────────────────────────────
 function toast(msg, type) {
   type = type || 'success'
   const el = document.createElement('div')
@@ -785,6 +796,6 @@ function toast(msg, type) {
   setTimeout(() => el.remove(), 4000)
 }
 
-// â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Boot ──────────────────────────────────────────────────────
 init()
 

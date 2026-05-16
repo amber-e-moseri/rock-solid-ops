@@ -1,6 +1,12 @@
 ﻿<!doctype html>
 <html lang="en">
 <head>
+  <style>
+    html, body {
+      background: #f5f3ff;
+      margin: 0;
+    }
+  </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Teacher Attendance Portal</title>
@@ -15,7 +21,7 @@
     .card { padding: 18px; }
   }
 
-  /* Roster layout — specific to attendance step */
+  /* Roster layout specific to attendance step */
   .roster-item { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .roster-main { min-width: 0; }
   .roster-status {
@@ -65,8 +71,36 @@
     from { transform: translateY(26px); opacity: .2; }
     to   { transform: translateY(0);    opacity: 1;  }
   }
+  .session-pill {
+    display: inline-block;
+    padding: 6px 14px;
+    margin: 4px;
+    border-radius: 20px;
+    border: 1px solid var(--primary, #7c3aed);
+    background: transparent;
+    color: var(--primary, #7c3aed);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .session-pill-active {
+    background: var(--primary, #7c3aed);
+    color: #fff;
+    transform: scale(1.05);
+  }
+  .session-pill:hover {
+    opacity: 0.85;
+  }
+  #sessionSel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
 </style>
   <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
 </head>
@@ -83,59 +117,59 @@
       <div class="step-line"></div>
       <div class="step" id="step-3"><div class="step-dot">3</div><span>Action</span></div>
       <div class="step-line"></div>
-      <div class="step" id="step-4"><div class="step-dot">4</div><span>Session</span></div>
+      <div class="step" id="step-4"><div class="step-dot">4</div><span>Class</span></div>
       <div class="step-line"></div>
       <div class="step" id="step-5"><div class="step-dot">5</div><span>Submit</span></div>
     </div>
 
     <section class="card" id="s1">
-      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Find Teacher</div><div class="card-sub">Search by teacher ID, name, or email.</div></div></div>
+      <div class="card-header"><div class="card-icon">T</div><div><div class="card-title">Find Teacher</div><div class="card-sub">Search by teacher ID, name, or email.</div></div></div>
       <div class="field"><label>Teacher Search</label><input id="teacherQuery" placeholder="Search by teacher ID, name, or email" oninput="onTeacherInput()" autocomplete="off" /></div>
       <div id="teacherList"></div>
       <div class="btn-row"><div class="spacer"></div><button class="btn primary" id="to2" onclick="toClass()" disabled>Continue</button></div>
     </section>
 
     <section class="card hidden" id="s2">
-      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Select Class</div><div class="card-sub">Choose your active class assignment.</div></div></div>
+      <div class="card-header"><div class="card-icon">C</div><div><div class="card-title">Select Class</div><div class="card-sub">Choose your active class assignment.</div></div></div>
       <div id="classList"></div>
       <div class="btn-row"><button class="btn" onclick="show(1)">Back</button><div class="spacer"></div><button class="btn primary" id="to3" onclick="toAction()" disabled>Continue</button></div>
     </section>
 
     <section class="card hidden" id="s3">
-      <div class="card-header"><div class="card-icon">?</div><div><div class="card-title">Choose Action</div><div class="card-sub">Mark attendance or review student progress.</div></div></div>
+      <div class="card-header"><div class="card-icon">A</div><div><div class="card-title">Choose Action</div><div class="card-sub">Mark attendance or review student progress.</div></div></div>
       <div class="action-grid">
-        <div class="action-tile" onclick="chooseAction('attendance')"><div class="action-icon">?</div><div class="action-title">Mark Attendance</div><div class="action-sub">Record today’s attendance and outcomes.</div></div>
-        <div class="action-tile" onclick="chooseAction('progress')"><div class="action-icon">??</div><div class="action-title">View Student Progress</div><div class="action-sub">Open StudentProgressView.</div></div>
+        <div class="action-tile" onclick="chooseAction('attendance')"><div class="action-icon">A</div><div class="action-title">Mark Attendance</div><div class="action-sub">Record today's attendance and outcomes.</div></div>
+        <div class="action-tile" onclick="chooseAction('progress')"><div class="action-icon">P</div><div class="action-title">View Student Progress</div><div class="action-sub">Open StudentProgressView.</div></div>
       </div>
       <div id="actionMsg" class="muted" style="margin-top:12px"></div>
       <div class="btn-row"><button class="btn" onclick="show(2)">Back</button></div>
     </section>
 
     <section class="card hidden" id="s4">
-      <div class="card-header"><div class="card-icon">???</div><div><div class="card-title">Attendance Session</div><div class="card-sub">Select the class session and date.</div></div></div>
-      <div class="row" style="margin-top:0"><div style="flex:2;min-width:280px"><label>Session(s)</label><div id="sessionSel"></div></div><div style="flex:1;min-width:220px"><label>Class Date</label><input type="date" id="classDate" /></div></div>
+      <div class="card-header"><div class="card-icon">S</div><div><div class="card-title">Select Class</div><div class="card-sub">Select which class you are taking attendance for today.</div></div></div>
+      <div class="row" style="margin-top:0"><div style="flex:2;min-width:280px"><label>Class</label><div id="sessionSel"></div></div><div style="flex:1;min-width:220px"><label>Class Date</label><input type="date" id="classDate" /></div></div>
       <div id="already"></div>
       <div class="btn-row"><button class="btn" onclick="show(3)">Back</button><div class="spacer"></div><button class="btn primary" onclick="loadRoster()">Load Roster</button></div>
     </section>
 
     <section class="card hidden" id="s5">
-      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Mark Attendance</div><div class="card-sub">Tap a person to toggle present or absent.</div></div></div>
+      <div class="card-header"><div class="card-icon">M</div><div><div class="card-title">Mark Attendance</div><div class="card-sub">Tap a person to toggle present or absent.</div></div></div>
       <div id="attendance-context" class="context-bar hidden"></div>
-      <div class="toolbar"><input id="rosterSearch" placeholder="Search roster" oninput="renderRoster()" autocomplete="off" /><button class="btn success" onclick="markAll(true)">All Present</button><button class="btn danger" onclick="markAll(false)">Clear</button><button class="btn" onclick="openAdd()">Add Existing Person</button></div>
+      <div class="toolbar"><button class="btn success" onclick="markAllPresent()">? All Present</button><button class="btn danger" onclick="markAllAbsent()">? All Absent</button><input id="rosterSearch" placeholder="Search roster" oninput="renderRoster()" autocomplete="off" /><button class="btn" onclick="openAdd()">Add Existing Person</button></div>
       <div id="roster"></div>
       <div class="stats" id="roster-counts"><div class="stat"><div class="stat-value" id="count-present" style="color:var(--success)">0</div><div class="stat-label">Present</div></div><div class="stat"><div class="stat-value" id="count-absent" style="color:var(--danger)">0</div><div class="stat-label">Absent</div></div><div class="stat"><div class="stat-value" id="count-total" style="color:var(--primary)">0</div><div class="stat-label">Total</div></div></div>
       <div class="btn-row fab-row"><button class="btn" onclick="show(4)">Back</button><div class="spacer"></div><button class="btn primary" onclick="review()">Review -></button></div>
     </section>
 
     <section class="card hidden" id="s6">
-      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Review & Submit</div><div class="card-sub">Confirm the attendance summary before submitting.</div></div></div>
+      <div class="card-header"><div class="card-icon">R</div><div><div class="card-title">Review & Submit</div><div class="card-sub">Confirm the attendance summary before submitting.</div></div></div>
       <div id="reviewBox"></div>
       <div id="submitMsg"></div>
       <div class="btn-row fab-row"><button class="btn" onclick="show(5)">Back</button><div class="spacer"></div><button class="btn primary" id="submitBtn" onclick="submitTeacherAttendance()">Submit</button></div>
     </section>
 
     <section class="card hidden" id="s8">
-      <div class="card-header"><div class="card-icon">??</div><div><div class="card-title">Session Outcomes</div><div class="card-sub">Record configured milestones for present participants.</div></div></div>
+      <div class="card-header"><div class="card-icon">O</div><div><div class="card-title">Session Outcomes</div><div class="card-sub">Record configured milestones for present participants.</div></div></div>
       <div id="outcomesBox"></div>
       <div id="outcomeMsg"></div>
       <div class="btn-row"><button class="btn" onclick="show(6)">Back</button><div class="spacer"></div><button class="btn" onclick="submitSessionOutcomes(false)">Skip / Flag Follow-up</button><button class="btn primary" onclick="submitSessionOutcomes(true)">Submit Outcomes</button></div>
@@ -143,7 +177,7 @@
 
     <div id="addBackdrop" class="modal-backdrop hidden" onclick="closeAdd()"></div>
     <section class="card hidden" id="addModal">
-      <div class="card-header"><div class="card-icon">?</div><div><div class="card-title">Add Existing Person</div><div class="card-sub" id="addSubtitle">Search by name or email.</div></div></div>
+      <div class="card-header"><div class="card-icon">+</div><div><div class="card-title">Add Existing Person</div><div class="card-sub" id="addSubtitle">Search by name or email.</div></div></div>
       <div class="field"><label>Search</label><input id="addQ" placeholder="Search by name or email" oninput="searchAttendancePerson()" autocomplete="off" /></div>
       <div id="addList"></div>
       <div id="enrollBox" class="hidden">
@@ -158,28 +192,80 @@
   </main>
 
   <script>
-    const SUPABASE_URL = String(window.FS_CONFIG?.SUPABASE_URL || '').trim();
-    const SUPABASE_ANON_KEY = String(window.FS_CONFIG?.SUPABASE_ANON_KEY || '').trim();
+    function readRuntimeConfig() {
+      const cfg = window.FSConfig?.get ? window.FSConfig.get() : {
+        SUPABASE_URL: String(window.FS_CONFIG?.SUPABASE_URL || '').trim(),
+        SUPABASE_ANON_KEY: String(window.FS_CONFIG?.SUPABASE_ANON_KEY || '').trim(),
+      };
+      return {
+        SUPABASE_URL: String(cfg.SUPABASE_URL || "").trim(),
+        SUPABASE_ANON_KEY: String(cfg.SUPABASE_ANON_KEY || "").trim(),
+      };
+    }
     const SESSIONS = ['Class1','Class2','Class3','Class4A','Class4B','Class5','Class6','Class7'];
     const state = { teacher:null, teachers:[], classes:[], classOption:null, action:'', sessions:['Class1'], session:'Class1', classDate:'', roster:[], attendance:{}, addResults:[], fellowships:[], milestones:[], attendanceSubmitted:false, lastRecords:[], gridRows:[] };
 
-    if(!window.supabase || typeof window.supabase.createClient !== "function"){
-      alert("Supabase client library is not loaded.");
-    } else {
-      window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    function showRuntimeError(message){
+      const root = document.querySelector(".hero") || document.querySelector("main");
+      if (!root || document.getElementById("attendance-runtime-error")) return;
+      const el = document.createElement("div");
+      el.id = "attendance-runtime-error";
+      el.className = "error";
+      el.textContent = message;
+      root.appendChild(el);
+    }
+
+    function ensureSupabaseClient() {
+      if (window.supabase && typeof window.supabase.from === "function") return window.supabase;
+      if (!window.supabase || typeof window.supabase.createClient !== "function") {
+        console.error("[SUPABASE_CLIENT_MISSING] Supabase client library is not loaded.");
+        throw new Error("Supabase client library is not loaded.");
+      }
+      const cfg = readRuntimeConfig();
+      if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+        console.error("[CONFIG_MISSING] Missing SUPABASE_URL/SUPABASE_ANON_KEY in window.FS_CONFIG.");
+        throw new Error("Missing runtime Supabase config.");
+      }
+      window.supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+      return window.supabase;
+    }
+    function resolveLoginPath(){
+      const p = window.location.pathname || "";
+      return p.includes("/foundation/") ? "/foundation/auth/login.html" : "/auth/login.html";
+    }
+    async function ensureSessionOrRedirect() {
+      const client = ensureSupabaseClient();
+      const { data, error } = await client.auth.getSession();
+      if (error || !data?.session) {
+        window.location.href = resolveLoginPath();
+        throw new Error("No active auth session.");
+      }
+      return data.session;
     }
 
     function esc(s){ return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
     async function apiGet(action, params = {}) {
+      try {
+        await ensureSessionOrRedirect();
+      } catch (err) {
+        console.error("[TEACHER_API_REQUEST_FAILED]", { action, error: String(err?.message || err || "") });
+        throw err;
+      }
       const res = await window.FSApi.invokeEdge("teacher-portal-api", { action, params });
-      if(!res?.ok) throw new Error(res?.error || "Request failed");
+      if(!res?.ok) throw new Error(res?.code ? `${res.error || "Request failed"} [${res.code}]` : (res?.error || "Request failed"));
       return res;
     }
 
     async function apiPost(action, body) {
+      try {
+        await ensureSessionOrRedirect();
+      } catch (err) {
+        console.error("[TEACHER_API_REQUEST_FAILED]", { action, error: String(err?.message || err || "") });
+        throw err;
+      }
       const res = await window.FSApi.invokeEdge("teacher-portal-api", { action, params: body });
-      if(!res?.ok) throw new Error(res?.error || "Request failed");
+      if(!res?.ok) throw new Error(res?.code ? `${res.error || "Request failed"} [${res.code}]` : (res?.error || "Request failed"));
       return res;
     }
 
@@ -192,7 +278,7 @@
       const el = document.getElementById('ctx-badge');
       if(!el) return;
       const parts=[]; if(state.teacher) parts.push(state.teacher.fullName); const cls = selectedClassLabel(); if(cls) parts.push(cls);
-      el.textContent = parts.join(' · ') || 'Teacher Attendance Portal';
+      el.textContent = parts.join(' | ') || 'Teacher Attendance Portal';
     }
 
     let tmr = null;
@@ -200,7 +286,7 @@
 
     async function lookupTeacherForAttendance(q){
       const el = document.getElementById('teacherList');
-      el.innerHTML = '<div class="muted">Searching…</div>';
+      el.innerHTML = '<div class="muted">Searching...</div>';
       try{
         const r = await apiGet('lookupTeacherForAttendance', { query:q });
         state.teachers = r.data || [];
@@ -208,16 +294,54 @@
       } catch(e){ el.innerHTML = `<div class="error">${esc(e.message)}</div>`; }
     }
 
-    function pickTeacher(id){ state.teacher = state.teachers.find(t => t.teacherId === id); [...document.querySelectorAll('#teacherList .item')].forEach(x => x.classList.remove('sel')); document.getElementById('t-'+id)?.classList.add('sel'); document.getElementById('to2').disabled = !state.teacher; updateBadge(); }
+    async function mountTeacherShell() {
+      if (window.FSAdminShell && typeof window.FSAdminShell.mount === "function") {
+        await window.FSAdminShell.mount({
+          active: "attendance",
+          profileName: state.teacher?.fullName || "Teacher",
+          role: "teacher",
+          pageTitle: "Attendance",
+          portalName: "Rock Solid",
+          portalSubtitle: "Teacher Portal",
+        });
+      }
+      const sbName = document.querySelector('.sb-name');
+      const sbSub = document.querySelector('.sb-sub');
+      if (sbName) sbName.textContent = 'Rock Solid';
+      if (sbSub) sbSub.textContent = 'Teacher Portal';
+
+      let sessionEmail = "";
+      try {
+        if (window.supabase?.auth?.getSession) {
+          const sessionRes = await window.supabase.auth.getSession();
+          sessionEmail = String(sessionRes?.data?.session?.user?.email || "").trim();
+        }
+      } catch (_) {}
+      const nameEl = document.getElementById('fs-user-name');
+      if (nameEl) {
+        nameEl.textContent =
+          state.teacher?.fullName ||
+          state.teacher?.email ||
+          sessionEmail ||
+          'Teacher';
+      }
+
+      const bcRoot = document.querySelector('.topbar-l .breadcrumb span:first-child');
+      if (bcRoot && String(bcRoot.textContent || "").trim() === 'Admin') {
+        bcRoot.textContent = 'Teacher';
+      }
+    }
+
+    async function pickTeacher(id){ state.teacher = state.teachers.find(t => t.teacherId === id); [...document.querySelectorAll('#teacherList .item')].forEach(x => x.classList.remove('sel')); document.getElementById('t-'+id)?.classList.add('sel'); document.getElementById('to2').disabled = !state.teacher; updateBadge(); await mountTeacherShell(); const innerName = document.getElementById('fs-user-name'); if (innerName && state.teacher?.fullName) { innerName.textContent = state.teacher.fullName; } if (window.FSAdminShell && typeof window.FSAdminShell.setProfile === "function" && state.teacher?.fullName) { window.FSAdminShell.setProfile({ profileName: state.teacher.fullName }); } }
 
     async function toClass(){
       show(2); document.getElementById('to3').disabled = true;
-      const list = document.getElementById('classList'); list.innerHTML = '<div class="muted">Loading classes…</div>';
+      const list = document.getElementById('classList'); list.innerHTML = '<div class="muted">Loading classes...</div>';
       try{
         const r = await apiGet('getTeacherActiveClassOptions', { teacherId: state.teacher.teacherId });
         state.classes = r.data || [];
         state.classOption = null;
-        list.innerHTML = state.classes.map(c => `<div class="item" onclick="pickClass('${esc(c.classOptionId)}')" id="c-${esc(c.classOptionId)}"><div class="item-name">${esc(c.campus || c.fellowship || c.classOptionId)}</div><div class="item-meta">${esc(c.day)} ${esc(c.time)} · Batch ${esc(c.batch)} · ${Number(c.enrolledCount || 0)} enrolled</div></div>`).join('') || '<div class="muted">No active classes found.</div>';
+        list.innerHTML = state.classes.map(c => `<div class="item" onclick="pickClass('${esc(c.classOptionId)}')" id="c-${esc(c.classOptionId)}"><div class="item-name">${esc(c.campus || c.fellowship || c.classOptionId)}</div><div class="item-meta">${esc(c.day)} ${esc(c.time)} | Batch ${esc(c.batch)} | ${Number(c.enrolledCount || 0)} enrolled</div></div>`).join('') || '<div class="muted">No assigned classes yet.</div>';
       } catch(e){ list.innerHTML = `<div class="error">${esc(e.message)}</div>`; }
     }
 
@@ -232,7 +356,7 @@
     }
     function toAction(){ show(3); }
 
-    function chooseAction(type){ state.action = type; document.getElementById('actionMsg').textContent = type === 'attendance' ? 'Attendance flow selected.' : 'Opening Student Progress…'; if(type === 'attendance'){ buildSessions(); state.classDate = new Date().toISOString().slice(0,10); document.getElementById('classDate').value = state.classDate; show(4); } else { window.location.href = `StudentProgressView.html?teacherId=${encodeURIComponent(state.teacher.teacherId)}&classOptionId=${encodeURIComponent(state.classOption.classOptionId)}`; } }
+    function chooseAction(type){ state.action = type; document.getElementById('actionMsg').textContent = type === 'attendance' ? 'Attendance flow selected.' : 'Opening Student Progress...'; if(type === 'attendance'){ buildSessions(); state.classDate = new Date().toISOString().slice(0,10); document.getElementById('classDate').value = state.classDate; show(4); } else { window.location.href = `StudentProgressView.html?teacherId=${encodeURIComponent(state.teacher.teacherId)}&classOptionId=${encodeURIComponent(state.classOption.classOptionId)}`; } }
     function toggleSession(s){
       const idx = state.sessions.indexOf(s);
       if (idx >= 0) state.sessions.splice(idx, 1);
@@ -244,7 +368,14 @@
     }
     function renderSessionPickers(){
       const s = document.getElementById('sessionSel');
-      s.innerHTML = SESSIONS.map(x => `<label class="item ${state.sessions.includes(x)?'sel':''}" style="margin-bottom:6px;cursor:pointer" onclick="toggleSession('${x}')"><div class="item-name">${x}</div></label>`).join('');
+      const selected = new Set(state.sessions || []);
+      s.innerHTML = SESSIONS.map(x => `
+        <button
+          type="button"
+          class="session-pill ${selected.has(x) ? 'session-pill-active' : ''}"
+          onclick="toggleSession('${x}')"
+        >${selected.has(x) ? '&#10003; ' : ''}${x}</button>
+      `).join('');
     }
     function buildSessions(){ renderSessionPickers(); }
 
@@ -265,7 +396,7 @@
         document.getElementById('already').innerHTML = d.alreadySubmitted ? `<div class="error">${esc(d.previousSubmissionSummary || 'Attendance already submitted today.')}</div>` : '';
         const ctx = document.getElementById('attendance-context');
         ctx.classList.remove('hidden');
-        ctx.innerHTML = `<span>Teacher: <span class="ctx-val">${esc(state.teacher.fullName)}</span></span><span class="ctx-sep">›</span><span>Class: <span class="ctx-val">${esc(selectedClassLabel())}</span></span><span class="ctx-sep">›</span><span>Session: <span class="ctx-val">${esc(selectedSessionLabel())}</span></span><span class="ctx-sep">›</span><span>Date: <span class="ctx-val">${esc(state.classDate)}</span></span>`;
+        ctx.innerHTML = `<span>Teacher: <span class="ctx-val">${esc(state.teacher.fullName)}</span></span><span class="ctx-sep">|</span><span>Class: <span class="ctx-val">${esc(selectedClassLabel())}</span></span><span class="ctx-sep">|</span><span>Session: <span class="ctx-val">${esc(selectedSessionLabel())}</span></span><span class="ctx-sep">|</span><span>Date: <span class="ctx-val">${esc(state.classDate)}</span></span>`;
         show(5); renderRoster();
       } catch(e){ document.getElementById('already').innerHTML = `<div class="error">${esc(e.message)}</div>`; }
     }
@@ -273,15 +404,25 @@
     function renderRoster(){
       const q = (document.getElementById('rosterSearch').value || '').toLowerCase();
       const rows = state.roster.filter(r => !q || String(r.fullName || '').toLowerCase().includes(q) || String(r.email || '').toLowerCase().includes(q));
-      document.getElementById('roster').innerHTML = rows.map(r => `<div class="item ${state.attendance[r.id] ? 'sel' : ''}" onclick="toggle('${esc(r.id)}')"><div class="roster-item"><div class="roster-main"><div class="item-name">${esc(r.fullName)} <span class="item-meta">(${esc(r.personType)})</span></div><div class="item-meta">${esc(r.email || '')} · ${esc(r.status || '')}</div></div><div class="roster-status">${state.attendance[r.id] ? 'Present' : 'Absent'}</div></div></div>`).join('') || '<div class="muted">No roster records found.</div>';
+      document.getElementById('roster').innerHTML = rows.map(r => `<div class="item ${state.attendance[r.id] ? 'sel' : ''}" onclick="toggle('${esc(r.id)}')"><div class="roster-item"><div class="roster-main"><div class="item-name">${esc(r.fullName)} <span class="item-meta">(${esc(r.personType)})</span></div><div class="item-meta">${esc(r.email || '')}${r.phone ? ' • ' + esc(r.phone) : ''} • ${esc(r.status || '')}</div></div><div class="roster-status">${state.attendance[r.id] ? 'Present' : 'Absent'}</div></div></div>`).join('') || '<div class="muted">No roster records found.</div>';
       updateCounts();
     }
 
     function updateCounts(){ const total = state.roster.length; const present = state.roster.filter(r => state.attendance[r.id]).length; const absent = total - present; document.getElementById('count-present').textContent = present; document.getElementById('count-absent').textContent = absent; document.getElementById('count-total').textContent = total; }
     function toggle(id){ state.attendance[id] = !state.attendance[id]; renderRoster(); }
     function markAll(v){ state.roster.forEach(r => state.attendance[r.id] = v); renderRoster(); }
+    function markAllPresent() {
+      state.roster.forEach(r => { state.attendance[r.id] = true; });
+      renderRoster();
+      updateCounts();
+    }
+    function markAllAbsent() {
+      state.roster.forEach(r => { delete state.attendance[r.id]; });
+      renderRoster();
+      updateCounts();
+    }
 
-    function review(){ const records = state.roster.map(p => ({ personId:p.id, studentId:p.studentId||'', applicantId:p.applicantId||'', personType:p.personType, fullName:p.fullName, email:p.email, fellowshipCode:p.fellowshipCode||'', sourceClassOptionId:p.sourceClassOptionId || (state.classOption ? state.classOption.classOptionId : ''), sourceSession:p.sourceSession || '', attendanceStatus:state.attendance[p.id] ? 'Present' : 'Absent', source:p.source || '' })); state.lastRecords = records; const present = records.filter(r => r.attendanceStatus === 'Present').length; const absent = records.length - present; document.getElementById('reviewBox').innerHTML = `<div class="ok">${esc(selectedClassLabel())} · ${esc(selectedSessionLabel())} · ${esc(state.classDate)}</div><div class="stats"><div class="stat"><div class="stat-value" style="color:var(--success)">${present}</div><div class="stat-label">Present</div></div><div class="stat"><div class="stat-value" style="color:var(--danger)">${absent}</div><div class="stat-label">Absent</div></div><div class="stat"><div class="stat-value" style="color:var(--primary)">${records.length}</div><div class="stat-label">Total</div></div></div>`; show(6); }
+    function review(){ const records = state.roster.map(p => ({ personId:p.id, studentId:p.studentId||'', applicantId:p.applicantId||'', personType:p.personType, fullName:p.fullName, email:p.email, fellowshipCode:p.fellowshipCode||'', sourceClassOptionId:p.sourceClassOptionId || (state.classOption ? state.classOption.classOptionId : ''), sourceSession:p.sourceSession || '', attendanceStatus:state.attendance[p.id] ? 'Present' : 'Absent', source:p.source || '' })); state.lastRecords = records; const present = records.filter(r => r.attendanceStatus === 'Present').length; const absent = records.length - present; document.getElementById('reviewBox').innerHTML = `<div class="ok">${esc(selectedClassLabel())} | ${esc(selectedSessionLabel())} | ${esc(state.classDate)}</div><div class="stats"><div class="stat"><div class="stat-value" style="color:var(--success)">${present}</div><div class="stat-label">Present</div></div><div class="stat"><div class="stat-value" style="color:var(--danger)">${absent}</div><div class="stat-label">Absent</div></div><div class="stat"><div class="stat-value" style="color:var(--primary)">${records.length}</div><div class="stat-label">Total</div></div></div>`; show(6); }
 
     async function submitTeacherAttendance(){
       const btn = document.getElementById('submitBtn'); btn.disabled = true;
@@ -338,7 +479,7 @@
             document.getElementById('enrollName').value = q.includes('@') ? '' : q;
             document.getElementById('enrollEmail').value = q.includes('@') ? q : '';
           } else {
-            document.getElementById('addList').innerHTML = state.addResults.map((p,i) => `<div class="item" onclick="addPersonByIndex(${i})"><div class="item-name">${esc(p.fullName)}</div><div class="item-meta">${esc(p.email || '')} · ${esc(p.personType)}${p.classOptionId ? ' · ' + esc(p.classOptionId) : ''}</div></div>`).join('');
+            document.getElementById('addList').innerHTML = state.addResults.map((p,i) => `<div class="item" onclick="addPersonByIndex(${i})"><div class="item-name">${esc(p.fullName)}</div><div class="item-meta">${esc(p.email || '')} | ${esc(p.personType)}${p.classOptionId ? ' | ' + esc(p.classOptionId) : ''}</div></div>`).join('');
           }
         } catch(e){ document.getElementById('addList').innerHTML = `<div class="error">${esc(e.message)}</div>`; }
       }, 250);
@@ -369,18 +510,86 @@
     }
 
     show(1);
+
+    async function autoInitTeacherFromEmail() {
+      const params = new URLSearchParams(window.location.search || "");
+      let email = String(params.get("email") || "").trim();
+      if (!email) {
+        email = String(sessionStorage.getItem("fs_teacher_email") || "").trim();
+      }
+      if (!email && window.supabase) {
+        try {
+          const { data } = await window.supabase.auth.getSession();
+          email = String(data?.session?.user?.email || "").trim();
+        } catch (_) {}
+      }
+      if (!email) return;
+      sessionStorage.setItem("fs_teacher_email", email);
+
+      const innerName = document.getElementById("fs-user-name");
+      if (innerName) innerName.textContent = email;
+
+      const input = document.getElementById("teacherQuery");
+      if (input) input.value = email;
+
+      try {
+        const r = await apiGet("lookupTeacherForAttendance", { query: email });
+        state.teachers = r.data || [];
+
+        if (state.teachers.length === 1) {
+          const only = state.teachers[0];
+          await pickTeacher(only.teacherId);
+          await toClass();
+          if (state.classes && state.classes.length === 1) {
+            pickClass(state.classes[0].classOptionId);
+            chooseAction('attendance');
+          } else if (state.classes && state.classes.length > 1) {
+            // Multiple classes — stop at class selection, let teacher choose
+            show(2);
+          }
+          return;
+        }
+      } catch (_) {
+        // Fall through to normal manual flow if lookup fails.
+      }
+
+      onTeacherInput();
+    }
+
+    function startAutoInit() {
+      if (window.FSApi) {
+        autoInitTeacherFromEmail();
+      } else {
+        setTimeout(startAutoInit, 100);
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener("DOMContentLoaded", startAutoInit);
+    } else {
+      startAutoInit();
+    }
   </script>
   <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/runtime.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api-client.js"></script>
   <script src="../js/ui.js"></script>
   <script src="../js/toast.js"></script>
   <script src="../js/modal.js"></script>
-  <script src="../js/teacher-shell.js"></script>
-  <script>window.FSTeacherShell.mount({ active: 'attendance' });</script>
+  <script src="../js/admin-shell.js"></script>
+  <script>
+    mountTeacherShell();
+  </script>
 </body>
 </html>
+
+
+
+
+
 
 
 

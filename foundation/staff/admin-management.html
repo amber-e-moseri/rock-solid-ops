@@ -1,14 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Foundation School - Admin Management</title>
+  <title>Rock Solid - Admin Management</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../ui/premium-theme.css" />
   <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel='stylesheet' href='../ui/primitives.css' />
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
   <style>
@@ -71,8 +72,8 @@
     .chip-linked { background: var(--info-bg); color: var(--info); }
     .chip-unlinked { background: var(--amber-l); color: var(--amber-d); }
     .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-    .empty-state { padding: 42px 16px; text-align: center; color: var(--muted); }
-    .empty-state .emoji { font-size: 34px; margin-bottom: 8px; }
+    .fs-table-empty { padding: 42px 16px; text-align: center; color: var(--muted); }
+    .fs-table-empty .emoji { font-size: 34px; margin-bottom: 8px; }
     .msg { margin: 12px 14px 0; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
     .msg.error { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-bd); }
     .msg.info { background: var(--surface-alt); color: var(--muted); }
@@ -108,31 +109,31 @@
   <div class="shell main">
     <header class="header" aria-label="Admin management header">
       <div class="brand">
-        <div class="logo" aria-hidden="true">FS</div>
+        <div class="logo" aria-hidden="true">RS</div>
         <div>
           <h1>Admin Management</h1>
           <p id="welcomeLine">Staff/admin operations control</p>
         </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-ghost" id="refreshBtn">Refresh</button>
-        <button class="btn btn-primary" id="addBtn">Add</button>
-        <button class="btn btn-ghost" id="signOutBtn">Sign out</button>
+        <button class="fs-btn fs-btn-secondary" id="refreshBtn">Refresh</button>
+        <button class="fs-btn fs-btn-primary" id="addBtn">Add</button>
+        <button class="fs-btn fs-btn-secondary" id="signOutBtn">Sign out</button>
       </div>
     </header>
 
     <section class="tabs" id="tabs"></section>
 
     <section class="panel">
-      <div class="toolbar">
+      <div class="toolbar fs-action-bar">
         <input class="input" id="searchInput" placeholder="Search records..." aria-label="Search records" />
         <div id="tabNote" class="muted" style="align-self:center"></div>
         <div style="display:flex;justify-content:flex-end">
-          <button class="btn btn-ghost" id="clearBtn">Clear</button>
+          <button class="fs-btn fs-btn-secondary" id="clearBtn">Clear</button>
         </div>
       </div>
       <div id="errorHost"></div>
-      <div id="tableHost" class="table-wrap"></div>
+      <div id="tableHost" class="table-wrap fs-table-wrap"></div>
     </section>
   </div>
 
@@ -143,8 +144,8 @@
         <div class="modal-grid" id="entityFormGrid"></div>
       </form>
       <div class="modal-foot">
-        <button class="btn btn-ghost" id="cancelModalBtn">Cancel</button>
-        <button class="btn btn-primary" id="saveModalBtn">Save</button>
+        <button class="fs-btn fs-btn-secondary" id="cancelModalBtn">Cancel</button>
+        <button class="fs-btn fs-btn-primary" id="saveModalBtn">Save</button>
       </div>
     </div>
   </div>
@@ -155,7 +156,7 @@
   <script src="../js/runtime.js"></script>
   <script type="module">
     import { supabase, getCurrentProfile } from "../auth/auth-client.js";
-    import { requireAuth } from "../auth/auth-guards.js";
+    import { requireAuth } from "../auth/auth-client.js";
 
     const $ = (id) => document.getElementById(id);
     const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
@@ -254,7 +255,7 @@
     }
     function renderErrorForActiveTab() {
       const e = state.loadErrors[state.activeTab];
-      els.errorHost.innerHTML = e ? `<div class="msg error">${esc(e)}</div>` : "";
+      els.errorHost.innerHTML = e ? `<div class="fs-banner fs-banner-danger">${esc(e)}</div>` : "";
     }
     function currentRows() {
       const q = state.search.toLowerCase();
@@ -386,7 +387,7 @@
     function renderTable() {
       const rows = currentRows();
       if (!rows.length) {
-        els.tableHost.innerHTML = `<div class="empty-state"><div class="emoji">📭</div><h3 style="margin:0 0 6px">${esc(tabMeta[state.activeTab].empty)}</h3><p style="margin:0">${state.search ? "No records matched your search." : "Add a record to get started."}</p></div>`;
+        els.tableHost.innerHTML = `<div class="fs-table-empty"><div class="emoji">ðŸ“­</div><h3 style="margin:0 0 6px">${esc(tabMeta[state.activeTab].empty)}</h3><p style="margin:0">${state.search ? "No records matched your search." : "Add a record to get started."}</p></div>`;
         return;
       }
       if (state.activeTab === "staff") return renderStaffTable(rows);
@@ -404,11 +405,11 @@
           return `<tr>
             <td><strong>${esc(r.full_name || "-")}</strong></td>
             <td>${esc(r.email || "-")}</td>
-            <td><span class="chip ${elevatedRoles.has(role) ? "chip-linked" : "chip-inactive"}">${esc(role)}</span></td>
-            <td><span class="chip ${active ? "chip-active" : "chip-inactive"}">${active ? "Active" : "Inactive"}</span></td>
+            <td><span class="fs-badge ${elevatedRoles.has(role) ? "fs-badge-info" : "fs-badge-neutral"}">${esc(role)}</span></td>
+            <td><span class="fs-badge ${active ? "fs-badge-success" : "fs-badge-neutral"}">${active ? "Active" : "Inactive"}</span></td>
             <td><div class="row-actions">
-              <button class="btn btn-ghost" data-edit-staff="${esc(r.id || r.user_id || "")}">Edit Role</button>
-              <button class="btn ${active ? "btn-danger" : "btn-ghost"}" data-toggle-staff="${esc(r.id || r.user_id || "")}">${active ? "Deactivate" : "Reactivate"}</button>
+              <button class="fs-btn fs-btn-secondary" data-edit-staff="${esc(r.id || r.user_id || "")}">Edit Role</button>
+              <button class="fs-btn ${active ? "fs-btn-danger" : "fs-btn-secondary"}" data-toggle-staff="${esc(r.id || r.user_id || "")}">${active ? "Deactivate" : "Reactivate"}</button>
             </div></td>
           </tr>`;
         }).join("")
@@ -429,13 +430,13 @@
             <td>${esc(r[state.teachersEmailKey] || "-")}</td>
             <td>${esc(r.group_id || "-")}</td>
             <td>${esc(r.subgroup_id || "-")}</td>
-            <td><span class="chip ${active ? "chip-active" : "chip-inactive"}">${active ? "Active" : "Inactive"}</span></td>
-            <td><span class="chip ${linked ? "chip-linked" : "chip-unlinked"}">${linked ? "Linked" : "Unlinked"}</span></td>
+            <td><span class="fs-badge ${active ? "fs-badge-success" : "fs-badge-neutral"}">${active ? "Active" : "Inactive"}</span></td>
+            <td><span class="fs-badge ${linked ? "fs-badge-info" : "fs-badge-warning"}">${linked ? "Linked" : "Unlinked"}</span></td>
             <td><div class="row-actions">
-              <button class="btn btn-ghost" data-edit-teacher="${esc(tid)}">Edit</button>
-              <button class="btn ${active ? "btn-danger" : "btn-ghost"}" data-toggle-teacher="${esc(tid)}">${active ? "Deactivate" : "Reactivate"}</button>
-              <button class="btn btn-ghost" data-link-teacher="${esc(tid)}">${linked ? "Relink" : "Link Auth"}</button>
-              ${linked ? `<button class="btn btn-ghost" data-unlink-teacher="${esc(tid)}">Unlink</button>` : ""}
+              <button class="fs-btn fs-btn-secondary" data-edit-teacher="${esc(tid)}">Edit</button>
+              <button class="fs-btn ${active ? "fs-btn-danger" : "fs-btn-secondary"}" data-toggle-teacher="${esc(tid)}">${active ? "Deactivate" : "Reactivate"}</button>
+              <button class="fs-btn fs-btn-secondary" data-link-teacher="${esc(tid)}">${linked ? "Relink" : "Link Auth"}</button>
+              ${linked ? `<button class="fs-btn fs-btn-secondary" data-unlink-teacher="${esc(tid)}">Unlink</button>` : ""}
             </div></td>
           </tr>`;
         }).join("")
@@ -452,10 +453,10 @@
         rows.map((r) => `<tr>
           <td>${esc(r.group_id || "-")}</td><td>${esc(r.subgroup_id || "-")}</td><td>${esc(r.clickup_user_id || "-")}</td>
           <td>${esc(r.admin_name || "-")}</td><td>${esc(r.admin_email || "-")}</td>
-          <td><span class="chip ${r.active !== false ? "chip-active" : "chip-inactive"}">${r.active !== false ? "Active" : "Inactive"}</span></td>
+          <td><span class="fs-badge ${r.active !== false ? "fs-badge-success" : "fs-badge-neutral"}">${r.active !== false ? "Active" : "Inactive"}</span></td>
           <td><div class="row-actions">
-            <button class="btn btn-ghost" data-edit-assignee="${esc(r.id)}">Edit</button>
-            <button class="btn ${r.active !== false ? "btn-danger" : "btn-ghost"}" data-toggle-assignee="${esc(r.id)}">${r.active !== false ? "Deactivate" : "Reactivate"}</button>
+            <button class="fs-btn fs-btn-secondary" data-edit-assignee="${esc(r.id)}">Edit</button>
+            <button class="fs-btn ${r.active !== false ? "fs-btn-danger" : "fs-btn-secondary"}" data-toggle-assignee="${esc(r.id)}">${r.active !== false ? "Deactivate" : "Reactivate"}</button>
           </div></td>
         </tr>`).join("")
       }</tbody></table>`;
@@ -469,11 +470,11 @@
         rows.map((r) => `<tr>
           <td>${esc(r.group_id || "-")}</td><td>${esc(r.subgroup_id || "-")}</td><td>${esc(r.clickup_user_id || "-")}</td>
           <td>${esc(r.watcher_name || "-")}</td><td>${esc(r.watcher_email || "-")}</td>
-          <td><span class="chip ${r.active !== false ? "chip-active" : "chip-inactive"}">${r.active !== false ? "Active" : "Inactive"}</span></td>
+          <td><span class="fs-badge ${r.active !== false ? "fs-badge-success" : "fs-badge-neutral"}">${r.active !== false ? "Active" : "Inactive"}</span></td>
           <td>${esc(r.notes || "-")}</td>
           <td><div class="row-actions">
-            <button class="btn btn-ghost" data-edit-watcher="${esc(r.id)}">Edit</button>
-            <button class="btn ${r.active !== false ? "btn-danger" : "btn-ghost"}" data-toggle-watcher="${esc(r.id)}">${r.active !== false ? "Deactivate" : "Reactivate"}</button>
+            <button class="fs-btn fs-btn-secondary" data-edit-watcher="${esc(r.id)}">Edit</button>
+            <button class="fs-btn ${r.active !== false ? "fs-btn-danger" : "fs-btn-secondary"}" data-toggle-watcher="${esc(r.id)}">${r.active !== false ? "Deactivate" : "Reactivate"}</button>
           </div></td>
         </tr>`).join("")
       }</tbody></table>`;
@@ -820,7 +821,7 @@
       }
       state.activeTab = state.visibleTabs[0];
       const profile = await getCurrentProfile().catch(() => auth.profile);
-      els.welcomeLine.textContent = `${profile?.full_name || profile?.email || "Staff"} · ${role}`;
+      els.welcomeLine.textContent = `${profile?.full_name || profile?.email || "Staff"} Â· ${role}`;
       return true;
     }
 
@@ -841,7 +842,7 @@
         window.FSRuntime?.handleAuthExpiration?.();
         return;
       }
-      els.errorHost.innerHTML = `<div class="msg error">Page failed to load: ${esc(info.message || err?.message || err)}</div>`;
+      els.errorHost.innerHTML = `<div class="fs-banner fs-banner-danger">Page failed to load: ${esc(info.message || err?.message || err)}</div>`;
     });
   </script>
   <script src="../js/admin-shell.js"></script>
@@ -850,3 +851,6 @@
   </script>
 </body>
 </html>
+
+
+

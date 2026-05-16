@@ -1,3 +1,5 @@
+@import './tokens.css';
+
 :root {
   --fs-space-1: 6px;
   --fs-space-2: 10px;
@@ -54,7 +56,7 @@ body.fs-shell-mounted .nav { display: none !important; }
 .card-icon {
   width: 46px;
   height: 46px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--lilacSoft, var(--soft-lavender));
   color: var(--navy, var(--primary));
   display: flex;
@@ -108,7 +110,7 @@ body.fs-shell-mounted .nav { display: none !important; }
   background: var(--surface, #fff);
   color: var(--ink, var(--text));
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-weight: 800;
   font-size: .88rem;
   cursor: pointer;
@@ -144,7 +146,7 @@ body.fs-shell-mounted .nav { display: none !important; }
 /* Prefixed variants */
 .fs-btn {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 10px 14px;
   font-weight: 700;
   cursor: pointer;
@@ -167,7 +169,7 @@ body.fs-shell-mounted .nav { display: none !important; }
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--surface-2);
   color: var(--text);
   font: inherit;
@@ -233,7 +235,7 @@ body.fs-shell-mounted .nav { display: none !important; }
 .stat-chip {
   background: var(--surface, #fff);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 9px 16px;
   display: flex;
   align-items: baseline;
@@ -375,7 +377,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
   border: 1px solid #F5D78A;
   color: #7A5A00;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 13px;
 }
 .err,
@@ -384,7 +386,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
   border: 1px solid var(--border);
   color: var(--danger-text, #8C1F1F);
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 13px;
 }
 .ok {
@@ -392,7 +394,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
   border: 1px solid var(--border);
   color: var(--success-text, #276749);
   padding: 14px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: .88rem;
   margin-top: 12px;
   font-weight: 700;
@@ -400,7 +402,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
 .alert,
 .error {
   padding: 14px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: .88rem;
   margin-top: 12px;
   font-weight: 700;
@@ -464,7 +466,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
 .step-dot {
   width: 34px;
   height: 34px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border);
   background: var(--surface, #fff);
   display: flex;
@@ -540,7 +542,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
   right: 0;
   background: var(--surface, #fff);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   z-index: 50;
   max-height: 220px;
   overflow-y: auto;
@@ -549,7 +551,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
 }
 .drop-item {
   padding: 9px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: .88rem;
   font-weight: 600;
@@ -574,7 +576,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
 .fs-chip {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   padding: 3px 10px;
   font-size: 12px;
   font-weight: 700;
@@ -587,7 +589,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
   gap: 5px;
   padding: 5px 10px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--surface, #fff);
   cursor: pointer;
   font-size: 12px;
@@ -635,14 +637,14 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
 .prog-bar {
   width: 56px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--border);
   overflow: hidden;
   flex-shrink: 0;
 }
 .prog-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--navy, var(--primary));
   transition: width .4s ease;
 }
@@ -692,7 +694,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
 .ops-kpi-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 14px;
   box-shadow: var(--shadow-soft);
 }
@@ -764,7 +766,7 @@ td.sticky  { background: var(--surface, #fff); color: var(--ink, var(--text)); f
 .ops-mobile-card {
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 12px;
 }
 .ops-mobile-card header {
@@ -934,7 +936,7 @@ SHARED OPERATIONAL COMPONENT CLASSES
   display: inline-flex;
   align-items: center;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border);
   font-size: 11px;
   font-weight: 700;

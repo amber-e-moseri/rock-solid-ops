@@ -1,6 +1,12 @@
 ﻿<!doctype html>
 <html lang="en">
 <head>
+  <style>
+    html, body {
+      background: #f5f3ff;
+      margin: 0;
+    }
+  </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Student Progress</title>
@@ -36,7 +42,7 @@
     letter-spacing: .08em;
     text-transform: uppercase;
     background: var(--lilacSoft, var(--soft-lavender));
-    color: var(--navy, var(--primary));
+    color: var(--color-primary);
     font-weight: 800;
   }
   thead tr.group-row th.name-col {
@@ -79,12 +85,30 @@
     cursor: default;
     flex-shrink: 0;
   }
-  .cb.checked   { background: var(--navy, var(--primary)); border-color: var(--navy, var(--primary)); }
+  .cb.checked   { background: var(--color-primary); border-color: var(--color-primary); }
   .cb.unchecked { background: var(--surface, #fff); border-color: var(--border); }
   .cb svg { display: none; }
   .cb.checked svg { display: block; }
+  .grid-note {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .stats-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0;
+    font-size: 12px;
+    color: var(--color-text-secondary, var(--muted));
+  }
+  .stats-inline .sep {
+    padding: 0 8px;
+    opacity: 0.6;
+  }
 </style>
   <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
 </head>
@@ -94,10 +118,10 @@
   <!-- SETUP -->
   <div class="card">
     <div class="card-head">
-      <div class="card-icon">??</div>
+      <div class="card-icon">P</div>
       <div>
         <div class="card-title">Student Class Progress</div>
-        <div class="card-sub">Class attendance checkboxes — read-only view from student records</div>
+        <div class="card-sub">Class attendance checkboxes - read-only view from student records</div>
       </div>
     </div>
 
@@ -105,7 +129,7 @@
       <!-- Teacher search -->
       <div class="setup-field dropdown" style="flex:2;min-width:200px">
         <label>Teacher</label>
-        <input id="teacherQuery" placeholder="Search by name or ID…" oninput="onTeacherInput()" autocomplete="off" />
+        <input id="teacherQuery" placeholder="Search by name or ID..." oninput="onTeacherInput()" autocomplete="off" />
         <div class="drop-list hidden" id="teacherDrop"></div>
       </div>
 
@@ -113,7 +137,7 @@
       <div class="setup-field" style="flex:2;min-width:200px">
         <label>Class</label>
         <select id="classSelect" disabled>
-          <option value="">— select teacher first —</option>
+          <option value="">- select teacher first -</option>
         </select>
       </div>
 
@@ -129,14 +153,19 @@
   <div class="card hidden" id="grid-card">
 
     <div class="toolbar">
+      <div style="display:inline-flex; background: var(--color-surface, #f3f0ff); border-radius: 24px; padding: 3px; gap: 2px; border: 1px solid var(--color-border, #e0d9ff);">
+        <button type="button" id="toggle-classes" onclick="setView('classes')" style="border:none; border-radius: 20px; padding: 6px 16px; font-size:13px; font-weight:600; cursor:pointer;">Classes</button>
+        <button type="button" id="toggle-milestones" onclick="setView('milestones')" style="border:none; border-radius: 20px; padding: 6px 16px; font-size:13px; font-weight:600; cursor:pointer;">Milestones</button>
+      </div>
       <div class="search-wrap">
-        <span class="search-icon">??</span>
-        <input id="studentSearch" placeholder="Filter students…" oninput="filterTable()" autocomplete="off" />
+        <span class="search-icon">🔎</span>
+        <input id="studentSearch" placeholder="Filter students..." oninput="filterTable()" autocomplete="off" />
       </div>
       <div style="display:flex;gap:6px;margin-left:auto">
-        <button class="btn" onclick="exportCSV()">? Export</button>
+        <button class="btn" onclick="exportCSV()">Export CSV</button>
       </div>
     </div>
+    <div id="grid-note" class="grid-note" style="display:none"></div>
 
     <div class="stats-strip" id="stats-strip"></div>
 
@@ -158,20 +187,46 @@
 </main>
 
 <script>
-  const SUPABASE_URL = String(window.FS_CONFIG?.SUPABASE_URL || '').trim();
-  const SUPABASE_ANON_KEY = String(window.FS_CONFIG?.SUPABASE_ANON_KEY || '').trim();
-  // Only Class columns (not Work columns, not EXAM)
-  const CLASS_COLS = ['1_Class','2_Class','3_Class','4A_Class','4B_Class','5_Class','6_Class','7_Class'];
-  const COL_LABELS = {'1_Class':'1','2_Class':'2','3_Class':'3','4A_Class':'4A','4B_Class':'4B','5_Class':'5','6_Class':'6','7_Class':'7'};
-
-  const state = { teacher:null, teachers:[], classes:[], classOptionId:'', students:[], filtered:[] };
+  function readRuntimeConfig() {
+    const cfg = window.FSConfig?.get ? window.FSConfig.get() : {
+      SUPABASE_URL: String(window.FS_CONFIG?.SUPABASE_URL || '').trim(),
+      SUPABASE_ANON_KEY: String(window.FS_CONFIG?.SUPABASE_ANON_KEY || '').trim(),
+    };
+    return {
+      SUPABASE_URL: String(cfg.SUPABASE_URL || "").trim(),
+      SUPABASE_ANON_KEY: String(cfg.SUPABASE_ANON_KEY || "").trim(),
+    };
+  }
+  const CLASS_COLUMNS = ['Class1','Class2','Class3','Class4A','Class4B','Class5','Class6','Class7'];
+  const VIEW_KEY = 'fs_progress_view';
+  const state = { teacher:null, teachers:[], classes:[], classOptionId:'', students:[], filtered:[], milestones:[], progressView:'classes' };
 
   function esc(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-  if (window.supabase && typeof window.supabase.createClient === "function") {
-    window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  function showRuntimeError(message){
+    const root = document.querySelector(".card");
+    if (!root || document.getElementById("progress-runtime-error")) return;
+    const el = document.createElement("div");
+    el.id = "progress-runtime-error";
+    el.className = "error-msg";
+    el.textContent = message;
+    root.appendChild(el);
+  }
+
+  function ensureSupabaseClient() {
+    if (window.supabase && typeof window.supabase.from === "function") return window.supabase;
+    if (!window.supabase || typeof window.supabase.createClient !== "function") {
+      throw new Error("Supabase client library is not loaded.");
+    }
+    const cfg = readRuntimeConfig();
+    if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+      throw new Error("Missing runtime Supabase config.");
+    }
+    window.supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+    return window.supabase;
   }
   async function apiGet(action, params={}) {
+    ensureSupabaseClient();
     const res = await window.FSApi.invokeEdge("teacher-portal-api", { action, params });
     if(!res?.ok) throw new Error(res?.error || "Request failed");
     return res;
@@ -211,15 +266,15 @@
     hideDrop();
     // Load classes
     const sel = document.getElementById('classSelect');
-    sel.innerHTML = '<option value="">Loading…</option>';
+    sel.innerHTML = '<option value="">Loading...</option>';
     sel.disabled = true;
     document.getElementById('loadBtn').disabled = true;
     try {
       const r = await apiGet('getTeacherActiveClassOptions', { teacherId: state.teacher.teacherId });
       state.classes = r.data || [];
       sel.innerHTML = state.classes.map(c =>
-        `<option value="${esc(c.classOptionId)}">${esc(c.campus||c.fellowship||c.classOptionId)} — ${esc(c.day)} ${esc(c.time)}</option>`
-      ).join('') || '<option value="">No active classes</option>';
+        `<option value="${esc(c.classOptionId)}">${esc(c.campus||c.fellowship||c.classOptionId)} | ${esc(c.day)} ${esc(c.time)}</option>`
+      ).join('') || '<option value="">No assigned classes yet</option>';
       sel.disabled = false;
       document.getElementById('loadBtn').disabled = false;
       state.classOptionId = state.classes[0]?.classOptionId || '';
@@ -241,7 +296,7 @@
     const card = document.getElementById('grid-card');
     card.classList.remove('hidden');
     document.getElementById('tbl-head').innerHTML = '';
-    document.getElementById('tbl-body').innerHTML = `<tr><td colspan="${CLASS_COLS.length+2}" class="state-msg"><div class="spinner"></div>Loading students…</td></tr>`;
+    document.getElementById('tbl-body').innerHTML = `<tr><td colspan="10" class="state-msg"><div class="spinner"></div>Loading students...</td></tr>`;
     document.getElementById('stats-strip').innerHTML = '';
     document.getElementById('grid-msg').innerHTML = '';
 
@@ -250,8 +305,14 @@
         teacherId: state.teacher.teacherId,
         classOptionId: state.classOptionId
       });
+      state.milestones = Array.isArray(r.data?.milestones) ? r.data.milestones : [];
+      state.classes = Array.isArray(r.data?.classes) && r.data.classes.length ? r.data.classes : CLASS_COLUMNS;
       state.students = (r.data?.students || []);
       state.filtered = [...state.students];
+      if (state.progressView !== 'classes' && state.progressView !== 'milestones') {
+        state.progressView = 'classes';
+      }
+      syncViewUI();
       renderTable();
       card.scrollIntoView({behavior:'smooth', block:'start'});
     } catch(e) {
@@ -263,42 +324,56 @@
   // -- RENDER --
   function renderTable() {
     const rows = state.filtered;
+    const isClasses = state.progressView === 'classes';
+    const milestoneCols = state.milestones || [];
+    const classCols = state.classes || CLASS_COLUMNS;
+    const activeCols = isClasses ? classCols : milestoneCols.map((m) => m.code);
+    const colCount = activeCols.length + 2;
+    const note = document.getElementById('grid-note');
+    if (note) {
+      note.style.display = isClasses ? 'block' : 'none';
+      note.textContent = "Attendance is recorded via the Attendance portal";
+    }
 
-    // Build header — group row + column labels
+    // Build header: group row + column labels
     document.getElementById('tbl-head').innerHTML = `
       <tr class="group-row">
         <th class="name-col"></th>
-        <th colspan="${CLASS_COLS.length}" style="text-align:center;letter-spacing:.1em">Class Sessions</th>
+        <th colspan="${activeCols.length}" style="text-align:center;letter-spacing:.1em">${isClasses ? 'Classes' : 'Milestones'}</th>
         <th></th>
       </tr>
       <tr>
         <th class="name-col">Student</th>
-        ${CLASS_COLS.map(c => `<th class="session-hdr">${COL_LABELS[c]}</th>`).join('')}
+        ${(isClasses
+          ? classCols.map(c => `<th class="session-hdr">${esc(c)}</th>`)
+          : milestoneCols.map(m => `<th class="session-hdr">${esc(m.label || m.code)}</th>`)).join('')}
         <th style="padding:10px 14px 10px 8px;min-width:100px;text-align:left">Progress</th>
       </tr>`;
 
     if (!rows.length) {
-      document.getElementById('tbl-body').innerHTML = `<tr><td colspan="${CLASS_COLS.length+2}" class="state-msg">No students found.</td></tr>`;
+      document.getElementById('tbl-body').innerHTML = `<tr><td colspan="${colCount}" class="state-msg">No students found.</td></tr>`;
       renderStats([]);
       return;
     }
 
-    document.getElementById('tbl-body').innerHTML = rows.map(s => {
-      const checks = CLASS_COLS.map(c => !!s[c]);
+    document.getElementById('tbl-body').innerHTML = rows.map((s, rowIndex) => {
+      const checks = isClasses
+        ? classCols.map(c => !!(s.attendance || {})[c])
+        : milestoneCols.map(m => !!(s.milestones || {})[m.code]);
       const attended = checks.filter(Boolean).length;
-      const pct = CLASS_COLS.length ? Math.round(attended / CLASS_COLS.length * 100) : 0;
+      const pct = activeCols.length ? Math.round(attended / activeCols.length * 100) : 0;
       return `<tr>
         <td class="name-col">
-          <div class="student-name">${esc(s.fullName||'—')}</div>
+          <div class="student-name">${esc(s.fullName||'-')}</div>
           <div class="student-id">${esc(s.studentId||s.personType||'')}</div>
         </td>
-        ${checks.map(on => `
+        ${checks.map((on, idx) => `
           <td class="cb-cell">
-            <div class="cb ${on?'checked':'unchecked'}">
+            <button type="button" class="cb ${on?'checked':'unchecked'}" ${isClasses ? 'disabled' : ''} onclick="${isClasses ? '' : `toggleMilestone(${rowIndex}, ${idx})`}" aria-label="${isClasses ? 'Attendance status' : 'Toggle milestone'}">
               <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
                 <path d="M1 4L4 7.5L10 1" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-            </div>
+            </button>
           </td>`).join('')}
         <td style="padding:8px 14px 8px 8px">
           <div class="prog-wrap">
@@ -313,19 +388,64 @@
   }
 
   function renderStats(rows) {
+    const isClasses = state.progressView === 'classes';
+    const milestoneCols = state.milestones || [];
+    const classCols = state.classes || CLASS_COLUMNS;
+    const activeCols = isClasses ? classCols : milestoneCols.map((m) => m.code);
     const total = rows.length;
-    let totalChecks = 0, possibleChecks = total * CLASS_COLS.length;
-    rows.forEach(s => { CLASS_COLS.forEach(c => { if (s[c]) totalChecks++; }); });
+    let totalChecks = 0, possibleChecks = total * activeCols.length;
+    rows.forEach((s) => {
+      if (isClasses) {
+        classCols.forEach((c) => { if ((s.attendance || {})[c]) totalChecks++; });
+      } else {
+        milestoneCols.forEach((m) => { if ((s.milestones || {})[m.code]) totalChecks++; });
+      }
+    });
     const overallPct = possibleChecks ? Math.round(totalChecks / possibleChecks * 100) : 0;
 
-    // Per-session attended count
-    const perSession = CLASS_COLS.map(c => rows.filter(s => !!s[c]).length);
+    const perSession = isClasses
+      ? classCols.map(c => rows.filter(s => !!(s.attendance || {})[c]).length)
+      : milestoneCols.map(m => rows.filter(s => !!(s.milestones || {})[m.code]).length);
 
+    const items = [
+      `${total} students`,
+      `${overallPct}% ${isClasses ? 'attendance' : 'milestones'}`,
+      ...(isClasses
+        ? classCols.map((c, i) => `${perSession[i]} ${c}`)
+        : milestoneCols.map((m, i) => `${perSession[i]} ${String(m.label || m.code)}`))
+    ];
     document.getElementById('stats-strip').innerHTML = `
-      <div class="stat-chip"><span class="val" style="color:var(--primary)">${total}</span><span class="lbl">Students</span></div>
-      <div class="stat-chip"><span class="val" style="color:var(--success)">${overallPct}%</span><span class="lbl">Overall Attendance</span></div>
-      ${CLASS_COLS.map((c,i) => `<div class="stat-chip"><span class="val" style="color:var(--text);font-size:1rem">${perSession[i]}</span><span class="lbl">Class ${COL_LABELS[c]}</span></div>`).join('')}
+      <div class="stats-inline">
+        ${items.map((item, i) => `${i ? '<span class="sep">|</span>' : ''}<span>${esc(item)}</span>`).join('')}
+      </div>
     `;
+  }
+
+  async function toggleMilestone(rowIndex, milestoneIndex) {
+    if (state.progressView === 'classes') return;
+    const student = state.filtered[rowIndex];
+    const milestone = (state.milestones || [])[milestoneIndex];
+    if (!student || !milestone) return;
+
+    student.milestones = student.milestones || {};
+    const previous = !!student.milestones[milestone.code];
+    const next = !previous;
+
+    student.milestones[milestone.code] = next;
+    renderTable();
+    document.getElementById('grid-msg').innerHTML = '';
+
+    try {
+      await apiGet('updateStudentMilestone', {
+        studentId: student.studentId,
+        milestoneCode: milestone.code,
+        completed: next
+      });
+    } catch (e) {
+      student.milestones[milestone.code] = previous;
+      renderTable();
+      document.getElementById('grid-msg').innerHTML = `<div class="error-msg">${esc(e.message || 'Could not save milestone update')}</div>`;
+    }
   }
 
   // -- FILTER --
@@ -339,11 +459,17 @@
 
   // -- EXPORT CSV --
   function exportCSV() {
-    const headers = ['StudentID','Name', ...CLASS_COLS.map(c => 'Class '+COL_LABELS[c]), 'Attended','Total','Pct'];
+    const isClasses = state.progressView === 'classes';
+    const milestoneCols = state.milestones || [];
+    const classCols = state.classes || CLASS_COLUMNS;
+    const headers = ['StudentID','Name', ...(isClasses ? classCols : milestoneCols.map(m => m.code)), 'Attended','Total','Pct'];
     const rows = state.filtered.map(s => {
-      const checks = CLASS_COLS.map(c => s[c] ? '1' : '0');
+      const checks = isClasses
+        ? classCols.map(c => (s.attendance || {})[c] ? '1' : '0')
+        : milestoneCols.map(m => (s.milestones || {})[m.code] ? '1' : '0');
       const attended = checks.filter(v=>v==='1').length;
-      return [s.studentId||'', s.fullName||'', ...checks, attended, CLASS_COLS.length, Math.round(attended/CLASS_COLS.length*100)+'%'].join(',');
+      const total = (isClasses ? classCols.length : milestoneCols.length) || 0;
+      return [s.studentId||'', s.fullName||'', ...checks, attended, total, (total ? Math.round(attended/total*100) : 0)+'%'].join(',');
     });
     const csv = [headers.join(','), ...rows].join('\n');
     const a = document.createElement('a');
@@ -351,18 +477,81 @@
     a.download = `student-progress-${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
   }
+
+  function syncViewUI() {
+    const classesBtn = document.getElementById('toggle-classes');
+    const milestonesBtn = document.getElementById('toggle-milestones');
+    if (!classesBtn || !milestonesBtn) return;
+    const activeStyle = "background: var(--primary,#7c3aed); color: #fff;";
+    const inactiveStyle = "background: transparent; color: var(--primary,#7c3aed);";
+    classesBtn.style.cssText = "border:none; border-radius: 20px; padding: 6px 16px; font-size:13px; font-weight:600; cursor:pointer; " + (state.progressView === 'classes' ? activeStyle : inactiveStyle);
+    milestonesBtn.style.cssText = "border:none; border-radius: 20px; padding: 6px 16px; font-size:13px; font-weight:600; cursor:pointer; " + (state.progressView === 'milestones' ? activeStyle : inactiveStyle);
+  }
+
+  function setProgressView(view) {
+    state.progressView = view === 'milestones' ? 'milestones' : 'classes';
+    try { localStorage.setItem(VIEW_KEY, state.progressView); } catch (_) {}
+    syncViewUI();
+    renderTable();
+  }
+
+  function setView(view) {
+    setProgressView(view);
+  }
+
+  try {
+    const savedView = localStorage.getItem(VIEW_KEY);
+    if (savedView === 'classes' || savedView === 'milestones') {
+      state.progressView = savedView;
+    }
+  } catch (_) {}
 </script>
   <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/runtime.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api-client.js"></script>
   <script src="../js/ui.js"></script>
   <script src="../js/toast.js"></script>
   <script src="../js/modal.js"></script>
-  <script src="../js/teacher-shell.js"></script>
-  <script>window.FSTeacherShell.mount({ active: 'progress' });</script>
+  <script src="../js/admin-shell.js"></script>
+  <script>
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "progress", pageTitle: "Student Progress" });
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const teacherId = params.get('teacherId') || '';
+      let email = params.get('email') || '';
+      let displayName = '';
+      if (window.supabase && window.supabase.auth && typeof window.supabase.auth.getSession === 'function') {
+        try {
+          const { data } = await window.supabase.auth.getSession();
+          const user = data?.session?.user;
+          if (!email) email = user?.email || '';
+          displayName = String(user?.user_metadata?.full_name || '').trim() || String(user?.email || '').trim();
+        } catch (_) {}
+      }
+      if (window.FSAdminShell && typeof window.FSAdminShell.setProfile === 'function' && displayName) {
+        window.FSAdminShell.setProfile(displayName, displayName.charAt(0).toUpperCase());
+      }
+      const seed = teacherId || email;
+      if (!seed) return;
+      const input = document.getElementById('teacherQuery');
+      if (input) {
+        input.value = seed;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    })();
+  </script>
 </body>
 </html>
+
+
+
+
+
 
 
 

@@ -1,16 +1,28 @@
 import md5 from "https://esm.sh/md5@2.3.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+function applyAllowedOrigin(req: Request) {
+  const allowed = String(Deno.env.get("ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const origin = String(req.headers.get("Origin") || "").trim();
+  if (origin && allowed.includes(origin)) {
+    corsHeaders["Access-Control-Allow-Origin"] = origin;
+  } else {
+    delete corsHeaders["Access-Control-Allow-Origin"];
+  }
+}
 
 
 Deno.serve(async (req) => {
+  applyAllowedOrigin(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

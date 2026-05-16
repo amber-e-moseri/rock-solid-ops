@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { writeSyncLog } from '../_shared/audit.ts'
 
 // ── Clients ──────────────────────────────────────────────────
 const supabase = createClient(
@@ -245,10 +246,5 @@ async function logSync(
   message: string,
   details?: Record<string, unknown>
 ): Promise<void> {
-  await supabase.from('sync_log').insert({
-    phase,
-    message,
-    details: details ?? null,
-    run_by:  'email-sender'
-  })
+  await writeSyncLog(supabase, phase, message, details ?? null, 'email-sender')
 }

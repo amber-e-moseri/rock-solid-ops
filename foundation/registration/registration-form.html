@@ -1098,16 +1098,11 @@ const CONFIG = {
   SUPABASE_URL: String(window.FS_CONFIG?.SUPABASE_URL || ''),
   SUPABASE_ANON_KEY: String(window.FS_CONFIG?.SUPABASE_ANON_KEY || ''),
 
-  // -- Legacy (no longer used) -------------------------------
-  APPS_SCRIPT_URL:   '',
+  // Legacy Apps Script path removed. Only registration-processor is active.
   CLASS_TIMEZONE:    'America/Toronto',
   CLASS_OPTIONS_CSV: '',
   FELLOWSHIP_CSV:    '',
 };
-
-if (String(CONFIG.APPS_SCRIPT_URL || "").trim() && String(CONFIG.SUPABASE_URL || "").trim()) {
-  console.warn("[REGISTRATION_CONFIG_WARNING] Registration endpoint configuration conflict detected. Use Supabase registration-processor only.");
-}
 // ============================================================
 //  STATE
 // ============================================================
@@ -2335,73 +2330,6 @@ async function submitForm() {
   classes = [];
   classesLoaded = false;
   noClassOptionsShown = false;
-} catch (mailchimpErr) {
-
-  console.error(
-    'MAILCHIMP_SYNC_TRIGGER_FAILED',
-    mailchimpErr
-  );
-
-}
-  } catch (err) {
-    sheetsOk = false;
-    const rawMessage = String(err?.message || err || 'Registration failed. Please try again.');
-    const lower = rawMessage.toLowerCase();
-    let friendly = rawMessage;
-    if (lower.includes('malformed payload')) {
-      friendly = 'We could not process your registration details. Please check your information and try again.';
-    } else if (lower.includes('duplicate')) {
-      friendly = 'This email has already been registered. We recorded your update and our team will review it.';
-    } else if (lower.includes('queue insertion failure')) {
-      friendly = 'Your registration was received, but notification queueing failed. Please retry in a moment.';
-    } else if (lower.includes('class')) {
-      friendly = 'We could not confirm a class assignment right now. Please retry shortly.';
-    }
-    console.error('Registration processor error:', { err, processorResult });
-    showSubmitError(friendly);
-    return;
-  } finally {
-    btn.disabled = false;
-    document.getElementById('submit-spinner').style.display = 'none';
-    document.getElementById('submit-text').textContent = '';
-  }
-
-
-  if (sheetsOk) {
-    sessionStorage.setItem(
-      CACHE_KEYS.submitGuard,
-      '1'
-    );
-  }
-
-  sessionStorage.removeItem(
-    CACHE_KEYS.fellowships
-  );
-
-  sessionStorage.removeItem(
-    CACHE_KEYS.classes
-  );
-
-  const successData = { ...formData };
-
-clearTempDraft();
-
-showSuccess(successData);
-
-Object.keys(formData).forEach(k =>
-  delete formData[k]
-);
-  currentStep = 0;
-
-  fellowships = [];
-
-  fellowshipTzMap = {};
-
-  classes = [];
-
-  classesLoaded = false;
-
-  noClassOptionsShown = false;
 }
 // ============================================================
 //  SUCCESS
@@ -2569,6 +2497,7 @@ window.addEventListener('load', async () => {
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
 
 
 

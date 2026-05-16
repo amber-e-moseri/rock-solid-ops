@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Foundation School - Notification Center</title>
+  <title>Rock Solid - Notification Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -11,16 +11,16 @@
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
   <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel='stylesheet' href='../ui/primitives.css' />
   <style>
-    body { font-family: "Manrope", system-ui, sans-serif; }
-    .ops-head { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .ops-title { margin:0; font-size:clamp(1.5rem,3.2vw,2.1rem); color:var(--navy); }
+        .ops-head { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .ops-title { margin:0; font-size:clamp(1.5rem,3.2vw,2.1rem); color:var(--text); }
     .ops-sub { margin:6px 0 0; color:var(--muted); font-size:13px; }
 
     .ops-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
     .ops-stat { border:1px solid var(--border); border-radius:12px; background:var(--surface); padding:14px; }
     .ops-stat .lbl { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
-    .ops-stat .val { margin-top:6px; font-size:28px; font-weight:800; color:var(--navy); }
+    .ops-stat .val { margin-top:6px; font-size:28px; font-weight:800; color:var(--text); }
 
     .ops-filters { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
     .ops-actions { display:flex; gap:8px; flex-wrap:wrap; }
@@ -45,7 +45,7 @@
 
     .details-box { margin-top:12px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); }
     .details-head { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--border); }
-    .details-head h3 { margin:0; font-size:13px; color:var(--navy); }
+    .details-head h3 { margin:0; font-size:13px; color:var(--text); }
     .details-box pre { margin:0; padding:12px; font-size:12px; line-height:1.5; max-height:360px; overflow:auto; }
 
     .ops-toast { position:fixed; right:16px; bottom:16px; z-index:999; border-radius:10px; padding:10px 12px; color:#fff; font-size:12px; font-weight:700; opacity:0; transform:translateY(8px); transition:.2s ease; pointer-events:none; }
@@ -75,8 +75,8 @@
         </div>
         <div class="ops-actions">
           <span id="whoami" class="muted"></span>
-          <button id="refreshBtn" class="btn primary">Refresh</button>
-          <button id="logoutBtn" class="btn">Logout</button>
+          <button id="refreshBtn" class="btn fs-btn fs-btn-primary primary">Refresh</button>
+          <button id="logoutBtn" class="btn fs-btn fs-btn-secondary">Logout</button>
         </div>
       </div>
     </section>
@@ -91,7 +91,7 @@
     <section id="errorBox" class="card err hidden"></section>
 
     <section class="card">
-      <div class="ops-filters">
+      <div class="ops-filters fs-action-bar">
         <select id="statusFilter" class="fs-select">
           <option value="">All Statuses</option>
           <option value="PENDING">Pending</option>
@@ -109,23 +109,23 @@
         <input id="dateFilter" class="fs-input" type="date" />
         <input id="searchInput" class="fs-input" type="text" placeholder="Search email / subject / action / error" />
         <div class="ops-actions">
-          <button id="retrySelectedBtn" class="btn">Retry Selected</button>
-          <button id="resolveSelectedBtn" class="btn">Resolve Selected</button>
+          <button id="retrySelectedBtn" class="btn fs-btn fs-btn-secondary">Retry Selected</button>
+          <button id="resolveSelectedBtn" class="btn fs-btn fs-btn-secondary">Resolve Selected</button>
         </div>
       </div>
     </section>
 
     <section class="card">
-      <div id="loadingState" class="state">Loading operational data…</div>
+      <div id="loadingState" class="state">Loading operational data?</div>
 
       <div id="tableWrap" class="hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-          <h2 style="margin:0;color:var(--navy);font-size:18px;">Operations Queue</h2>
+          <h2 style="margin:0;color:var(--text);font-size:18px;">Operations Queue</h2>
           <span id="rowCount" class="muted">0 rows</span>
         </div>
 
-        <div class="table-wrap">
-          <table>
+        <div class="table-wrap fs-table-wrap">
+          <table class="fs-table">
             <thead>
               <tr>
                 <th style="width:42px"></th>
@@ -144,9 +144,9 @@
         </div>
 
         <div class="pager">
-          <button id="prevBtn" class="btn">Prev</button>
+          <button id="prevBtn" class="btn fs-btn fs-btn-secondary">Prev</button>
           <span id="pageInfo" class="muted">Page 1 of 1</span>
-          <button id="nextBtn" class="btn">Next</button>
+          <button id="nextBtn" class="btn fs-btn fs-btn-secondary">Next</button>
         </div>
       </div>
 
@@ -157,10 +157,19 @@
   <div id="toast" class="ops-toast"></div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
   <script src="../js/admin-shell.js"></script>
   <script src="../js/admin-api.js"></script>
   <script src="../js/admin-ui.js"></script>
   <script src="../js/toast.js"></script>
   <script type="module" src="../js/notification-center.js"></script>
+  <script>
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "notifications", pageTitle: "Notifications" });
+  </script>
 </body>
 </html>
+
+
+
+
+

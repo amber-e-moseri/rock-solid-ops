@@ -14,3 +14,15 @@ entrypoint = "./functions/registration-processor/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/retry-worker/index.ts"
+# Schedule is defined in ./functions/retry-worker/config.toml
+
+[functions.clickup-sync]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/clickup-sync/index.ts"
+
+[functions.missed-class-detector]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/missed-class-detector/index.ts"
+# Schedule is defined in ./functions/missed-class-detector/config.toml

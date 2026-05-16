@@ -1,12 +1,15 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import {
+  corsHeaders,
+  jsonResponse,
+  classifyError,
+  validateRequired,
+  validateEmail,
+  validateErrors,
+  isValidPayload,
+  safeLogAudit,
+} from "../shared-utils/edge-hardening.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -47,58 +50,92 @@ Deno.serve(async (req) => {
       }
     };
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    
+    // Input validation
+    if (!isValidPayload(body)) {
+      return jsonResponse({ ok: false, error: "Invalid payload", code: "INVALID_PAYLOAD", statusCode: 400 }, 400);
+    }
+
+    const resolveAdminCaller = async () => {
+      const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+      const tokenMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+      if (!tokenMatch?.[1]) return { user: null, isAdmin: false };
+
+      const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || "";
+      if (!SUPABASE_ANON_KEY) return { user: null, isAdmin: false };
+      const authDb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${tokenMatch[1].trim()}` } },
+      });
+      const userRes = await authDb.auth.getUser();
+      const user = userRes.data?.user || null;
+      if (userRes.error || !user) return { user: null, isAdmin: false };
+
+      const profileRes = await db
+        .from("profiles")
+        .select("role,is_active")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const role = String(profileRes.data?.role || "").trim().toLowerCase();
+      const isActive = profileRes.data?.is_active !== false;
+      const allowed = new Set(["admin", "superadmin"]);
+      return { user, isAdmin: Boolean(profileRes.data && isActive && allowed.has(role)) };
+    };
+
+    const adminOverrideFields = [
+      "registration_status",
+      "status",
+      "availability_status",
+      "assigned_at",
+      "waitlisted_at",
+      "reviewed_at",
+      "review_notes",
+      "retry_assignment",
+      "assignment_attempts",
+      "needs_admin_review",
+      "admin_note",
+    ];
+    const hasAdminOverrideInput = adminOverrideFields.some((k) => Object.prototype.hasOwnProperty.call(body, k));
+    if (hasAdminOverrideInput) {
+      const caller = await resolveAdminCaller();
+      if (!caller.isAdmin) {
+        return jsonResponse({ ok: false, error: "Forbidden", code: "FORBIDDEN", statusCode: 403 }, 403);
+      }
+    }
+
+    const full_name = String(body.full_name || "").trim();
+    const email = String(body.email || "").trim().toLowerCase();
+    const phone = String(body.phone || "").trim();
+    const fellowship_code = String(body.fellowship_code || "").trim() || null;
+    const class_option_id = String(body.class_option_id || "").trim() || null;
+    const batch_id = String(body.batch_id || "").trim() || null;
+    const availability = String(body.availability || "").trim() || null;
+
+    // Validate required fields
+    const validationErrors = validateErrors(
+      validateRequired(full_name, "full_name"),
+      validateEmail(email, "email"),
+    );
+
+    if (validationErrors.length > 0) {
+      return jsonResponse({ 
+        ok: false, 
+        error: validationErrors.map(e => e.message).join(", "), 
+        code: "VALIDATION_ERROR",
+        statusCode: 400
+      }, 400);
+    }
+
     const nowIso = new Date().toISOString();
+    const flowTraceId = crypto.randomUUID();
     const debugTrail: Record<string, unknown> = {
       started_at: nowIso,
       phase: "received",
+      trace_id: flowTraceId,
     };
 
-    const full_name = String(body.full_name || "").trim();
-
-    const first_name =
-      full_name.split(" ")[0] || full_name;
-
-    const last_name =
-      full_name.split(" ").slice(1).join(" ");
-
-    const email =
-      String(body.email || "")
-        .trim()
-        .toLowerCase();
-
-    const phone =
-  String(body.phone || "").trim();
-
-const fellowship_code_raw =
-  String(body.fellowship_code || "").trim();
-
-const fellowship_code =
-  fellowship_code_raw || null;
-
-const class_option_id_raw =
-  String(body.class_option_id || "").trim();
-
-const class_option_id =
-  class_option_id_raw || null;
-
-const batch_id_raw =
-  String(body.batch_id || "").trim();
-
-const batch_id =
-  batch_id_raw || null;
-
-const availability =
-  String(body.availability || "").trim() || null;
-
-    if (!full_name || !email) {
-      throw new Error(
-        "full_name and email are required"
-      );
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error("Malformed payload: email is invalid");
-    }
+    const first_name = full_name.split(" ")[0] || full_name;
+    const last_name = full_name.split(" ").slice(1).join(" ");
 
     // Duplicate detection is informational only; it must never block registration.
     const { count, error: countError } = await db
@@ -217,10 +254,12 @@ const availability =
     const legacyStatus =
       registrationStatus === "ASSIGNED"
         ? "Enrolled"
-        : registrationStatus === "COMPLETED"
-        ? "Approved"
-        : registrationStatus === "INACTIVE"
-        ? "Rejected"
+        : registrationStatus === "WAITLISTED"
+        ? "Waitlisted"
+        : registrationStatus === "DUPLICATE"
+        ? "Duplicate"
+        : registrationStatus === "REVIEW"
+        ? "Review"
         : "Pending";
 
     const applicantInsertBase = {
@@ -363,67 +402,81 @@ const availability =
       templateKey,
     });
 
-    const { error: emailQueueInsertError } = await db
-      .from("email_queue")
-      .insert({
-        recipient_email: email,
-        recipient_name: full_name,
+    const emailQueuePayload = {
+      recipient_email: email,
+      recipient_name: full_name,
+      template_key: templateKey,
+      subject:
+        templateKey === "foundation_welcome"
+          ? "Welcome to Foundation School"
+          : templateKey === "duplicate_registration"
+          ? "We received your additional registration"
+          : templateKey === "registration_under_review"
+          ? "Your registration is under review"
+          : templateKey === "no_suitable_times"
+          ? "We are working on a class time for you"
+          : templateKey === "no_class_available"
+          ? "We are preparing your class placement"
+          : "Your Foundation School registration update",
+      status: "Pending",
+      trace_id: flowTraceId,
+      payload: {
+        trace_id: flowTraceId,
+        first_name,
+        last_name,
+        full_name,
+        email,
+        phone,
+        duplicate_count: duplicateCount,
+        registration_status: registrationStatus,
+        availability_status: availabilityStatus,
+        fellowship_code,
+        class_option_id,
+        batch_id,
+        campus:
+          body.fellowship_name ||
+          body.fellowship_code ||
+          "",
+        class_label:
+          body.class_label ||
+          "",
+        class_time:
+          body.class_time ||
+          "",
+        class_day:
+          body.class_day ||
+          "",
+        class_date:
+          body.class_date ||
+          body.class_start_date ||
+          "",
+        teacher_name:
+          body.teacher_name ||
+          "",
+        timezone:
+          body.timezone ||
+          "",
+        availability:
+          body.availability || "",
+        waitlist_message:
+          "We received your registration and are actively working on your placement. You are on our waitlist, and we will update you as soon as a suitable class opens.",
         template_key: templateKey,
-        subject:
-          templateKey === "foundation_welcome"
-            ? "Welcome to Foundation School"
-            : templateKey === "duplicate_registration"
-            ? "We received your additional registration"
-            : templateKey === "registration_under_review"
-            ? "Your registration is under review"
-            : templateKey === "no_suitable_times"
-            ? "We are working on a class time for you"
-            : templateKey === "no_class_available"
-            ? "We are preparing your class placement"
-            : "Your Foundation School registration update",
-        status: "Pending",
-        payload: {
-          first_name,
-          last_name,
-          full_name,
-          email,
-          phone,
-          duplicate_count: duplicateCount,
-          registration_status: registrationStatus,
-          availability_status: availabilityStatus,
-          fellowship_code,
-          class_option_id,
-          batch_id,
-          campus:
-            body.fellowship_name ||
-            body.fellowship_code ||
-            "",
-          class_label:
-            body.class_label ||
-            "",
-          class_time:
-            body.class_time ||
-            "",
-          class_day:
-            body.class_day ||
-            "",
-          class_date:
-            body.class_date ||
-            body.class_start_date ||
-            "",
-          teacher_name:
-            body.teacher_name ||
-            "",
-          timezone:
-            body.timezone ||
-            "",
-          availability:
-            body.availability || "",
-          waitlist_message:
-            "We received your registration and are actively working on your placement. You are on our waitlist, and we will update you as soon as a suitable class opens.",
-          template_key: templateKey,
-        },
-      });
+      },
+    };
+    let emailQueueInsertError: { message?: string } | null = null;
+    ({ error: emailQueueInsertError } = await db
+      .from("email_queue")
+      .insert(emailQueuePayload));
+    if (emailQueueInsertError) {
+      const emailQueueMsg = JSON.stringify(emailQueueInsertError);
+      if (emailQueueMsg.includes("trace_id")) {
+        const emailQueueLegacyPayload = { ...emailQueuePayload };
+        delete (emailQueueLegacyPayload as Record<string, unknown>).trace_id;
+        ({ error: emailQueueInsertError } = await db
+          .from("email_queue")
+          .insert(emailQueueLegacyPayload));
+      }
+    }
     if (emailQueueInsertError) {
       console.error("REGISTRATION_PROCESSOR_EMAIL_QUEUE_INSERT_ERROR", emailQueueInsertError);
       throw new Error(
@@ -435,33 +488,55 @@ const availability =
     let moodleSyncRowId = "";
     if (registrationStatus === "ASSIGNED") {
       try {
-        const { data: moodleRow, error: moodleUpsertErr } = await db
+        const moodleBaseRow = {
+          dedupe_key: `moodle-enroll:${String(insertedApplicant?.id || "")}`,
+          trace_id: flowTraceId,
+          registration_id: insertedApplicant?.id || null,
+          applicant_id: insertedApplicant?.id || null,
+          email,
+          full_name,
+          batch_id: batch_id || null,
+          class_option_id: class_option_id || null,
+          registration_status: registrationStatus,
+          sync_status: "PENDING",
+          status: "PENDING",
+          payload: {
+            trace_id: flowTraceId,
+            applicant_id: insertedApplicant?.id,
+            email,
+            full_name,
+            batch_id,
+            class_option_id,
+            registration_status: registrationStatus,
+          },
+        };
+
+        let moodleUpsertErr: unknown = null;
+        let moodleRow: { id?: string } | null = null;
+
+        ({ data: moodleRow, error: moodleUpsertErr } = await db
           .from("moodle_enrollment_sync")
-          .upsert(
-            {
-              dedupe_key: `moodle-enroll:${String(insertedApplicant?.id || "")}`,
-              registration_id: insertedApplicant?.id || null,
-              applicant_id: insertedApplicant?.id || null,
-              email,
-              full_name,
-              batch_id: batch_id || null,
-              class_option_id: class_option_id || null,
-              registration_status: registrationStatus,
-              sync_status: "PENDING",
-              status: "PENDING",
-              payload: {
-                applicant_id: insertedApplicant?.id,
-                email,
-                full_name,
-                batch_id,
-                class_option_id,
-                registration_status: registrationStatus,
-              },
-            },
-            { onConflict: "dedupe_key" },
-          )
+          .upsert(moodleBaseRow, { onConflict: "dedupe_key" })
           .select("id")
-          .single();
+          .single());
+
+        if (moodleUpsertErr) {
+          const moodleMsg = JSON.stringify(moodleUpsertErr);
+          if (moodleMsg.includes("trace_id")) {
+            const moodleLegacyRow = { ...moodleBaseRow };
+            delete (moodleLegacyRow as Record<string, unknown>).trace_id;
+            const legacyPayload = { ...(moodleLegacyRow.payload as Record<string, unknown>) };
+            delete legacyPayload.trace_id;
+            moodleLegacyRow.payload = legacyPayload;
+
+            ({ data: moodleRow, error: moodleUpsertErr } = await db
+              .from("moodle_enrollment_sync")
+              .upsert(moodleLegacyRow, { onConflict: "dedupe_key" })
+              .select("id")
+              .single());
+          }
+        }
+
         if (moodleUpsertErr) throw moodleUpsertErr;
         moodleSyncRowId = String(moodleRow?.id || "");
       } catch (moodleSyncInsertErr) {
@@ -474,6 +549,7 @@ const availability =
           .upsert(
             {
               dedupe_key: `moodle-sync:${String(insertedApplicant?.id || "")}`,
+              trace_id: flowTraceId,
               recipient_email: email,
               applicant_id: insertedApplicant?.id || null,
               event_type: "MOODLE_SYNC_REQUESTED",
@@ -481,6 +557,7 @@ const availability =
               status: "PENDING",
               scheduled_for: nowIso,
               payload: {
+                trace_id: flowTraceId,
                 applicant_id: insertedApplicant?.id,
                 email,
                 batch_id,
@@ -503,24 +580,18 @@ const availability =
       status: "SUCCESS" | "FAILED",
       details: Record<string, unknown>,
     ) => {
-      const payload = {
-        actor_email:
-          "registration-processor@system",
+      await safeLogAudit(db, {
+        actor_email: "registration-processor@system",
         action,
-        entity_type:
-          "applicant",
-        entity_id:
-          applicant.id,
+        entity_type: "applicant",
+        entity_id: String(applicant?.id || ""),
         status,
         details,
-      };
-      const { error } = await db.from("audit_logs").insert(payload);
-      if (error) {
-        console.error("REGISTRATION_PROCESSOR_AUDIT_LOG_INSERT_ERROR", { action, error });
-      }
+      });
     };
 
     const commonAuditDetails = {
+      trace_id: flowTraceId,
       full_name,
       email,
       fellowship_code,
@@ -555,51 +626,21 @@ const availability =
       await writeAudit("REGISTRATION_REVIEW", "SUCCESS", commonAuditDetails);
     }
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        applicant_id: applicant.id,
+    return jsonResponse({
+      ok: true,
+      data: {
+        applicant_id: String(applicant?.id || ""),
         registration_status: registrationStatus,
         availability_status: availabilityStatus,
         template_key: templateKey,
         debug_trail: debugTrail,
-        message:
-          "Registration processed",
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type":
-            "application/json",
-        },
-      }
-    );
+        message: "Registration processed",
+      },
+      statusCode: 200,
+    });
 
   } catch (error) {
-
-    console.error(
-      "REGISTRATION_PROCESSOR_ERROR",
-      error
-    );
-
-    const message =
-      error instanceof Error
-        ? error.message
-        : JSON.stringify(error);
-
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        error: message,
-      }),
-      {
-        status: 400,
-        headers: {
-          ...corsHeaders,
-          "Content-Type":
-            "application/json",
-        },
-      }
-    );
+    const c = classifyError(error);
+    return jsonResponse({ ok: false, error: c.message, code: c.code, statusCode: c.statusCode }, c.statusCode);
   }
 });

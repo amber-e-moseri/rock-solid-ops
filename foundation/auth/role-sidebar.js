@@ -1,55 +1,62 @@
+import { isAdmin, isTeacher } from "./auth-client.js";
+
 export function renderRoleSidebar(profile, containerId = "roleSidebar") {
   const root = document.getElementById(containerId);
   if (!root) return;
+  const appPath = (relativePath) => {
+    const clean = String(relativePath || "").replace(/^\/+/, "");
+    const p = window.location.pathname || "";
+    return p.includes("/foundation/") ? `/foundation/${clean}` : `/${clean}`;
+  };
 
   const role = String(profile?.role || "").toLowerCase();
-  const canAdmin = ["admin", "superadmin"].includes(role);
-  const canPrincipal = ["principal", "admin", "superadmin"].includes(role);
-  const canTeacher = ["teacher", "principal", "admin", "superadmin"].includes(role);
+  const canAdmin = isAdmin(role);
+  const canPrincipal = isAdmin(role) || role === "principal";
+  const canTeacher = isTeacher(role) || isAdmin(role);
 
   const sections = [
     {
       title: "Main",
       items: [
-        { label: "Dashboard", href: "/foundation/staff/admin-dashboard.html", show: canPrincipal },
-        { label: "Students", href: "/foundation/staff/StudentProgressView.html", show: canPrincipal },
-        { label: "Teachers", href: "/foundation/staff/teacher-schedule.html", show: canPrincipal },
-        { label: "Classes", href: "/foundation/staff/batch-management.html", show: canTeacher },
-        { label: "Calendar", href: "/foundation/staff/dashboards.html", show: canPrincipal },
+        { label: "Dashboard", href: appPath("staff/admin-dashboard.html"), show: canPrincipal },
+        { label: "Students", href: appPath("staff/StudentProgressView.html"), show: canPrincipal },
+        { label: "Teachers", href: appPath("staff/teacher-schedule.html"), show: canPrincipal },
+        { label: "Classes", href: appPath("staff/batch-management.html"), show: canTeacher },
+        { label: "Calendar", href: appPath("staff/dashboards.html"), show: canPrincipal },
       ],
     },
     {
       title: "Operations",
       items: [
-        { label: "Attendance", href: "/foundation/staff/TeacherAttendancePortal.html", show: canTeacher },
-        { label: "Batch Management", href: "/foundation/staff/batch-management.html", show: canPrincipal },
-        { label: "Registrations", href: "/foundation/staff/admin-review.html", show: canPrincipal },
-        { label: "Milestones", href: "/foundation/staff/StudentProgressView.html", show: canPrincipal },
-        { label: "Notifications", href: "/foundation/staff/notification-center.html", show: canAdmin },
+        { label: "Attendance", href: appPath("staff/TeacherAttendancePortal.html"), show: canTeacher },
+        { label: "Batch Management", href: appPath("staff/batch-management.html"), show: canPrincipal },
+        { label: "Registrations", href: appPath("staff/admin-review.html"), show: canPrincipal },
+        { label: "Milestones", href: appPath("staff/StudentProgressView.html"), show: canPrincipal },
+        { label: "Notifications", href: appPath("staff/notification-center.html"), show: canAdmin },
       ],
     },
     {
       title: "Insights",
       items: [
-        { label: "Reports", href: "/foundation/staff/dashboards.html", show: canPrincipal },
-        { label: "Analytics", href: "/foundation/staff/dashboards.html", show: canPrincipal },
-        { label: "Audit Logs", href: "/foundation/staff/audit-log.html", show: canPrincipal },
-        { label: "System Health", href: "/foundation/staff/system-health.html", show: canAdmin },
+        { label: "Reports", href: appPath("staff/dashboards.html"), show: canPrincipal },
+        { label: "Analytics", href: appPath("staff/dashboards.html"), show: canPrincipal },
+        { label: "Audit Logs", href: appPath("staff/audit-log.html"), show: canPrincipal },
+        { label: "System Health", href: appPath("staff/system-health.html"), show: canAdmin },
       ],
     },
     {
       title: "Integrations",
       items: [
-        { label: "Moodle", href: "/foundation/staff/system-health.html", show: canAdmin },
-        { label: "Mailchimp", href: "/foundation/staff/email-campaigns.html", show: canAdmin },
-        { label: "ClickUp", href: "/foundation/staff/system-health.html", show: canAdmin },
+        { label: "Moodle", href: appPath("staff/system-health.html"), show: canAdmin },
+        { label: "Mailchimp", href: appPath("staff/email-campaigns.html"), show: canAdmin },
+        { label: "ClickUp", href: appPath("staff/system-health.html"), show: canAdmin },
       ],
     },
     {
       title: "Settings",
       items: [
-        { label: "Roles", href: "/foundation/staff/admin-portal.html", show: canAdmin },
-        { label: "Preferences", href: "/foundation/staff/admin-portal.html", show: canTeacher },
+        { label: "Roles", href: appPath("staff/admin-portal.html"), show: canAdmin },
+        { label: "Preferences", href: appPath("staff/admin-portal.html"), show: canTeacher },
         { label: "Logout", href: "#logout", show: canTeacher, logout: true },
       ],
     },

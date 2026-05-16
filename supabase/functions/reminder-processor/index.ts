@@ -1,12 +1,25 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { withTrace, writeAudit } from "../_shared/audit.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+function applyAllowedOrigin(req: Request) {
+  const allowed = String(Deno.env.get("ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const origin = String(req.headers.get("Origin") || "").trim();
+  if (origin && allowed.includes(origin)) {
+    corsHeaders["Access-Control-Allow-Origin"] = origin;
+  } else {
+    delete corsHeaders["Access-Control-Allow-Origin"];
+  }
+}
 
 type ScheduledNotificationRow = {
   id: string;
@@ -17,6 +30,7 @@ type ScheduledNotificationRow = {
   attempts: number;
   max_attempts: number;
   scheduled_for: string;
+  trace_id: string | null;
 };
 
 function buildSubjectFromTemplate(templateKey: string): string {
@@ -35,6 +49,7 @@ function buildSubjectFromTemplate(templateKey: string): string {
 }
 
 Deno.serve(async (req) => {
+  applyAllowedOrigin(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -49,17 +64,42 @@ Deno.serve(async (req) => {
     const limit = Math.min(Math.max(Number(body.limit || 10), 1), 200);
 
     const nowIso = new Date().toISOString();
-    const { data, error } = await db
+    let data: ScheduledNotificationRow[] | null = null;
+    let error: { message?: string } | null = null;
+    ({
+      data,
+      error,
+    } = await db
       .from("scheduled_notifications")
       .select(
-        "id,recipient_email,template_key,payload,status,attempts,max_attempts,scheduled_for",
+        "id,recipient_email,template_key,payload,status,attempts,max_attempts,scheduled_for,trace_id",
       )
       .eq("status", "PENDING")
       .lte("scheduled_for", nowIso)
       .order("scheduled_for", { ascending: true })
-      .limit(limit);
+      .limit(limit));
 
-    if (error) throw error;
+    if (error) {
+      const msg = JSON.stringify(error);
+      if (msg.includes("trace_id")) {
+        const legacyRes = await db
+          .from("scheduled_notifications")
+          .select(
+            "id,recipient_email,template_key,payload,status,attempts,max_attempts,scheduled_for",
+          )
+          .eq("status", "PENDING")
+          .lte("scheduled_for", nowIso)
+          .order("scheduled_for", { ascending: true })
+          .limit(limit);
+        if (legacyRes.error) throw legacyRes.error;
+        data = ((legacyRes.data || []) as Array<Record<string, unknown>>).map((row) => ({
+          ...(row as ScheduledNotificationRow),
+          trace_id: null,
+        }));
+      } else {
+        throw error;
+      }
+    }
     const rows = (data || []) as ScheduledNotificationRow[];
 
     let processed = 0;
@@ -83,16 +123,29 @@ Deno.serve(async (req) => {
         const nextAttempts = (row.attempts || 0) + 1;
         const subject = buildSubjectFromTemplate(String(row.template_key || ""));
 
-        const { error: queueErr } = await db
+        const emailQueueInsert = {
+          recipient_email: row.recipient_email,
+          recipient_name: String((row.payload || {}).full_name || ""),
+          template_key: row.template_key,
+          subject,
+          status: "Pending",
+          payload: row.payload || {},
+          trace_id: row.trace_id || null,
+        };
+        let queueErr: { message?: string } | null = null;
+        ({ error: queueErr } = await db
           .from("email_queue")
-          .insert({
-            recipient_email: row.recipient_email,
-            recipient_name: String((row.payload || {}).full_name || ""),
-            template_key: row.template_key,
-            subject,
-            status: "Pending",
-            payload: row.payload || {},
-          });
+          .insert(emailQueueInsert));
+        if (queueErr) {
+          const queueMsg = JSON.stringify(queueErr);
+          if (queueMsg.includes("trace_id")) {
+            const legacyInsert = { ...emailQueueInsert };
+            delete (legacyInsert as Record<string, unknown>).trace_id;
+            ({ error: queueErr } = await db
+              .from("email_queue")
+              .insert(legacyInsert));
+          }
+        }
 
         if (queueErr) throw queueErr;
 
@@ -108,19 +161,23 @@ Deno.serve(async (req) => {
 
         if (sentErr) throw sentErr;
 
-        await db
-          .from("audit_logs")
-          .insert({
-            actor_email: "reminder-processor@system",
-            action: "SCHEDULED_NOTIFICATION_QUEUED",
-            entity_type: "scheduled_notification",
-            entity_id: row.id,
-            status: "SUCCESS",
-            details: {
+        await writeAudit(
+          db,
+          "SCHEDULED_NOTIFICATION_QUEUED",
+          row.id,
+          withTrace(
+            {
               recipient_email: row.recipient_email,
               template_key: row.template_key,
             },
-          });
+            row.trace_id || null,
+          ),
+          {
+            actor_email: "reminder-processor@system",
+            entity_type: "scheduled_notification",
+            status: "SUCCESS",
+          },
+        );
 
         queued += 1;
         results.push({
@@ -187,4 +244,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-

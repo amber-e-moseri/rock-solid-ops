@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Foundation School - Audit Logs</title>
+  <title>Rock Solid - Audit Logs</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -11,9 +11,9 @@
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
   <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel='stylesheet' href='../ui/primitives.css' />
   <style>
-    body { font-family: "Manrope", system-ui, sans-serif; }
-    .fs-page { max-width: 1240px; }
+        .fs-page { max-width: 1240px; }
     .hero-title { margin: 0; font-size: clamp(1.6rem, 3.2vw, 2.2rem); }
     .hero-sub { margin-top: 6px; }
     .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
@@ -38,13 +38,13 @@
     </section>
 
     <section class="card">
-      <div class="filters">
+      <div class="filters fs-action-bar">
         <input id="actionFilter" class="fs-input" placeholder="Action" aria-label="Filter by action" />
         <input id="statusFilter" class="fs-input" placeholder="Status" aria-label="Filter by status" />
         <input id="actorFilter" class="fs-input" placeholder="Actor email/name" aria-label="Filter by actor" />
         <input id="fromDate" class="fs-input" type="date" aria-label="From date" />
         <input id="toDate" class="fs-input" type="date" aria-label="To date" />
-        <button id="resetFilters" class="btn">Reset</button>
+        <button id="resetFilters" class="btn fs-btn fs-btn-secondary">Reset</button>
       </div>
     </section>
 
@@ -52,11 +52,11 @@
       <div class="fs-row" style="margin-bottom:10px;">
         <strong id="countLabel">0 records</strong>
         <span class="spacer"></span>
-        <button id="refreshBtn" class="btn primary">Refresh</button>
+        <button id="refreshBtn" class="btn fs-btn fs-btn-primary primary">Refresh</button>
       </div>
       <div id="state" class="state">Loading audit logs...</div>
-      <div id="tableWrap" class="table-wrap hidden">
-        <table>
+      <div id="tableWrap" class="table-wrap fs-table-wrap hidden">
+        <table class="fs-table">
           <thead>
             <tr>
               <th>Time</th>
@@ -75,6 +75,7 @@
   </main>
 
   <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
   <script src="../js/admin-shell.js"></script>
   <script type="module">
     import { supabase, getCurrentProfile } from "../auth/auth-client.js";
@@ -250,7 +251,7 @@
 
       window.FSAdminShell?.mount({
         active: "audit",
-        title: "Foundation School Admin",
+        title: "Rock Solid Admin",
         profileName: profile.full_name || profile.email || "Admin",
         role: profile.role,
         breadcrumbs: [{ label: "Admin", href: "admin-dashboard.html" }, "Audit Logs"],
@@ -262,5 +263,13 @@
 
     init();
   </script>
+  <script>
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "audit", pageTitle: "Audit Log" });
+  </script>
 </body>
 </html>
+
+
+
+
+

@@ -1,0 +1,225 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Moodle Settings</title>
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel='stylesheet' href='../ui/primitives.css' />
+  <style>
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .table-wrap { overflow:auto; border:1px solid var(--border); border-radius:12px; }
+    table { width:100%; min-width:900px; border-collapse:collapse; }
+    th,td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; }
+    th { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .muted { color:var(--muted); }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="main fs-page fs-wrap-xl">
+    <section class="hero">
+      <h1 class="hero-title">Moodle Settings</h1>
+      <p class="hero-sub">Manage batch Moodle course mappings. Tokens stay server-side in Supabase secrets.</p>
+    </section>
+
+    <section class="card">
+      <div class="grid fs-action-bar">
+        <div>
+          <label>Batch ID</label>
+          <input id="batchId" class="form-control" placeholder="e.g. 2026A" />
+        </div>
+        <div>
+          <label>Group/Subgroup</label>
+          <input id="groupId" class="form-control" placeholder="e.g. CSGA" />
+        </div>
+        <div>
+          <label>Moodle Course ID</label>
+          <input id="courseId" class="form-control" placeholder="numeric only" />
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;">
+            <input id="isActive" type="checkbox" checked />
+            Active mapping
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button id="saveBtn" class="fs-btn fs-btn-primary">Save Mapping</button>
+        <button id="seedBtn" class="fs-btn fs-btn-secondary">Seed Missing from Fellowship Map</button>
+        <button id="testBtn" class="fs-btn fs-btn-secondary">Test Moodle Connection</button>
+      </div>
+      <div id="formMsg" class="muted" style="margin-top:8px;"></div>
+    </section>
+
+    <section class="card">
+      <div class="table-wrap fs-table-wrap">
+        <table class="fs-table">
+          <thead>
+            <tr>
+              <th>Batch</th>
+              <th>Group/Subgroup</th>
+              <th>Course ID</th>
+              <th>Active</th>
+              <th>Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module">
+    import { supabase, getCurrentProfile } from "../auth/auth-client.js";
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
+    const roleAllow = new Set(["admin","superadmin","subgroup_admin","pastor"]);
+    let mappings = [];
+
+    function msg(text, bad = false) {
+      const n = $("formMsg");
+      n.textContent = text || "";
+      n.style.color = bad ? "var(--danger,#b42318)" : "var(--muted)";
+    }
+
+    function fmtDate(v) {
+      if (!v) return "-";
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+    }
+
+    function normalizeMappingRow(r) {
+      return {
+        id: r.id || `${r.batch_id || ""}:${r.group_id || ""}`,
+        batch_id: r.batch_id || "",
+        group_id: r.group_id || r.subgroup_id || "",
+        moodle_course_id: r.moodle_course_id || r.course_id || "",
+        active: r.active !== false,
+        updated_at: r.updated_at || r.created_at || null,
+      };
+    }
+
+    async function ensureAccess() {
+      const { data } = await supabase.auth.getSession();
+      if (!data?.session) { window.location.href = "login.html"; return false; }
+      const p = await getCurrentProfile();
+      if (!p || !roleAllow.has(String(p.role || ""))) {
+        document.body.innerHTML = "<main class='main fs-content'><section class='fs-card'><div class='fs-banner fs-banner-danger'>Access denied.</div></section></main>";
+        return false;
+      }
+      return true;
+    }
+
+    async function loadRows() {
+      const { data, error } = await supabase
+        .from("batch_moodle_courses")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      mappings = (data || []).map(normalizeMappingRow);
+      $("rows").innerHTML = mappings.map((r) => `
+        <tr>
+          <td class="mono">${esc(r.batch_id || "-")}</td>
+          <td>${esc(r.group_id || "-")}</td>
+          <td class="mono">${esc(r.moodle_course_id || "-")}</td>
+          <td>${r.active ? "Yes" : "No"}</td>
+          <td>${esc(fmtDate(r.updated_at))}</td>
+          <td><button class="fs-btn fs-btn-secondary js-edit" data-id="${esc(r.id)}">Edit</button></td>
+        </tr>
+      `).join("") || "<tr><td colspan='6' class='muted'>No mappings found.</td></tr>";
+
+      document.querySelectorAll(".js-edit").forEach((b) => b.addEventListener("click", () => {
+        const row = mappings.find((m) => String(m.id) === String(b.dataset.id));
+        if (!row) return;
+        $("batchId").value = row.batch_id;
+        $("groupId").value = row.group_id;
+        $("courseId").value = row.moodle_course_id;
+        $("isActive").checked = !!row.active;
+      }));
+    }
+
+    async function saveMapping() {
+      const batch_id = String($("batchId").value || "").trim();
+      const group_id = String($("groupId").value || "").trim();
+      const moodle_course_id = String($("courseId").value || "").trim();
+      const active = $("isActive").checked;
+      if (!batch_id || !group_id || !moodle_course_id) return msg("Batch, group/subgroup, and course ID are required.", true);
+      if (!/^\d+$/.test(moodle_course_id)) return msg("Moodle course ID must be numeric.", true);
+
+      const payload = { batch_id, group_id, moodle_course_id: Number(moodle_course_id), active, updated_at: new Date().toISOString() };
+      const { error } = await supabase.from("batch_moodle_courses").upsert(payload, { onConflict: "batch_id,group_id" });
+      if (error) return msg(error.message || "Failed to save mapping.", true);
+      msg("Mapping saved.");
+      await loadRows();
+    }
+
+    async function seedMissing() {
+      msg("Seeding...");
+      const [fm, batches] = await Promise.all([
+        supabase.from("fellowship_map").select("group_id,subgroup_id").eq("active", true),
+        supabase.from("batches").select("batch_id").eq("active", true).limit(20),
+      ]);
+      if (fm.error) return msg(fm.error.message, true);
+      if (batches.error) return msg(batches.error.message, true);
+
+      const activeBatchIds = (batches.data || []).map((b) => b.batch_id).filter(Boolean);
+      if (!activeBatchIds.length) return msg("No active batches found.", true);
+      const groups = [...new Set((fm.data || []).map((r) => r.subgroup_id || r.group_id).filter(Boolean))];
+      const desired = [];
+      activeBatchIds.forEach((batch_id) => groups.forEach((group_id) => desired.push({ batch_id, group_id })));
+      const existingKeys = new Set(mappings.map((m) => `${m.batch_id}::${m.group_id}`));
+      const inserts = desired.filter((d) => !existingKeys.has(`${d.batch_id}::${d.group_id}`)).map((d) => ({
+        batch_id: d.batch_id,
+        group_id: d.group_id,
+        moodle_course_id: null,
+        active: false,
+      }));
+      if (!inserts.length) return msg("No missing rows to seed.");
+
+      const { error } = await supabase.from("batch_moodle_courses").insert(inserts);
+      if (error) return msg(error.message, true);
+      msg(`Seeded ${inserts.length} rows.`);
+      await loadRows();
+    }
+
+    async function testMoodleConnection() {
+      msg("Testing Moodle connection...");
+      try {
+        const { data, error } = await supabase.functions.invoke("moodle-sync", {
+          body: { action: "testConnection" }
+        });
+        if (error) return msg(error.message || "Connection test failed.", true);
+        if (!data?.ok) return msg(data?.error || "Connection test failed.", true);
+        msg("Moodle connection OK.");
+      } catch (e) {
+        msg(String(e?.message || e), true);
+      }
+    }
+
+    (async function boot(){
+      window.FSAdminShell && window.FSAdminShell.mount({ active: "moodlesettings", pageTitle: "Moodle Settings" });
+      const ok = await ensureAccess();
+      if (!ok) return;
+      $("saveBtn").addEventListener("click", saveMapping);
+      $("seedBtn").addEventListener("click", seedMissing);
+      $("testBtn").addEventListener("click", testMoodleConnection);
+      await loadRows();
+      msg("Ready.");
+    })().catch((e) => msg(String(e?.message || e), true));
+  </script>
+</body>
+</html>
+
+
+

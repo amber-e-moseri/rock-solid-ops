@@ -1,0 +1,210 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Class</title>
+  <link rel="stylesheet" href="../../ui/tokens.css" />
+  <link rel="stylesheet" href="../../ui/primitives.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; background: var(--color-bg); color: var(--color-text-primary); font-family: "Manrope", system-ui, -apple-system, sans-serif; }
+    .page { padding: var(--space-4); }
+    .hidden { display: none !important; }
+    .row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .mode-pill { border: 1px solid var(--color-border); background: var(--color-surface); border-radius: var(--radius-full); padding: 2px; display: inline-flex; }
+    .mode-pill button { border: none; background: transparent; padding: 6px 12px; border-radius: var(--radius-full); cursor: pointer; color: var(--color-text-secondary); }
+    .mode-pill button.active { background: var(--color-primary); color: var(--color-primary-fg); }
+    .search-wrap { position: relative; max-width: 420px; }
+    .search-wrap .clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: transparent; cursor: pointer; color: var(--color-text-muted); }
+    .danger { color: var(--color-danger); font-weight: 700; }
+    .click-row { cursor: pointer; }
+    .drawer-backdrop { position: fixed; inset: 0; background: color-mix(in srgb, var(--color-text-primary) 25%, transparent); opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 40; }
+    .drawer-backdrop.show { opacity: 1; pointer-events: auto; }
+    .drawer { position: fixed; top: 56px; right: 0; width: min(440px, 100%); height: calc(100vh - 56px); background: var(--color-surface); box-shadow: var(--shadow-raised); transform: translateX(100%); transition: transform 0.2s; z-index: 50; overflow: auto; }
+    .drawer.show { transform: translateX(0); }
+    .drawer-sec { padding: var(--space-4); border-bottom: 1px solid var(--color-border); }
+    .drawer-h { margin: 0 0 var(--space-2); font-size: var(--fs-section-title); }
+    .grid { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+    .grid table { width: 100%; min-width: 900px; border-collapse: collapse; }
+    .grid th, .grid td { border-bottom: 1px solid var(--color-border); padding: var(--space-2); text-align: left; font-size: var(--fs-body); }
+    .sticky-name { position: sticky; left: 32px; background: var(--color-surface); min-width: 160px; z-index: 2; }
+    .sticky-check { position: sticky; left: 0; background: var(--color-surface); z-index: 3; width: 32px; }
+    .toolbar { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); padding: var(--space-2); margin-bottom: var(--space-2); }
+    .toast { position: fixed; bottom: 16px; right: 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); box-shadow: var(--shadow-raised); z-index: 100; }
+    @media (max-width: 640px) {
+      .drawer { top: auto; bottom: 0; width: 100%; height: 85vh; border-top-left-radius: var(--radius-lg); border-top-right-radius: var(--radius-lg); transform: translateY(100%); }
+      .drawer.show { transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div id="loading" class="fs-card">Loading context...</div>
+    <div id="error" class="fs-card hidden"></div>
+    <div id="emptyA" class="fs-card hidden">&#x1F4C5; <strong>No classes assigned yet</strong><div class="fs-page-subtitle">Your availability is pending approval. Check back after your schedule is confirmed.</div></div>
+
+    <div id="app" class="hidden">
+      <div class="fs-action-bar">
+        <label for="classSelect">Class</label>
+        <select id="classSelect" class="fs-select" style="max-width:280px;"></select>
+        <div class="mode-pill" id="modePill">
+          <button data-mode="roster" class="active" type="button">Roster</button>
+          <button data-mode="progress" type="button">Progress</button>
+        </div>
+      </div>
+
+      <section id="rosterView">
+        <div class="row" style="margin-bottom:8px;">
+          <div class="search-wrap">
+            <input id="search" class="fs-input" placeholder="Search by name or phone..." />
+            <button id="clearSearch" class="clear" type="button">x</button>
+          </div>
+        </div>
+        <div class="fs-table-wrap">
+          <table class="fs-table" id="rosterTable">
+            <thead><tr><th>Student</th><th>Phone</th><th>Last Attended</th><th>Missed</th><th>Milestones</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="progressView" class="hidden">
+        <div id="bulkToolbar" class="toolbar hidden"></div>
+        <div class="grid" id="progressGrid"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+  <aside id="drawer" class="drawer" aria-hidden="true"></aside>
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="../../js/config.js"></script>
+  <script src="../../js/config-helper.js"></script>
+  <script src="../../js/api-client.js"></script>
+  <script type="module">
+    import { supabase } from "../../auth/auth-client.js";
+
+    const MODE_KEY = "fs_teacher_mode";
+    const SYS_COL_KEY = "fs_system_cols_expanded";
+    const state = { assignments: [], selectedClassOptionId: "", roster: [], filteredRoster: [], mode: localStorage.getItem(MODE_KEY) || "roster", milestones: [], progressRows: [], selectedApplicants: new Set(), systemExpanded: localStorage.getItem(SYS_COL_KEY) === "1" };
+    const el = { loading: document.getElementById("loading"), app: document.getElementById("app"), err: document.getElementById("error"), emptyA: document.getElementById("emptyA"), classSelect: document.getElementById("classSelect"), rosterView: document.getElementById("rosterView"), progressView: document.getElementById("progressView"), rosterBody: document.querySelector("#rosterTable tbody"), search: document.getElementById("search"), clearSearch: document.getElementById("clearSearch"), modeBtns: Array.from(document.querySelectorAll("#modePill button")), progressGrid: document.getElementById("progressGrid"), bulkToolbar: document.getElementById("bulkToolbar"), drawer: document.getElementById("drawer"), drawerBackdrop: document.getElementById("drawerBackdrop"), toast: document.getElementById("toast") };
+
+    function toast(t) { el.toast.textContent = t; el.toast.classList.remove("hidden"); setTimeout(() => el.toast.classList.add("hidden"), 2200); }
+    function fail(message, retryFn) { el.loading.classList.add("hidden"); el.app.classList.add("hidden"); el.emptyA.classList.add("hidden"); el.err.classList.remove("hidden"); el.err.innerHTML = `<div class="fs-banner fs-banner-danger">&#9888;&#65039; ${message}</div><button class="fs-btn fs-btn-secondary" id="retryBtn" type="button">Retry</button>`; document.getElementById("retryBtn")?.addEventListener("click", () => retryFn && retryFn()); }
+    function dayTimeLabel(row) { const day = row.day_of_week || row.day || "Class"; const raw = row.start_time || row.time_slot || ""; const m = String(raw).match(/^(\d{1,2}):(\d{2})/); if (!m) return String(day); let hh = Number(m[1]); const mm = m[2]; const ampm = hh >= 12 ? "PM" : "AM"; hh = hh % 12 || 12; return `${day} ${hh}:${mm} ${ampm}`; }
+
+    async function waitForContext() {
+      const fromQuery = new URLSearchParams(window.location.search).get("email") || "";
+      if (fromQuery) return fromQuery;
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("Teacher context not received")), 3000);
+        function onMsg(event) { const d = event?.data || {}; if (d.type === "FS_TEACHER_CONTEXT" && d.email) { clearTimeout(timer); window.removeEventListener("message", onMsg); resolve(String(d.email)); } }
+        window.addEventListener("message", onMsg);
+      });
+    }
+
+    async function invoke(action, params = {}) { return window.FSApi.invokeEdge("teacher-portal-api", { action, params }); }
+    function summarize(s) { const a = Array.isArray(s.attendance) ? s.attendance : []; const p = a.filter((x) => x.status === "present"); const ab = a.filter((x) => x.status === "absent"); const labels = p.map((x) => x.class_label || `${x.class_number || ""}`); const m = (s.milestones || []).filter((x) => !x.is_auto); return { missed: ab.length, lastAttended: labels[0] || "-", done: m.filter((x) => x.completed).length, total: m.length }; }
+
+    function renderRoster() {
+      if (!state.filteredRoster.length) { el.rosterBody.innerHTML = `<tr><td colspan="6" class="fs-table-empty">No students in this class yet</td></tr>`; return; }
+      el.rosterBody.innerHTML = state.filteredRoster.map((s) => { const x = summarize(s); const phone = String(s.phone || ""); const masked = phone ? `${phone.slice(-4)}` : "-"; const missed = x.missed >= 3 ? `<span class="danger">&#9888;&#65039; ${x.missed}</span>` : String(x.missed); return `<tr class="click-row" tabindex="0" data-applicant="${s.applicant_id}"><td>${s.full_name || "-"}</td><td title="${phone}">&#x1F4DE; ${masked}</td><td>${x.lastAttended}</td><td>${missed}</td><td>${x.done} / ${x.total}</td><td><button class="fs-btn fs-btn-secondary fs-btn-sm" data-view="${s.applicant_id}" type="button">&#x1F441;</button></td></tr>`; }).join("");
+      el.rosterBody.querySelectorAll("tr[data-applicant]").forEach((row) => { row.addEventListener("click", (evt) => { if (evt.target.closest("button[data-view]")) return; openDrawer(row.getAttribute("data-applicant")); }); row.addEventListener("keydown", (evt) => { if (evt.key === "Enter" || evt.key === " ") { evt.preventDefault(); openDrawer(row.getAttribute("data-applicant")); } }); });
+      el.rosterBody.querySelectorAll("button[data-view]").forEach((btn) => btn.addEventListener("click", () => openDrawer(btn.getAttribute("data-view"))));
+    }
+
+    async function loadRoster() { const r = await invoke("getApplicantsForClass", { classOptionId: state.selectedClassOptionId }); state.roster = Array.isArray(r?.data) ? r.data : []; state.filteredRoster = [...state.roster]; renderRoster(); }
+    async function loadMilestones() { const { data, error } = await supabase.from("milestones").select("*").order("sort_order", { ascending: true }); if (error) throw new Error("Failed to load milestones"); state.milestones = Array.isArray(data) ? data : []; }
+
+    function renderBulk() {
+      const n = state.selectedApplicants.size;
+      if (!n) { el.bulkToolbar.classList.add("hidden"); return; }
+      const manual = state.milestones.filter((m) => !m.is_auto);
+      const opts = manual.map((m) => `<option value="${m.name}">${m.name}</option>`).join("");
+      el.bulkToolbar.classList.remove("hidden");
+      el.bulkToolbar.innerHTML = `${n} selected · Mark milestone <select id="bulkMark"><option value="">Select</option>${opts}</select> · Clear milestone <select id="bulkClear"><option value="">Select</option>${opts}</select> · <button class="fs-btn fs-btn-secondary fs-btn-sm" id="bulkNote" type="button">Add note</button> · <button class="fs-btn fs-btn-secondary fs-btn-sm" id="bulkReminder" type="button">Send reminder</button>`;
+      document.getElementById("bulkReminder")?.addEventListener("click", () => toast("Reminder sending coming soon"));
+      document.getElementById("bulkNote")?.addEventListener("click", async () => { const text = window.prompt("Note text"); if (!text) return; const ids = Array.from(state.selectedApplicants); await supabase.from("student_activity_log").insert(ids.map((applicant_id) => ({ applicant_id, category: "note", action: "note_added", details: { text } }))); toast("Note saved"); });
+      document.getElementById("bulkMark")?.addEventListener("change", (e) => bulkMilestone(e.target.value, true));
+      document.getElementById("bulkClear")?.addEventListener("change", (e) => bulkMilestone(e.target.value, false));
+    }
+
+    async function bulkMilestone(milestone, completed) {
+      if (!milestone) return;
+      const ids = Array.from(state.selectedApplicants);
+      if (!window.confirm(`${completed ? "Mark" : "Clear"} ${milestone} for selected students?`)) return;
+      for (const applicantId of ids) await invoke("updateStudentMilestone", { applicantId, milestone, completed });
+      await supabase.from("student_activity_log").insert(ids.map((applicant_id) => ({ applicant_id, category: "milestone", action: completed ? "bulk_mark" : "bulk_clear", details: { milestone } })));
+      await loadProgress();
+      toast("Bulk update saved");
+    }
+
+    function renderProgress() {
+      const manual = state.milestones.filter((m) => !m.is_auto);
+      const system = state.milestones.filter((m) => !!m.is_auto);
+      const sysCols = state.systemExpanded ? system : [];
+      const sysHeader = system.length ? `<th>${state.systemExpanded ? "&#9881;&#65039; System" : "&#9881;&#65039; System &#8250;"}</th>${state.systemExpanded ? sysCols.map((m) => `<th>${m.name}</th>`).join("") : ""}` : "";
+      const rows = state.progressRows.map((s) => { const map = new Map((s.milestones || []).map((m) => [m.milestone, !!m.completed])); const manualCells = manual.map((m) => `<td><input type="checkbox" data-a="${s.applicant_id}" data-m="${m.name}" ${map.get(m.name) ? "checked" : ""}></td>`).join(""); const systemCells = state.systemExpanded ? sysCols.map((m) => `<td><span>${map.get(m.name) ? "&#9745;" : "&#9744;"}</span> &#128274;</td>`).join("") : ""; return `<tr><td class="sticky-check"><input type="checkbox" data-row="${s.applicant_id}" ${state.selectedApplicants.has(String(s.applicant_id)) ? "checked" : ""}></td><td class="sticky-name"><button class="fs-btn fs-btn-secondary fs-btn-sm" data-open="${s.applicant_id}" type="button">${s.full_name || "-"}</button></td>${manualCells}${system.length ? `<td><button class="fs-btn fs-btn-secondary fs-btn-sm" data-systoggle="1" type="button">${state.systemExpanded ? "Hide" : "Show"}</button></td>` : ""}${systemCells}</tr>`; }).join("");
+      el.progressGrid.innerHTML = `<table><thead><tr><th class="sticky-check"></th><th class="sticky-name">Student</th>${manual.map((m) => `<th>${m.name}</th>`).join("")}${sysHeader}</tr></thead><tbody>${rows}</tbody></table>`;
+      el.progressGrid.querySelectorAll("input[data-row]").forEach((c) => c.addEventListener("change", () => { const id = c.getAttribute("data-row"); if (c.checked) state.selectedApplicants.add(id); else state.selectedApplicants.delete(id); renderBulk(); }));
+      el.progressGrid.querySelectorAll("input[data-a][data-m]").forEach((c) => c.addEventListener("change", async () => { const applicantId = c.getAttribute("data-a"); const milestone = c.getAttribute("data-m"); const next = c.checked; c.checked = next; try { await invoke("updateStudentMilestone", { applicantId, milestone, completed: next }); } catch (_) { c.checked = !next; toast("Could not save - try again"); } }));
+      el.progressGrid.querySelectorAll("button[data-open]").forEach((btn) => btn.addEventListener("click", () => openDrawer(btn.getAttribute("data-open"))));
+      el.progressGrid.querySelectorAll("button[data-systoggle]").forEach((btn) => btn.addEventListener("click", () => { state.systemExpanded = !state.systemExpanded; localStorage.setItem(SYS_COL_KEY, state.systemExpanded ? "1" : "0"); renderProgress(); }));
+      renderBulk();
+    }
+
+    async function loadProgress() { await loadMilestones(); state.progressRows = state.roster; renderProgress(); }
+    function rel(iso) { const sec = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000)); if (sec < 60) return `${sec}s ago`; const min = Math.floor(sec / 60); if (min < 60) return `${min}m ago`; const hr = Math.floor(min / 60); if (hr < 24) return `${hr}h ago`; return `${Math.floor(hr / 24)} days ago`; }
+
+    async function openDrawer(applicantId) {
+      const student = state.roster.find((s) => String(s.applicant_id) === String(applicantId));
+      if (!student) return;
+      const { data: activity } = await supabase.from("student_activity_log").select("*").eq("applicant_id", applicantId).order("created_at", { ascending: false }).limit(10);
+      const sum = summarize(student);
+      const attended = (student.attendance || []).filter((a) => a.status === "present").slice(0, 10).map((a) => `<li>${a.class_label || a.class_number || "Class"}</li>`).join("") || "<li>-</li>";
+      const manual = (student.milestones || []).filter((m) => !m.is_auto).map((m) => `<div>${m.completed ? "&#9745;" : "&#9744;"} ${m.milestone}</div>`).join("") || "<div>-</div>";
+      const system = (student.milestones || []).filter((m) => !!m.is_auto).map((m) => `<div>${m.completed ? "&#9745;" : "&#9744;"} &#128274; ${m.milestone}</div>`).join("") || "<div>-</div>";
+      const icon = { attendance: "&#x2705;", milestone: "&#x1F3AF;", note: "&#x1F4DD;", reminder: "&#x1F514;", system: "&#9881;&#65039;" };
+      const acts = (activity || []).map((a) => `<div>${icon[a.category] || "*"} ${a.action} - ${rel(a.created_at)}</div>`).join("") || "<div class='fs-page-subtitle'>No activity recorded yet</div>";
+      el.drawer.innerHTML = `<div class="drawer-sec"><div class="row" style="justify-content:space-between;"><h3 class="drawer-h">${student.full_name || "Student"}</h3><button id="closeDrawer" class="fs-btn fs-btn-secondary fs-btn-sm" type="button">x</button></div><div>${student.batch_label || "Batch: -"}</div><div>${student.fellowship_cell || "Cell: Not assigned yet"}</div></div><div class="drawer-sec"><h4 class="drawer-h">Contact</h4><div>${student.phone || "-"}</div><div>${student.email || "-"}</div><div class="row"><a class="fs-btn fs-btn-secondary fs-btn-sm" href="tel:${student.phone || ""}">&#x1F4DE; Call</a><a class="fs-btn fs-btn-secondary fs-btn-sm" href="mailto:${student.email || ""}">&#9993; Email</a></div></div><div class="drawer-sec"><h4 class="drawer-h">Attendance Summary</h4><div>Attended ${(student.attendance || []).filter((a) => a.status === "present").length} of ${(student.attendance || []).length} sessions</div><div class="${sum.missed >= 3 ? "danger" : ""}">${sum.missed >= 3 ? "&#9888;&#65039; " : ""}Missed ${sum.missed}</div><ul>${attended}</ul></div><div class="drawer-sec"><h4 class="drawer-h">Milestones</h4><div>${manual}</div><div style="margin-top:8px;font-weight:600;">System</div><div>${system}</div></div><div class="drawer-sec"><h4 class="drawer-h">Recent Activity</h4><div>${acts}</div></div><div class="drawer-sec"><h4 class="drawer-h">Actions</h4><button id="addNoteBtn" class="fs-btn fs-btn-secondary" type="button">&#x1F4DD; Add Note</button><textarea id="noteText" class="fs-input hidden" rows="3" placeholder="Write a note"></textarea><button id="saveNoteBtn" class="fs-btn fs-btn-primary hidden" type="button">Save Note</button> <button id="updateMilestoneBtn" class="fs-btn fs-btn-secondary" type="button">&#x1F3AF; Update Milestone</button> <button class="fs-btn fs-btn-secondary" type="button" disabled title="Coming in a future update">View Full Profile</button></div>`;
+      el.drawer.classList.add("show"); el.drawerBackdrop.classList.add("show"); el.drawer.setAttribute("aria-hidden", "false");
+      document.getElementById("closeDrawer")?.addEventListener("click", closeDrawer);
+      document.getElementById("addNoteBtn")?.addEventListener("click", () => { document.getElementById("noteText")?.classList.remove("hidden"); document.getElementById("saveNoteBtn")?.classList.remove("hidden"); });
+      document.getElementById("saveNoteBtn")?.addEventListener("click", async () => { const text = document.getElementById("noteText")?.value?.trim(); if (!text) return; await supabase.from("student_activity_log").insert({ applicant_id: applicantId, category: "note", action: "note_added", details: { text } }); toast("Note saved"); });
+      document.getElementById("updateMilestoneBtn")?.addEventListener("click", async () => { const pick = window.prompt(`Milestone name:\n${state.milestones.filter((m) => !m.is_auto).map((m) => m.name).join(", ")}`); if (!pick) return; await invoke("updateStudentMilestone", { applicantId, milestone: pick, completed: true }); toast("Milestone updated"); });
+    }
+
+    function closeDrawer() { el.drawer.classList.remove("show"); el.drawerBackdrop.classList.remove("show"); el.drawer.setAttribute("aria-hidden", "true"); }
+
+    async function loadAssignments() {
+      const resp = await invoke("getTeacherAssignments");
+      state.assignments = Array.isArray(resp?.data) ? resp.data : [];
+      if (!state.assignments.length) { el.loading.classList.add("hidden"); el.emptyA.classList.remove("hidden"); return; }
+      if (state.assignments.length === 1) { state.selectedClassOptionId = state.assignments[0].class_option_id; el.classSelect.innerHTML = `<option value="${state.selectedClassOptionId}">${dayTimeLabel(state.assignments[0])}</option>`; }
+      else { el.classSelect.innerHTML = `<option value="">Select a class</option>${state.assignments.map((a) => `<option value="${a.class_option_id}">${dayTimeLabel(a)}</option>`).join("")}`; }
+      el.classSelect.addEventListener("change", async () => { state.selectedClassOptionId = el.classSelect.value; if (!state.selectedClassOptionId) return; await loadSelectedClass(); });
+      el.loading.classList.add("hidden"); el.app.classList.remove("hidden"); if (state.selectedClassOptionId) await loadSelectedClass();
+    }
+
+    async function loadSelectedClass() { try { el.err.classList.add("hidden"); await loadRoster(); await loadProgress(); } catch (error) { fail(error.message || "Load failed", loadSelectedClass); } }
+    function bindMode() { el.modeBtns.forEach((btn) => { if (btn.dataset.mode === state.mode) btn.classList.add("active"); btn.addEventListener("click", () => { state.mode = btn.dataset.mode; localStorage.setItem(MODE_KEY, state.mode); el.modeBtns.forEach((b) => b.classList.toggle("active", b === btn)); el.rosterView.classList.toggle("hidden", state.mode !== "roster"); el.progressView.classList.toggle("hidden", state.mode !== "progress"); }); }); el.rosterView.classList.toggle("hidden", state.mode !== "roster"); el.progressView.classList.toggle("hidden", state.mode !== "progress"); }
+
+    async function init() {
+      try {
+        await waitForContext();
+        bindMode();
+        el.search.addEventListener("input", () => { const q = el.search.value.trim().toLowerCase(); state.filteredRoster = !q ? [...state.roster] : state.roster.filter((r) => String(r.full_name || "").toLowerCase().includes(q) || String(r.phone || "").toLowerCase().includes(q)); renderRoster(); });
+        el.clearSearch.addEventListener("click", () => { el.search.value = ""; state.filteredRoster = [...state.roster]; renderRoster(); });
+        el.drawerBackdrop.addEventListener("click", closeDrawer);
+        window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+        await loadAssignments();
+      } catch (error) {
+        fail(error.message || "Initialization failed", init);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Foundation SQL (Legacy / Non-Authoritative)
+
+This directory is no longer the canonical source of truth for database deployment.
+
+Authoritative database migrations live in:
+
+/supabase/migrations
+
+The files in this directory are retained only for:
+- historical reference
+- legacy exports
+- bootstrap experimentation
+- migration provenance
+
+Important:
+- Do NOT deploy SQL from this directory.
+- Do NOT use these files as the source of truth for schema state.
+- Some files may contain stale exports or non-authoritative content.
+- CI and deployment tooling should target only:
+/supabase/migrations
+
+Canonical migration architecture is documented in:
+
+/supabase/migrations/MIGRATION_ARCHITECTURE.md

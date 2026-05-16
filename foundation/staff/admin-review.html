@@ -1,363 +1,173 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Rock Solid Admin View</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Rock Solid - Admin Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="../js/config.js"></script>
-  <style>
-    :root {
-      --navy:#3D2A8A;
-      --navyDark:#2E1F6E;
-      --lilacSoft:#EDE9FA;
-      --lilacMid:#D4CEF5;
-      --gold:#F5A623;
-      --goldSoft:#FEF6E4;
-      --ink:#1E1535;
-      --muted:#7C6FA0;
-      --border:#E8E6F0;
-      --soft:#F7F6FB;
-      --white:#FFFFFF;
-      --pending:#D97706;
-      --pendingBg:#FFF7ED;
-      --pendingLine:#FED7AA;
-      --pendingText:#92400E;
-      --approved:#15803D;
-      --approvedBg:#F0FDF4;
-      --approvedLine:#BBF7D0;
-      --approvedText:#166534;
-      --rejected:#991B1B;
-      --rejectedBg:#FFF0F0;
-      --rejectedLine:#F2B2B2;
-      --rejectedText:#8C1F1F;
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--soft);color:var(--ink);font-family:'DM Sans',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5}
-    .rs-nav{
-      position:sticky;top:0;z-index:80;background:#fff;border-bottom:1px solid var(--border)
-    }
-    .rs-nav__inner{max-width:1480px;margin:0 auto;padding:10px 24px;display:flex;gap:8px;align-items:center}
-    .rs-nav__link{
-      display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;
-      border:1px solid transparent;text-decoration:none;color:var(--muted);font-size:12px;font-weight:700
-    }
-    .rs-nav__link:hover{background:var(--lilacSoft);color:var(--navy)}
-    .rs-nav__link.is-active{background:var(--lilacSoft);border-color:var(--lilacMid);color:var(--navy)}
-    .rs-nav__icon{font-size:14px;line-height:1}
-    .rs-nav__admin-badge{
-      padding:2px 6px;border-radius:999px;background:var(--navy);color:#fff;font-size:10px;font-weight:800;letter-spacing:.3px
-    }
-
-    /* ── Header ── */
-    .hdr{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .hdr-left{display:flex;align-items:center;gap:10px}
-    .hdr-badge{background:rgba(255,255,255,.15);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.5px}
-    .hdr-title{font-size:18px;font-weight:800}
-    .hdr-sub{font-size:12px;opacity:.75;margin-top:1px}
-    .hdr-right{display:flex;gap:8px;align-items:center}
-
-    /* ── Wrap ── */
-    .wrap{max-width:1480px;margin:0 auto;padding:20px 24px}
-
-    /* ── KPI bar ── */
-    .kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
-    .kpi{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
-    .kpi-label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.3px}
-    .kpi-val{font-size:22px;font-weight:800;color:var(--navy);margin-top:2px}
-    .kpi.pending .kpi-val{color:var(--pending)}
-    .kpi.approved .kpi-val{color:var(--approved)}
-    .kpi.rejected .kpi-val{color:var(--rejected)}
-
-    /* ── Toolbar ── */
-    .toolbar{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .toolbar input,.toolbar select{padding:8px 11px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;color:var(--ink);background:#fff;outline:none;transition:border-color .15s}
-    .toolbar input:focus,.toolbar select:focus{border-color:var(--navy)}
-    .toolbar input{min-width:160px}
-    .toolbar select{min-width:130px}
-    .toolbar-divider{width:1px;height:28px;background:var(--border);flex-shrink:0}
-    .month-nav{display:flex;align-items:center;gap:6px}
-    .nav-btn{background:var(--lilacSoft);border:1px solid var(--lilacMid);border-radius:6px;color:var(--navy);padding:7px 10px;font-size:13px;font-weight:700;cursor:pointer;line-height:1}
-    .nav-btn:hover{background:var(--lilacMid)}
-
-    /* ── Top actions ── */
-    .top-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
-    .toggle{display:inline-flex;background:var(--lilacSoft);border:1px solid var(--lilacMid);border-radius:8px;padding:3px;gap:2px}
-    .toggle-btn{border:none;background:transparent;padding:7px 14px;border-radius:6px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);transition:all .15s}
-    .toggle-btn.active{background:var(--white);color:var(--navy);box-shadow:0 1px 4px rgba(61,42,138,.12)}
-
-    /* ── Buttons ── */
-    .btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border:0;border-radius:8px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
-    .btn:disabled{opacity:.45;cursor:not-allowed}
-    .btn-navy{background:var(--navy);color:#fff}.btn-navy:hover{background:var(--navyDark)}
-    .btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
-    .btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#b91c1c}
-    .btn-gold{background:var(--gold);color:var(--ink)}.btn-gold:hover{background:#e09612}
-    .btn-ghost{background:var(--white);color:var(--navy);border:1px solid var(--border)}.btn-ghost:hover{background:var(--lilacSoft)}
-    .btn-sm{padding:5px 10px;font-size:11px}
-
-    /* ── Layout ── */
-    .layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
-
-    /* ── Panel ── */
-    .panel{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-    .panel-head{padding:12px 16px;background:var(--soft);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .panel-head-title{font-size:13px;font-weight:800;color:var(--navy)}
-    .panel-head-sub{font-size:12px;color:var(--muted);margin-top:1px}
-
-    /* ── Grid ── */
-    .grid-wrap{overflow:auto}
-    .slot-grid{width:100%;min-width:780px;border-collapse:separate;border-spacing:0;font-size:12px}
-    .slot-grid th,.slot-grid td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px;text-align:center;vertical-align:middle}
-    .slot-grid th{position:sticky;top:0;z-index:2;background:var(--soft);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
-    .slot-grid th:first-child,.slot-grid td:first-child{position:sticky;left:0;z-index:3;background:var(--white);text-align:left;font-size:11px;font-weight:700;color:var(--muted);min-width:82px;padding:6px 10px}
-    .slot-grid th:first-child{background:var(--soft);z-index:4}
-    .slot-cell{min-height:56px;border-radius:8px;border:1.5px solid transparent;padding:7px 5px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-    .slot-cell:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(61,42,138,.12)}
-    .slot-empty{background:#F3F4F8;color:#C4BEDD;cursor:default;border-color:transparent}
-    .slot-empty:hover{transform:none;box-shadow:none}
-    .slot-pending{background:var(--pendingBg);border-color:var(--pendingLine)}
-    .slot-approved{background:var(--approvedBg);border-color:var(--approvedLine)}
-    .slot-rejected{background:var(--rejectedBg);border-color:var(--rejectedLine)}
-    .slot-mixed{background:var(--lilacSoft);border-color:var(--lilacMid)}
-    .slot-selected{outline:2.5px solid var(--navy);outline-offset:2px}
-    .slot-num{font-size:20px;font-weight:800;line-height:1}
-    .slot-breakdown{font-size:10px;font-weight:700;display:flex;gap:4px}
-    .bp{color:var(--pendingText)}.ba{color:var(--approvedText)}.br{color:var(--rejectedText)}
-    .slot-campuses{font-size:9px;color:var(--muted);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
-
-    /* ── List view ── */
-    .list-wrap{overflow:auto;display:none}
-    .list-cards{display:none;gap:10px;padding:10px}
-    .list-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 3px 10px rgba(61,42,138,.08)}
-    .list-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
-    .list-card-title{font-size:13px;font-weight:800;color:var(--navy)}
-    .list-card-sub{font-size:11px;color:var(--muted)}
-    .list-card-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
-    .list-card-meta div{font-size:11px;color:var(--muted)}
-    .list-card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .list-table{width:100%;border-collapse:collapse;min-width:1100px;font-size:12px}
-    .list-table th,.list-table td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:middle}
-    .list-table th{background:var(--soft);font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-    .list-table tbody tr:hover{background:var(--lilacSoft)}
-    .list-table tbody tr.row-checked{background:#EDE9FA}
-    .status-pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px}
-    .sp-pending{background:var(--pendingBg);color:var(--pendingText);border:1px solid var(--pendingLine)}
-    .sp-approved{background:var(--approvedBg);color:var(--approvedText);border:1px solid var(--approvedLine)}
-    .sp-rejected{background:var(--rejectedBg);color:var(--rejectedText);border:1px solid var(--rejectedLine)}
-    .id-mono{font-family:monospace;font-size:10px;color:var(--muted)}
-    .note-input{width:180px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:11px}
-    .note-input:focus{border-color:var(--navy);outline:none}
-
-    /* ── Slot panel ── */
-    .slot-panel{position:sticky;top:20px;max-height:calc(100vh - 40px);overflow-y:auto}
-    .slot-panel-body{padding:12px}
-    .empty-panel{padding:20px 14px;font-size:13px;color:var(--muted);line-height:1.55}
-    .teacher-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;transition:box-shadow .15s}
-    .teacher-card:hover{box-shadow:0 3px 12px rgba(61,42,138,.1)}
-    .tc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:8px}
-    .tc-name{font-size:14px;font-weight:800;color:var(--navy)}
-    .tc-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
-    .tc-campus{display:inline-flex;align-items:center;gap:4px;background:var(--lilacSoft);color:var(--navy);border:1px solid var(--lilacMid);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;margin-bottom:8px}
-    .tc-actions{display:flex;gap:6px;flex-wrap:wrap}
-    .tc-id{font-family:monospace;font-size:9px;color:var(--muted);margin-top:6px}
-
-    /* ── Campus modal ── */
-    .modal{position:fixed;inset:0;background:rgba(30,21,53,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
-    .modal.open{display:flex}
-    .modal-card{background:var(--white);border-radius:14px;width:min(420px,100%);padding:20px;box-shadow:0 20px 60px rgba(30,21,53,.22)}
-    .modal-card h3{font-size:17px;font-weight:800;color:var(--navy);margin-bottom:6px}
-    .modal-card p{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5}
-    .modal-label{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
-    .modal-input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;outline:none;transition:border-color .15s;margin-bottom:14px}
-    .modal-input:focus{border-color:var(--navy)}
-    .modal-actions{display:flex;justify-content:flex-end;gap:8px}
-
-    /* ── Status line ── */
-    .status-line{font-size:12px;color:var(--muted);min-height:18px;margin-bottom:10px}
-    .status-line.loading{color:var(--navy)}
-    .status-line.error{color:var(--rejected)}
-
-    /* ── Responsive ── */
-    @media(max-width:1100px){.layout{grid-template-columns:1fr}.slot-panel{position:relative;top:auto;max-height:none}}
-    @media(max-width:760px){.kpi-row{grid-template-columns:repeat(3,1fr)}.toolbar{flex-direction:column;align-items:stretch}.toolbar input,.toolbar select{width:100%}}
-    @media(max-width:480px){.kpi-row{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:600px){
-      .rs-nav__label,.rs-nav__admin-badge{display:none}
-      .rs-nav__inner{padding:10px 12px}
-      .rs-nav__link{padding:8px 10px}
-    }
-    @media(max-width:980px){
-      .list-wrap{display:none !important}
-      .list-cards{display:none}
-    }
-  </style>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/toast.js"></script>
   <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
+
+    /* JS-generated summary cards (renderSummary injects into #summaryGrid) */
+    .summary-card  { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-raised); }
+    .summary-label { font-size: var(--fs-label); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .summary-value { font-size: 26px; font-weight: 800; color: var(--color-text-primary); line-height: 1.1; margin-top: var(--space-1); }
+
+    /* JS-generated status badges (statusClass() → renderTable / renderCards) */
+    .status-chip          { display: inline-flex; padding: 2px var(--space-2); border-radius: var(--radius-full); font-size: var(--fs-badge); font-weight: 600; }
+    .status-pending       { background: var(--color-warning-bg); color: var(--color-warning-fg); }
+    .status-review        { background: #ffedd5; color: #9a3412; }
+    .status-duplicate     { background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .status-waitlisted    { background: #ede9fe; color: #5b21b6; }
+    .status-assigned      { background: var(--color-success-bg); color: var(--color-success-fg); }
+    .status-moodle-pending { background: var(--color-info-bg); color: var(--color-info-fg); }
+    .status-moodle-synced  { background: var(--color-success-bg); color: var(--color-success-fg); }
+    .status-moodle-failed  { background: var(--color-danger-bg); color: var(--color-danger-fg); }
+
+    /* JS-generated row "Open" button (renderTable emits class="btn") */
+    .btn { display: inline-flex; align-items: center; gap: var(--space-1); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 500 var(--fs-meta)/1.4 inherit; background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; white-space: nowrap; }
+    .btn:hover { background: var(--color-surface-raised); }
+
+    /* Flash messages (showFlash) and empty-state rows (renderTable) */
+    .msg         { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-raised); font-size: var(--fs-body); }
+    .msg.error   { border-color: color-mix(in srgb, var(--color-danger-fg) 30%, transparent); background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .msg.success { border-color: color-mix(in srgb, var(--color-success-fg) 30%, transparent); background: var(--color-success-bg); color: var(--color-success-fg); }
+
+    /* JS-generated action button group (.actions used in renderTable cards) */
+    .actions { display: flex; gap: var(--space-1); flex-wrap: wrap; }
+
+    /* Mobile card view (renderCards injects .mobile-card into #mobileCards) */
+    .mobile-cards { display: none; gap: var(--space-2); padding-top: var(--space-2); }
+    .mobile-card  { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); background: var(--color-surface); }
+
+    /* Detail modal kv grid (renderDetail injects .kv-item into #detailKv) */
+    .kv { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+    .kv-item    { background: var(--color-surface-raised); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); }
+    .kv-item .k { font-size: var(--fs-label); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .kv-item .v { font-size: var(--fs-body); font-weight: 600; word-break: break-word; margin-top: var(--space-1); }
+
+    /* Audit history (renderDetail injects .history-row into #auditHistory) */
+    .history-list { display: grid; gap: var(--space-2); }
+    .history-row  { padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-raised); font-size: var(--fs-meta); }
+
+    /* Modal field layout (static assignment selects in detail modal) */
+    .field       { display: grid; gap: var(--space-1); }
+    .field label { font-size: var(--fs-label); font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Labels in the action bar filter fields */
+    .filter-label { font-size: var(--fs-label); font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: var(--space-1); }
+    .filter-field { display: grid; }
+
+    /* Sticky table headers */
+    .fs-table th { position: sticky; top: 0; z-index: 1; }
+
+    /* Detail modal */
+    .modal-overlay      { position: fixed; inset: 0; background: rgba(24,16,40,.42); display: none; align-items: center; justify-content: center; padding: var(--space-4); z-index: 1200; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); max-width: 760px; width: 100%; max-height: 90vh; overflow: auto; padding: var(--space-4); display: grid; gap: var(--space-4); }
+
+    @media (max-width: 900px)  { .fs-table-wrap { display: none; } .mobile-cards { display: grid; } .kv { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
-<nav class="rs-nav" aria-label="Admin Portal Navigation">
-  <div class="rs-nav__inner">
-    <a class="rs-nav__link" href="TeacherAttendancePortal.html"><span class="rs-nav__icon">✅</span><span class="rs-nav__label">Teacher Attendance</span></a>
-    <a class="rs-nav__link" href="teacher-schedule.html"><span class="rs-nav__icon">📅</span><span class="rs-nav__label">Teacher Schedule</span></a>
-    <a class="rs-nav__link is-active" href="admin-review.html"><span class="rs-nav__icon">🛡️</span><span class="rs-nav__label">Admin Review</span><span class="rs-nav__admin-badge">ADMIN</span></a>
-  </div>
-</nav>
-
-<!-- ── Header ── -->
-<header class="hdr">
-  <div class="hdr-left">
-    <span class="hdr-badge">Rock Solid</span>
-    <div>
-      <div class="hdr-title">Rock Solid Admin View</div>
-      <div class="hdr-sub">Review teacher submissions · approve slots · assign campuses</div>
+  <main class="main">
+    <div class="fs-page-header">
+      <h1 class="fs-page-title">Admin Review</h1>
     </div>
-  </div>
-  <div class="hdr-right">
-    <button class="btn btn-ghost btn-sm" onclick="load()">Refresh</button>
-  </div>
-</header>
 
-<div class="wrap">
+    <section class="fs-metric-grid" id="summaryGrid" aria-label="Review summaries" style="margin-bottom: var(--space-4);"></section>
 
-  <!-- ── KPI row ── -->
-  <div class="kpi-row">
-    <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-val" id="kTotal">—</div></div>
-    <div class="kpi pending"><div class="kpi-label">Pending</div><div class="kpi-val" id="kPending">—</div></div>
-    <div class="kpi approved"><div class="kpi-label">Approved</div><div class="kpi-val" id="kApproved">—</div></div>
-    <div class="kpi rejected"><div class="kpi-label">Rejected</div><div class="kpi-val" id="kRejected">—</div></div>
-    <div class="kpi"><div class="kpi-label">Teachers</div><div class="kpi-val" id="kTeachers">—</div></div>
-    <div class="kpi"><div class="kpi-label">Campuses</div><div class="kpi-val" id="kCampuses">—</div></div>
-  </div>
-
-  <!-- ── Toolbar ── -->
-  <div class="toolbar">
-    <input id="qTeacher" placeholder="Search teacher name or ID…" oninput="applyFilters()"/>
-    <input id="qCampus" placeholder="Campus code…" oninput="applyFilters()"/>
-    <select id="qStatus" onchange="applyFilters()">
-      <option value="">All statuses</option>
-      <option value="PENDING">Pending</option>
-      <option value="APPROVED">Approved</option>
-      <option value="REJECTED">Rejected</option>
-    </select>
-    <select id="qGroup" onchange="onGroupChange()">
-      <option value="ALL">All Groups</option>
-    </select>
-    <div class="toolbar-divider"></div>
-    <div class="month-nav">
-      <button class="nav-btn" onclick="shiftMonth(-1)">‹</button>
-      <select id="qMonth" onchange="load()">
-        <option>January</option><option>February</option><option>March</option>
-        <option>April</option><option>May</option><option>June</option>
-        <option>July</option><option>August</option><option>September</option>
-        <option>October</option><option>November</option><option>December</option>
-      </select>
-      <input id="qYear" type="number" style="width:74px" onchange="load()"/>
-      <button class="nav-btn" onclick="shiftMonth(1)">›</button>
-    </div>
-    <div>
-      <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px">Batch Start Sunday</label>
-      <input id="batchStartSunday" type="date"/>
-    </div>
-  </div>
-
-  <!-- ── Top actions ── -->
-  <div class="top-actions">
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <div class="toggle">
-        <button class="toggle-btn active" id="toggleGrid" onclick="setView('grid')">Grid</button>
-        <button class="toggle-btn" id="toggleList" onclick="setView('list')">List</button>
+    <div class="fs-action-bar">
+      <div class="fs-action-bar-search">
+        <label class="filter-label" for="searchInput">Search</label>
+        <input class="fs-input" id="searchInput" type="search" placeholder="Name, email, phone, fellowship" />
       </div>
-      <div class="toggle">
-        <button class="toggle-btn active" id="toggleScopeFull" onclick="setScope('full')">Full View</button>
-        <button class="toggle-btn" id="toggleScopeGroup" onclick="setScope('group')">By Group ID</button>
-      </div>
-      <button class="btn btn-green" id="massApproveBtn" onclick="massApprove()">Approve Visible Pending</button>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button class="btn btn-ghost" onclick="bulkByTeacher()">Approve by Teacher</button>
-      <button class="btn btn-ghost" onclick="bulkByCampus()">Approve by Campus</button>
-      <button class="btn btn-ghost" onclick="deactivatePreviousMonth()">Deactivate Previous Month Classes</button>
-      <button class="btn btn-ghost" onclick="repairApprovedClassOptions()">Repair Approved Class Options</button>
-    </div>
-  </div>
-
-  <div id="statusLine" class="status-line"></div>
-
-  <!-- ── Main layout ── -->
-  <div class="layout">
-
-    <!-- Main panel -->
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="panel-head-title" id="mainTitle">Grid View</div>
-          <div class="panel-head-sub" id="mainSub">Click a filled slot to open teacher detail panel</div>
+      <div class="fs-action-bar-filters">
+        <div class="filter-field">
+          <label class="filter-label" for="statusFilter">Status</label>
+          <select class="fs-select" id="statusFilter"></select>
         </div>
-        <span style="font-size:12px;color:var(--muted)" id="rowCount">—</span>
-      </div>
-
-      <!-- Grid -->
-      <div id="gridView" class="grid-wrap">
-        <table class="slot-grid" id="slotGrid"></table>
-      </div>
-
-      <!-- List -->
-      <div id="listView" class="list-wrap">
-        <table class="list-table">
-          <thead>
-            <tr>
-              <th style="width:32px"><input type="checkbox" id="checkAll" onchange="toggleAll(this.checked)"/></th>
-              <th>ID</th><th>GroupID</th><th>Campus / Fellowship</th><th>Teacher</th><th>Day</th><th>Time</th>
-              <th>Month / Year</th><th>Status</th><th>Admin Note</th><th>Submitted</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="listBody"></tbody>
-        </table>
-      </div>
-      <div id="listCards" class="list-cards"></div>
-    </div>
-
-    <!-- Slot detail panel -->
-    <aside class="panel slot-panel" id="slotPanel">
-      <div class="panel-head">
-        <div>
-          <div class="panel-head-title" id="slotTitle">Slot Details</div>
-          <div class="panel-head-sub" id="slotSub">Select a grid cell to review</div>
+        <div class="filter-field">
+          <label class="filter-label" for="fellowshipFilter">Fellowship</label>
+          <select class="fs-select" id="fellowshipFilter"><option value="">All fellowships</option></select>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="closePanel()">Close</button>
       </div>
-      <div id="slotPanelBody" class="slot-panel-body">
-        <div class="empty-panel">No slot selected yet.<br><br>Click any filled cell in the grid to see which teachers are available and take action.</div>
+      <div class="fs-action-bar-actions">
+        <button id="refreshBtn" class="fs-btn fs-btn-secondary">Refresh</button>
       </div>
-    </aside>
+    </div>
 
-  </div>
-</div>
+    <div id="flashArea" style="margin-bottom: var(--space-2);"></div>
 
-<!-- Campus modal -->
-<div class="modal" id="campusModal" onclick="if(event.target===this)closeCampusModal()">
-  <div class="modal-card">
-    <h3>Add Campus to Slot</h3>
-    <p id="campusModalDesc">Clone this teacher's slot for an additional campus. The new row will be created as <strong>Pending</strong>.</p>
-    <label class="modal-label">Campus Code</label>
-    <input class="modal-input" id="newCampusInput" placeholder="e.g. YORKU, UTM, UALBERTA…"/>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeCampusModal()">Cancel</button>
-      <button class="btn btn-navy" onclick="saveCampusClone()">Create Pending Slot</button>
+    <div class="fs-table-wrap">
+      <table class="fs-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Fellowship</th>
+            <th>Preferred Time</th>
+            <th>Status</th>
+            <th>Assigned Class</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="applicantTableBody"></tbody>
+      </table>
+    </div>
+    <div class="mobile-cards" id="mobileCards"></div>
+  </main>
+
+  <div class="modal-overlay" id="detailModal" aria-hidden="true">
+    <div class="modal">
+      <div class="fs-card-header">
+        <h3 id="detailTitle" class="fs-card-title">Applicant Detail</h3>
+        <button id="closeDetailBtn" class="fs-btn fs-btn-secondary">Close</button>
+      </div>
+
+      <div class="kv" id="detailKv"></div>
+
+      <div>
+        <h4 style="margin: 0 0 var(--space-2);">Audit History</h4>
+        <div class="history-list" id="auditHistory"></div>
+      </div>
+
+      <div>
+        <h4 style="margin: 0 0 var(--space-2);">Assignment</h4>
+        <div class="kv">
+          <div class="field">
+            <label for="assignBatch">Active Batch</label>
+            <select class="fs-select" id="assignBatch"></select>
+          </div>
+          <div class="field">
+            <label for="assignClass">Active Class Option</label>
+            <select class="fs-select" id="assignClass"></select>
+          </div>
+        </div>
+        <div id="assignInfo" class="msg" style="margin-top: var(--space-2);">Select batch and class option.</div>
+        <div class="actions" style="margin-top: var(--space-2);">
+          <button id="assignBtn" class="fs-btn fs-btn-primary">Assign Applicant</button>
+          <button data-mark="WAITLISTED" class="fs-btn fs-btn-secondary">Mark Waitlisted</button>
+          <button data-mark="DUPLICATE" class="fs-btn fs-btn-secondary">Mark Duplicate</button>
+          <button data-mark="REVIEW" class="fs-btn fs-btn-secondary">Mark Review</button>
+          <button id="resolveBtn" class="fs-btn fs-btn-secondary">Resolve Applicant</button>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-  <script src="../js/admin-ui.js"></script>
-  <script src="../js/admin-api.js"></script>
-  <script src="../js/admin-review.js"></script>
-  <script src="../ui/premium-shell.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module" src="../js/admin-review.js"></script>
 </body>
 </html>
-
-
-
-
-

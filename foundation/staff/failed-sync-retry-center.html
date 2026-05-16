@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Foundation School - Failed Sync Retry Center</title>
+  <title>Rock Solid - Failed Sync Retry Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
   <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel='stylesheet' href='../ui/primitives.css' />
 </head>
 <body>
   <main class="fs-page fs-wrap-xl ops-page">
@@ -19,7 +20,7 @@
       <p class="hero-sub">Operational view for failed jobs across queue, notifications, Moodle sync, and Mailchimp-linked failures.</p>
     </section>
 
-    <section class="ops-summary-grid">
+    <section class="ops-summary-grid fs-metric-grid">
       <article class="ops-kpi-card"><h3>Total Failed Jobs</h3><div id="kTotal" class="ops-kpi-value">0</div></article>
       <article class="ops-kpi-card"><h3>Failed Emails</h3><div id="kEmails" class="ops-kpi-value">0</div></article>
       <article class="ops-kpi-card"><h3>Failed Moodle Syncs</h3><div id="kMoodle" class="ops-kpi-value">0</div></article>
@@ -64,10 +65,10 @@
       </div>
 
       <div class="ops-actions-row">
-        <button id="refreshBtn" class="btn primary">Refresh</button>
-        <button id="retrySelectedBtn" class="btn">Retry Selected</button>
-        <button id="retryVisibleBtn" class="btn">Retry All Visible</button>
-        <button id="resolveSelectedBtn" class="btn">Mark Resolved</button>
+        <button id="refreshBtn" class="btn fs-btn fs-btn-primary primary">Refresh</button>
+        <button id="retrySelectedBtn" class="btn fs-btn fs-btn-secondary">Retry Selected</button>
+        <button id="retryVisibleBtn" class="btn fs-btn fs-btn-secondary">Retry All Visible</button>
+        <button id="resolveSelectedBtn" class="btn fs-btn fs-btn-secondary">Mark Resolved</button>
         <span class="spacer"></span>
         <span id="summaryLine" class="muted">0 visible</span>
       </div>
@@ -81,14 +82,16 @@
       <div id="loadingState" class="state">Loading failed jobs...</div>
       <div id="emptyState" class="state hidden">No failed jobs match current filters.</div>
 
-      <div id="tableWrap" class="table-wrap hidden">
-        <table>
+      <div id="tableWrap" class="table-wrap fs-table-wrap hidden">
+        <table class="fs-table">
           <thead>
             <tr>
               <th><input id="selectAll" type="checkbox" aria-label="Select all visible" /></th>
               <th>Type</th>
               <th>Recipient / Student</th>
+              <th>Trace ID</th>
               <th>Status</th>
+              <th>Cause</th>
               <th>Error</th>
               <th>Created</th>
               <th>Last Attempted</th>
@@ -112,21 +115,31 @@
     <div class="card ops-detail-modal">
       <div class="ops-detail-head">
         <h3 id="detailTitle">Error Details</h3>
-        <button id="detailCloseBtn" class="btn">Close</button>
+        <button id="detailCloseBtn" class="btn fs-btn fs-btn-secondary">Close</button>
       </div>
       <p><strong>Error:</strong> <span id="detailError"></span></p>
       <pre id="detailBody" class="ops-detail-pre"></pre>
       <div class="ops-actions-row">
-        <button id="copyErrorBtn" class="btn">Copy Error</button>
-        <button id="copyRawBtn" class="btn">Copy Raw</button>
+        <button id="copyErrorBtn" class="btn fs-btn fs-btn-secondary">Copy Error</button>
+        <button id="copyRawBtn" class="btn fs-btn fs-btn-secondary">Copy Raw</button>
       </div>
     </div>
   </div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/runtime.js"></script>
   <script src="../js/admin-ui.js"></script>
   <script src="../js/admin-api.js"></script>
   <script src="../js/admin-shell.js"></script>
   <script type="module" src="../js/failed-sync-retry-center.js"></script>
+  <script>
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "failedsyncs", pageTitle: "Failed Syncs" });
+  </script>
 </body>
 </html>
+
+
+
+

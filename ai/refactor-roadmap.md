@@ -1,75 +1,168 @@
-# Foundation School Refactor Roadmap
+refactor-roadmap.md
 
-Date: 2026-05-06  
-Owner: Platform Engineering
+# Refactor Roadmap
 
-## 1. Current Platform State
-- Supabase-only backend direction is established.
-- Shared teacher shell exists and is active across teacher pages.
-- Edge Function architecture is active for registration and teacher portal APIs.
-- Registration outcomes and waitlist model are implemented (`ASSIGNED`, `WAITLISTED`, `DUPLICATE`, `REVIEW`).
-- Notification queues and worker flow are present (`scheduled_notifications`, `email_queue`, workers).
-- Remaining technical debt:
-  - large inline HTML/CSS/JS pages
-  - uneven design consolidation
-  - partial module extraction
-  - incomplete RLS hardening consistency
+Phased stabilization plan. Respect phase order — do not begin a later phase while an earlier
+phase has open critical work.
 
-## 2. Major Risks
-- Giant inline pages increase regression probability and onboarding cost.
-- Inconsistent UI systems produce visual drift and duplicate fixes.
-- RLS gaps can expose sensitive data by role/context mismatch.
-- Duplicated components/helpers fragment behavior and increase defects.
-- Mobile experiences are inconsistent across admin/teacher workflows.
+---
 
-## 3. Stabilization Phases
+## Phase 1 — Shared Shells [COMPLETE]
 
-### Phase 1 — Shared Shells
-- Complete and adopt `admin-shell.js` + `admin-shell.css`.
-- Continue `teacher-shell.js` cleanup and role-aware nav controls.
-- Remove duplicated page-level nav/topbar markup.
-- Standardize breadcrumb + theme toggle + profile/dropdown behavior.
+Goal: Every admin/staff page uses `admin-shell.js` for navigation, auth handling, and theme.
+No page should embed its own nav markup.
 
-### Phase 2 — Shared Design System
-- Extract and normalize cards/buttons/tables/chips/modals.
-- Consolidate spacing/type/elevation tokens in shared CSS.
-- Remove duplicated inline nav and utility styles from pages.
-- Keep Batch Management visual direction as canonical.
+Deliverables:
+- `admin-shell.js` extracted and stabilized
+- All staff pages call `FSAdminShell.mount()`
+- Null-safe guard: shows "Not connected" when config absent
+- Role-gating: teacher-only pages blocked for non-teacher roles
 
-### Phase 3 — Inline JS Extraction
-- Move page utility blocks into `foundation/js/*` modules.
-- Reduce giant inline scripts in staff pages.
-- Consolidate API access through shared Supabase client + edge helpers.
-- Keep workflow behavior stable during extraction.
+---
 
-### Phase 4 — Security Hardening
-- Full RLS audit by table and role path.
-- Enforce edge auth context for privileged workflow endpoints.
-- Remove unsafe client-side assumptions about role and trust boundaries.
-- Standardize environment variable injection and secret handling patterns.
+## Phase 2 — Shared Design System [IN PROGRESS]
 
-### Phase 5 — Operational Expansion
-- Notifications center maturation and delivery diagnostics.
-- System health dashboards with actionable service checks.
-- Retry center enhancements for queue and sync failures.
-- Analytics dashboards and reporting rollups.
+tokens.css + primitives.css created, admin-shell.js updated,
+page migration not yet started.
 
-## 4. Design System Rules
-- Batch Management is the canonical UI reference.
-- Manrope-first typography, parchment/warm surfaces, purple/gold accents.
-- Rounded cards, premium shadows, restrained motion, consistent spacing rhythm.
-- Shared shell + shared components first; no page-specific design systems.
+Goal: All staff pages use `fs-*` CSS primitives from `tokens.css` / `primitives.css`.
+No page should define its own color variables, spacing tokens, or component classes.
 
-## 5. Engineering Principles
-- Incremental migration only.
-- Preserve workflows and business logic during refactors.
-- Avoid giant rewrites.
-- Stability over novelty.
-- Shared infrastructure preferred over page-level custom logic.
+Deliverables:
+- `tokens.css` — single source of truth for all design values
+- `primitives.css` — all fs-* component classes (shell, topbar, table, badge, button, input)
+- All staff pages import `primitives.css` and use `fs-*` classes
+- CI check: grep for `var(--muted)`, `.chip`, `.summary-card` → fail
 
-## 6. Future AI Rules
-- Read `/ai/*.md` before making architectural changes.
-- Preserve architecture direction and migration phases.
-- Preserve status enums and registration outcome semantics.
-- Preserve Supabase-only direction.
-- Preserve shared shell architecture and shared design system trajectory.
+Pages pending migration:
+- system-health.html
+- failed-sync-retry-center.html
+- audit-log.html
+- milestones-admin.html
+- notification-center.html
+- email-campaigns.html
+- dashboards.html
+- applicant-directory.html
+
+---
+
+## Phase 3 — Inline JS Extraction [NOT STARTED]
+
+Goal: No business logic in `<script>` tags or inline JS in HTML files.
+All page logic lives in ES module files under `/foundation/js/`.
+
+Deliverables:
+- All inline `<script type="module">` blocks extracted to named `.js` files
+- Shared helpers (auth, API, UI) imported rather than duplicated
+- `admin-api.js` covers all Supabase function invocations
+- config.js guard centralized in `runtime.js`
+
+---
+
+## Phase 4 — Security Hardening [LARGELY COMPLETE]
+
+RLS 1-4 done, CORS fixed, credentials secured.
+
+Goal: Every Supabase table has RLS. Every edge function validates JWT role. No credentials
+in any committed file.
+
+Completed:
+- RLS hardening migrations 1-4 applied (all listed tables covered)
+- CORS wildcard removed from 6 edge functions + shared-utils
+- config.js gitignored and never committed; pre-commit hook added
+- Attendance deduplication guard added
+- Teacher user ownership hardening migration applied
+
+Remaining:
+- Confirm all new tables created after 202605121320 have RLS policies
+- Rotate anon key found in config.js (release blocker)
+- Add server-side rate limiting to registration-processor
+
+---
+
+## Phase 5 — Operational Expansion [IN PROGRESS]
+
+Goal: Expand operational visibility and per-applicant traceability.
+
+Planned deliverables:
+- Per-applicant trace view in System Health (email + ID → full event log)
+- trace_id added to email pipeline tables
+- Moodle sync failure dashboard with per-cause breakdown
+- ClickUp escalation audit in Retry Center
+
+Current status (May 2026):
+- Operational hardening significantly improved (retry workflows, error classification, and visibility surfaces).
+- Per-applicant trace view remains open and is now a top consolidation task.
+
+---
+
+## Current Platform State — May 2026
+
+Completed:
+- RLS hardening complete.
+- CORS cleanup complete.
+- Attendance dedupe complete.
+- fs-* design system introduced.
+- `teacher-portal-api` router refactor complete.
+- Moodle 403 classification completed.
+- Shared `_shared/` utilities started (`supabase.ts`, `audit.ts`, `response.ts`).
+- `sender-worker` marked for deprecation.
+- Operational visibility significantly improved.
+
+Current highest priority consolidation tasks:
+- Shared assignment pipeline extraction.
+- Auth module consolidation.
+- fs-* migration completion.
+- Schema canonicalization (remove fallback table-name loops).
+- sender-worker deprecation completion.
+- Operational trace view.
+
+Do not reintroduce:
+- Duplicate workers.
+- Duplicate auth paths.
+- Legacy CSS primitives.
+- try-multiple-table-name fallbacks.
+- Inline config guards.
+- Page-specific design systems.
+
+---
+
+### Next Quarter Priorities (from engineering review)
+
+In recommended order:
+
+1. Refactor teacher-portal-api into action router [COMPLETED]
+   - ~60-line router target achieved via action-map + extracted handlers
+   - Isolated blast radius per action
+   - Testable independently
+
+2. Extract shared assignment logic
+   - registration-processor + phase2-processor share core loop
+   - Extract to _shared/lib/assign-applicant.ts
+   - Both become thin wrappers
+
+3. Consolidate auth-client.js + auth-guards.js
+   - Single auth module for all pages
+   - Remove admin_users fallback once profiles migration complete
+
+4. Complete fs-* page migration
+   - Set deadline before next feature sprint
+   - Add grep CI check: var(--muted), .chip, .summary-card = fail
+
+5. Create supabase/functions/_shared/ utilities [STARTED]
+   - retry.ts, audit.ts, response.ts, supabase.ts
+   - `supabase.ts`, `audit.ts`, `response.ts` now exist
+   - Expand adoption in new/refactored functions
+
+6. Audit sender-worker vs scheduled-notification-sender
+   - Determine if they can be merged
+   - Add trace_id to email pipeline tables
+
+7. Replace React teacher-availability sub-app
+   - Rewrite in vanilla JS using fs-* system
+   - Eliminate separate build toolchain
+
+8. Per-applicant trace view in system-health
+   - Enter email/ID → see full chronological event log
+   - Joins: applicants, audit_logs, class_roster,
+     scheduled_notifications, email_queue

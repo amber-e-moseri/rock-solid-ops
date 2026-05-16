@@ -1,14 +1,50 @@
+/**
+ * RETRY HELPER — NOT THE CANONICAL BATCH PROCESSOR
+ *
+ * Despite its name, scheduled-notification-sender does NOT process PENDING
+ * scheduled_notifications in batch. It is a single-item retry helper used
+ * exclusively by the Retry Center.
+ *
+ * What this function does:
+ *   Accepts { id, source: "scheduled_notifications" }
+ *   Resets that one notification to PENDING with scheduled_for = now()
+ *   Returns immediately — no queuing, no Resend calls
+ *
+ * Canonical pipeline (as of May 2026):
+ *   scheduled_notifications (PENDING, due)
+ *   → reminder-processor     [canonical batch processor — inserts email_queue rows]
+ *   → email_queue (Pending)
+ *   → email-sender           [Resend delivery, cron daily 07:00 EST]
+ *   → Resend
+ *
+ * This function is NOT scheduled. Do not add a cron to it.
+ * Do not treat it as the scheduled_notifications batch sender.
+ * For batch processing, see: supabase/functions/reminder-processor/index.ts
+ */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+function applyAllowedOrigin(req: Request) {
+  const allowed = String(Deno.env.get("ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const origin = String(req.headers.get("Origin") || "").trim();
+  if (origin && allowed.includes(origin)) {
+    corsHeaders["Access-Control-Allow-Origin"] = origin;
+  } else {
+    delete corsHeaders["Access-Control-Allow-Origin"];
+  }
+}
+
 Deno.serve(async (req) => {
+  applyAllowedOrigin(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

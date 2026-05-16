@@ -3,31 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Foundation School</title>
+  <title>Rock Solid</title>
   <style>
     html, body { height: 100%; margin: 0; }
+    :root {
+      --navy: #1C1610;
+      --gold: #C9A227;
+      --cream: #F7F5F0;
+    }
     body {
       display: grid;
       place-items: center;
       font-family: "DM Sans", "Manrope", "Inter", system-ui, -apple-system, sans-serif;
-      background: #F7F5F0;
-      color: #1C1610;
+      background: var(--cream);
+      color: var(--navy);
     }
-    p { margin: 0; font-size: 14px; color: #7A6F5E; }
+    .loading-card {
+      width: min(92vw, 420px);
+      background: #fff;
+      border: 1px solid color-mix(in srgb, var(--navy) 14%, #fff);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px color-mix(in srgb, var(--navy) 10%, transparent);
+      text-align: center;
+    }
+    .logo-mark {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      display: grid;
+      place-items: center;
+      color: var(--navy);
+      font-weight: 800;
+      font-size: 20px;
+      background: color-mix(in srgb, var(--gold) 24%, #fff);
+      border: 2px solid color-mix(in srgb, var(--gold) 72%, #fff);
+    }
+    .app-name {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      font-weight: 800;
+      color: var(--navy);
+    }
+    .loading-copy {
+      margin: 6px 0 0;
+      font-size: 14px;
+      color: color-mix(in srgb, var(--navy) 58%, #fff);
+    }
+    .spinner {
+      width: 28px;
+      height: 28px;
+      margin: 18px auto 0;
+      border-radius: 50%;
+      border: 3px solid color-mix(in srgb, var(--gold) 35%, #fff);
+      border-top-color: var(--navy);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
-  <p>Redirecting to Foundation School Operations...</p>
+  <section class="loading-card" aria-live="polite" aria-busy="true">
+    <div class="logo-mark" aria-hidden="true">RS</div>
+    <h1 class="app-name">Rock Solid</h1>
+    <p class="loading-copy">Redirecting to Rock Solid Operations...</p>
+    <div class="spinner" aria-hidden="true"></div>
+  </section>
 
   <script src="./js/config.js"></script>
   <script src="./js/config-helper.js"></script>
   <script type="module">
-    import { getSessionOrNull, getCurrentProfile } from "./auth/auth-client.js";
+    import { getSessionOrNull, getCurrentProfile, isPending, isAdmin, TEACHER_LANDING_PATH } from "./auth/auth-client.js";
 
     const loginUrl = "./auth/login.html";
-    const teacherUrl = "./staff/TeacherAttendancePortal.html";
+    const teacherUrl = `./${TEACHER_LANDING_PATH}`;
     const adminUrl = "./staff/admin-portal.html";
-    const adminRoles = new Set(["principal", "admin", "superadmin", "subgroup_admin", "pastor"]);
 
     function go(url) {
       window.location.replace(url);
@@ -46,11 +100,11 @@
         const role = String(profile?.role || "").toLowerCase();
         const isActive = profile?.is_active !== false && profile?.active !== false;
 
-        if (!isActive || role === "pending" || !role) {
+        if (!isActive || isPending(role) || !role) {
           go(loginUrl);
         } else if (role === "teacher") {
           go(teacherUrl);
-        } else if (adminRoles.has(role)) {
+        } else if (isAdmin(role)) {
           go(adminUrl);
         } else {
           go(loginUrl);

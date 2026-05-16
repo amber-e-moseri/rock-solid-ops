@@ -1,52 +1,197 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Foundation School Login</title>
+  <title>Rock Solid Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <style>
+    body {
+      background: var(--color-bg, #f5f3ff);
+      margin: 0;
+    }
+    .login-card {
+      max-width: 400px;
+      background: #fff;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      padding: 32px;
+    }
+    .login-title {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .login-input {
+      border: 1px solid #e0d9ff;
+      border-radius: 8px;
+    }
+    .login-submit {
+      width: 100%;
+      border-radius: 8px;
+    }
+    #forgotPasswordBtn {
+      background: none;
+      background-color: transparent;
+      border: none;
+      color: var(--color-primary, #7c3aed);
+      text-decoration: underline;
+      padding: 0;
+      cursor: pointer;
+      font-size: 13px;
+    }
+  </style>
 </head>
-<body class="min-h-screen bg-[#F4EFE3] text-[#1E1630] flex items-center justify-center p-6">
-  <div class="w-full max-w-md bg-white border border-purple-100 rounded-2xl p-6 shadow-sm">
-    <h1 class="text-2xl font-bold text-[#4C2A92] mb-4">Foundation School Login</h1>
+<body class="min-h-screen text-[#1E1630] flex items-center justify-center p-6">
+  <div class="w-full border border-purple-100 rounded-2xl login-card">
+    <h1 class="text-[#4C2A92] mb-4 login-title">Rock Solid Login</h1>
     <form id="loginForm" class="space-y-3">
-      <input id="email" type="email" required placeholder="Email" class="w-full px-3 py-2 border rounded-lg" />
-      <input id="password" type="password" required placeholder="Password" class="w-full px-3 py-2 border rounded-lg" />
-      <button type="submit" class="w-full px-4 py-2 rounded-lg bg-[#4C2A92] text-white font-semibold">Sign In</button>
+      <input id="email" type="email" required placeholder="Email" class="w-full px-3 py-2 login-input" />
+      <input id="password" type="password" required placeholder="Password" class="w-full px-3 py-2 login-input" />
+      <button type="submit" class="px-4 py-2 bg-[#4C2A92] text-white font-semibold login-submit">Sign In</button>
+      <button id="forgotPasswordBtn" type="button" class="w-full text-left">Forgot password?</button>
     </form>
     <p id="msg" class="text-sm text-slate-600 mt-3"></p>
+    <p id="supportMsg" class="text-sm text-slate-600 mt-1 hidden"></p>
   </div>
 
   <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
   <script type="module">
-    import { supabase } from "./auth-client.js";
+    import { supabase, getCurrentProfile, TEACHER_LANDING_PATH } from "./auth-client.js";
+    const appPath = (relativePath) => {
+      const clean = String(relativePath || "").replace(/^\/+/, "");
+      const p = window.location.pathname || "";
+      return p.includes("/foundation/") ? `/foundation/${clean}` : `/${clean}`;
+    };
+    const safeNext = () => {
+      const raw = new URLSearchParams(window.location.search).get("next") || "";
+      if (!raw.startsWith("/")) return appPath("staff/admin-dashboard.html");
+      if (raw.startsWith("//")) return appPath("staff/admin-dashboard.html");
+      return raw;
+    };
 
     const form = document.getElementById("loginForm");
     const msg = document.getElementById("msg");
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const emailInput = document.getElementById("email");
+    const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
+    const supportMsg = document.getElementById("supportMsg");
+    const supportEmail = String(window.FS_CONFIG?.SUPPORT_EMAIL || "support@rocksolid.school").trim() || "support@rocksolid.school";
+
+    function setSupportLine(show) {
+      if (!supportMsg) return;
+      supportMsg.textContent = show ? `Contact ${supportEmail} for access.` : "";
+      supportMsg.classList.toggle("hidden", !show);
+    }
+
+    const errorCode = new URLSearchParams(window.location.search).get("error") || "";
+    if (errorCode === "inactive") {
+      msg.textContent = "Your teacher account is inactive or not yet linked. Contact your administrator.";
+      setSupportLine(true);
+    } else if (errorCode === "pending") {
+      msg.textContent = "Your account is pending approval.";
+      setSupportLine(true);
+    } else if (errorCode === "unauthorized") {
+      msg.textContent = "Your account does not have access to this page.";
+      setSupportLine(false);
+    } else {
+      setSupportLine(false);
+    }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      msg.textContent = "Signing in...";
+      if (submitBtn) submitBtn.disabled = true;
+      if (submitBtn) submitBtn.textContent = "Signing in…";
+      msg.textContent = "";
+      setSupportLine(false);
 
-      const email = document.getElementById("email").value.trim();
+      const email = emailInput.value.trim();
       const password = document.getElementById("password").value;
 
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        msg.textContent = error.message;
+        const raw = String(error.message || "");
+        const isInvalidCreds = raw.toLowerCase().includes("invalid login credentials");
+        msg.textContent = isInvalidCreds
+          ? "Incorrect email or password. Please try again."
+          : "Sign in failed. Please try again or contact support.";
+        setSupportLine(false);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Sign In";
+        }
         return;
       }
 
-      window.location.href = "/foundation/staff/admin-dashboard.html";
+      let profile = null;
+      try {
+        profile = await getCurrentProfile();
+      } catch (_) {
+        msg.textContent = "Sign in failed. Please try again or contact support.";
+        setSupportLine(false);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Sign In";
+        }
+        return;
+      }
+      if (!profile) {
+        msg.textContent = "Sign in failed. Please try again or contact support.";
+        setSupportLine(false);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Sign In";
+        }
+        return;
+      }
+      const role = String(profile.role || "").trim().toLowerCase();
+      const isInactive = profile?.is_active === false;
+      const isAdminLike = new Set(["admin", "superadmin", "subgroup_admin", "pastor", "principal"]).has(role);
+
+      if (isInactive || role === "pending") {
+        await supabase.auth.signOut();
+        msg.textContent = "Your account is pending approval.";
+        setSupportLine(true);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Sign In";
+        }
+        return;
+      }
+
+      if (role === "teacher") {
+        window.location.href = appPath(TEACHER_LANDING_PATH);
+        return;
+      }
+
+      if (isAdminLike) {
+        window.location.href = safeNext();
+        return;
+      }
+
+      window.location.href = safeNext();
+    });
+
+    forgotPasswordBtn.addEventListener("click", async () => {
+      const email = emailInput.value.trim();
+      if (!email) {
+        msg.textContent = "Enter your email address first.";
+        emailInput.focus();
+        return;
+      }
+
+      msg.textContent = "Sending reset link...";
+      setSupportLine(false);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/foundation/auth/login.html`,
+      });
+      if (error) {
+        msg.textContent = "Could not send reset link. Please try again or contact support.";
+        return;
+      }
+      msg.textContent = "Check your email for a reset link.";
     });
   </script>
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
-
-
-
-
-
-

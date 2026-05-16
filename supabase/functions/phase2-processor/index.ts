@@ -22,6 +22,7 @@ function applyAllowedOrigin(req: Request) {
 }
 
 interface WebhookPayload {
+  action?: string
   type: 'INSERT' | 'UPDATE' | 'DELETE'
   record: ApplicantRow
 }
@@ -68,11 +69,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return json({ ok: false, error: 'Invalid JSON' }, 400)
   }
 
+  // CUTOVER ENFORCED: registration entry point disabled. See NEXT_STEPS.md
+  const action = String(payload?.action || '').trim().toLowerCase()
+  if (action === 'register' || action === 'process_registration') {
+    return new Response(
+      JSON.stringify({ ok: false, error: 'Registration is handled by registration-processor. This path is disabled.', code: 'DISABLED' }),
+      { status: 410, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
   if (payload.type !== 'INSERT') {
     return json({ ok: true, skipped: true })
   }
 
   const applicant = payload.record
+  const flowTraceId = crypto.randomUUID()
 
   try {
     // Step 0: Look up the active/open batch — registration is locked to this batch
@@ -91,9 +102,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       await insertErrorSubmission(
         applicant.id,
         'No active or open batch found',
-        { applicant_id: applicant.id, email: applicant.email }
+        { applicant_id: applicant.id, email: applicant.email, trace_id: flowTraceId }
       )
-      await logSync('PHASE2_NO_ACTIVE_BATCH', `No active/open batch for applicant ${applicant.id}`)
+      await logSync('PHASE2_NO_ACTIVE_BATCH', `No active/open batch for applicant ${applicant.id}`, { trace_id: flowTraceId })
       return json({ ok: true, handled: 'error_submission' })
     }
 
@@ -105,9 +116,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       await insertErrorSubmission(
         applicant.id,
         'Missing fellowship_code',
-        { applicant_id: applicant.id, email: applicant.email }
+        { applicant_id: applicant.id, email: applicant.email, trace_id: flowTraceId }
       )
-      await logSync('PHASE2_NO_FELLOWSHIP_CODE', `Applicant ${applicant.id} has no fellowship_code`)
+      await logSync('PHASE2_NO_FELLOWSHIP_CODE', `Applicant ${applicant.id} has no fellowship_code`, { trace_id: flowTraceId })
       return json({ ok: true, handled: 'error_submission' })
     }
 
@@ -123,9 +134,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       await insertErrorSubmission(
         applicant.id,
         `Fellowship not found: ${fellowshipCode}`,
-        { applicant_id: applicant.id, fellowship_code: fellowshipCode }
+        { applicant_id: applicant.id, fellowship_code: fellowshipCode, trace_id: flowTraceId }
       )
-      await logSync('PHASE2_FELLOWSHIP_NOT_FOUND', `No active fellowship: ${fellowshipCode}`)
+      await logSync('PHASE2_FELLOWSHIP_NOT_FOUND', `No active fellowship: ${fellowshipCode}`, { trace_id: flowTraceId })
       return json({ ok: true, handled: 'error_submission' })
     }
 
@@ -192,9 +203,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       await insertErrorSubmission(
         applicant.id,
         `No open class for fellowship: ${fellowshipCode} in batch: ${activeBatchId}`,
-        { applicant_id: applicant.id, fellowship_code: fellowshipCode, group_id: groupId, batch_id: activeBatchId }
+        { applicant_id: applicant.id, fellowship_code: fellowshipCode, group_id: groupId, batch_id: activeBatchId, trace_id: flowTraceId }
       )
-      await logSync('PHASE2_NO_CLASS_FOUND', `No open class for ${fellowshipCode} in batch ${activeBatchId}`)
+      await logSync('PHASE2_NO_CLASS_FOUND', `No open class for ${fellowshipCode} in batch ${activeBatchId}`, { trace_id: flowTraceId })
       return json({ ok: true, handled: 'error_submission' })
     }
 
@@ -265,6 +276,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Step 9: Log success
     await logSync('PHASE2_SUCCESS', `Enrolled ${studentId}`, {
+      trace_id: flowTraceId,
       applicant_id: applicant.id,
       student_id: studentId,
       fellowship_code: fellowshipCode,
@@ -276,7 +288,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    await logSync('PHASE2_ERROR', message, { applicant_id: applicant.id }).catch(() => {})
+    await logSync('PHASE2_ERROR', message, { applicant_id: applicant.id, trace_id: flowTraceId }).catch(() => {})
     return json({ ok: false, error: message })
   }
 })

@@ -1,11 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import {
+  corsHeaders,
+  jsonResponse,
+  classifyError,
+  validateRequired,
+  validateErrors,
+  isValidString,
+  safeLogAudit,
+} from "../shared-utils/edge-hardening.ts";
 
 type RetryAction = "retry" | "resolve";
 type RetrySource = "email_queue" | "scheduled_notifications" | "moodle_sync" | "moodle_enrollment_sync" | "failed_syncs";
@@ -16,6 +19,11 @@ type RetryRequest = {
   id?: string;
   limit?: number;
 };
+
+function canonicalSource(source: RetrySource): Exclude<RetrySource, "moodle_sync"> | "moodle_sync" {
+  // Backward-compatibility shim: legacy moodle_sync requests now target canonical moodle_enrollment_sync.
+  return source === "moodle_sync" ? "moodle_enrollment_sync" : source;
+}
 
 function applyAllowedOrigin(req: Request) {
   const allowed = String(Deno.env.get("ALLOWED_ORIGINS") || "")
@@ -31,13 +39,14 @@ function applyAllowedOrigin(req: Request) {
 }
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json",
+  return jsonResponse(
+    {
+      ok: (status >= 200 && status < 300) || (body as any)?.ok,
+      ...(typeof body === "object" && body ? body : { data: body }),
+      statusCode: status,
     },
-  });
+    status,
+  );
 }
 
 async function triggerMoodleSync(
@@ -138,31 +147,37 @@ async function logAudit(
   status: string,
   details: Record<string, unknown>,
 ) {
-  const payload = {
+  const statusCode = status === "SUCCESS" ? "SUCCESS" : status === "FAILED" ? "FAILED" : "SKIPPED";
+  await safeLogAudit(db, {
     actor_email: actorEmail,
     action,
     entity_type: entityType,
     entity_id: entityId,
-    status,
+    status: statusCode as "SUCCESS" | "FAILED" | "SKIPPED",
     details,
-    created_at: new Date().toISOString(),
-    logged_at: new Date().toISOString(),
-  };
-
-  await db.from("audit_logs").insert(payload);
+  });
 }
 
-function isRetryableMoodleError(errorCode: unknown) {
+function isRetryableMoodleError(errorCode: unknown, lastError?: unknown) {
   const code = String(errorCode || "").trim().toUpperCase();
-  if (!code) return true;
-  const blocked = new Set([
-    "MOODLE_AUTH_OR_WAF_BLOCKED",
-    "COURSE_MAPPING_MISSING",
-    "AUTH",
-    "ALREADY_EXISTS",
-    "NOT_FOUND",
-  ]);
-  return !blocked.has(code);
+  const message = String(lastError || "").trim();
+
+  // Explicit 403-cause codes take priority
+  if (code === "MOODLE_WAF_BLOCK") return true;
+  if (code === "MOODLE_REST_DISABLED") return false;
+  if (code === "MOODLE_PERMISSION_DENIED") return false;
+  if (code === "MOODLE_403_UNKNOWN") return false;
+
+  const mappedMessage = (() => {
+    if (code === "MOODLE_AUTH_OR_WAF_BLOCKED") return "forbidden";
+    if (code === "COURSE_MAPPING_MISSING") return "missing course mapping";
+    if (code === "AUTH") return "unauthorized";
+    if (code === "ALREADY_EXISTS") return "already exists";
+    if (code === "NOT_FOUND") return "not found";
+    return message || code || "";
+  })();
+  if (!mappedMessage) return true;
+  return classifyError(mappedMessage, true).retryable;
 }
 
 async function sweepMoodleEnrollmentRetries(
@@ -171,12 +186,12 @@ async function sweepMoodleEnrollmentRetries(
 ) {
   const { data, error } = await db
     .from("moodle_enrollment_sync")
-    .select("id,error_code,sync_status,status,retry_requested_at,updated_at,retry_count,sync_attempts,clickup_task_id")
+    .select("id,error_code,last_error,sync_status,status,retry_requested_at,updated_at,retry_count,sync_attempts,clickup_task_id")
     .in("sync_status", ["RETRYING", "FAILED"])
     .order("updated_at", { ascending: true })
     .limit(limit);
   if (error) throw error;
-  const candidates = (data || []).filter((row) => isRetryableMoodleError(row.error_code));
+  const candidates = (data || []).filter((row) => isRetryableMoodleError(row.error_code, row.last_error));
   let attempted = 0;
   for (const row of candidates) {
     const id = String(row.id || "").trim();
@@ -205,7 +220,7 @@ async function maybeEscalateMoodleFailure(
   const errorCode = String(row.error_code || "").toUpperCase();
   if (attempts < 3) return { escalated: false, reason: "below_threshold" };
   if (status === "RESOLVED" || status === "SYNCED" || status === "SKIPPED") return { escalated: false, reason: "already_resolved" };
-  if (!isRetryableMoodleError(errorCode)) return { escalated: false, reason: "non_retryable" };
+  if (!isRetryableMoodleError(errorCode, row.last_error)) return { escalated: false, reason: "non_retryable" };
 
   let groupId = "";
   let subgroupId = "";
@@ -245,6 +260,7 @@ async function applyRetry(
   source: RetrySource,
   id: string,
 ) {
+  source = canonicalSource(source);
   const now = new Date().toISOString();
 
   if (source === "email_queue") {
@@ -260,15 +276,6 @@ async function applyRetry(
     const { error } = await db
       .from("scheduled_notifications")
       .update({ status: "PENDING", last_error: null, error_message: null, updated_at: now })
-      .eq("id", id);
-    if (error) throw error;
-    return;
-  }
-
-  if (source === "moodle_sync") {
-    const { error } = await db
-      .from("moodle_sync")
-      .update({ status: "PENDING", error_message: null, last_error: null, updated_at: now })
       .eq("id", id);
     if (error) throw error;
     return;
@@ -306,6 +313,7 @@ async function applyResolve(
   source: RetrySource,
   id: string,
 ) {
+  source = canonicalSource(source);
   const now = new Date().toISOString();
 
   if (source === "email_queue") {
@@ -320,15 +328,6 @@ async function applyResolve(
   if (source === "scheduled_notifications") {
     const { error } = await db
       .from("scheduled_notifications")
-      .update({ status: "RESOLVED", updated_at: now })
-      .eq("id", id);
-    if (error) throw error;
-    return;
-  }
-
-  if (source === "moodle_sync") {
-    const { error } = await db
-      .from("moodle_sync")
       .update({ status: "RESOLVED", updated_at: now })
       .eq("id", id);
     if (error) throw error;
@@ -382,10 +381,30 @@ Deno.serve(async (req) => {
     }
 
     const body = (await req.json().catch(() => ({}))) as RetryRequest;
-    const action = String(body.action || "").toLowerCase() as RetryAction;
-    const source = String(body.source || "") as RetrySource;
+    
+    // Input validation
+    const action = String(body.action || "").toLowerCase().trim() as RetryAction;
+    const sourceRaw = String(body.source || "").trim() as RetrySource;
+    const source = canonicalSource(sourceRaw);
     const id = String(body.id || "").trim();
-    const limit = Number.isFinite(Number(body.limit)) ? Math.max(1, Math.min(100, Number(body.limit))) : 25;
+    const limitInput = Number(body.limit) || 25;
+    const limit = Math.max(1, Math.min(100, limitInput));
+
+    // Validate action
+    if (action && !["retry", "resolve"].includes(action)) {
+      return json({ ok: false, error: "action must be retry|resolve", code: "INVALID_ACTION" }, 400);
+    }
+
+    // Validate source if provided
+    if (sourceRaw && !["email_queue", "scheduled_notifications", "moodle_sync", "moodle_enrollment_sync", "failed_syncs"].includes(sourceRaw)) {
+      return json({ ok: false, error: "Unsupported source", code: "INVALID_SOURCE" }, 400);
+    }
+
+    // Validate id format if provided (non-empty string)
+    const idErr = id ? validateRequired(id, "id") : null;
+    if (idErr) {
+      return json({ ok: false, error: idErr.message, code: "INVALID_ID" }, 400);
+    }
 
     if (isCronCall && !id) {
       const sweep = await sweepMoodleEnrollmentRetries(serviceDb, limit);
@@ -426,20 +445,16 @@ Deno.serve(async (req) => {
       return json({ ok: true, mode: "auto_sweep", source: "moodle_enrollment_sync", selected: sweep.selected, attempted: sweep.attempted, escalated, limit });
     }
 
-    if (!id) return json({ ok: false, error: "id is required" }, 400);
-    if (!["retry", "resolve"].includes(action)) return json({ ok: false, error: "action must be retry|resolve" }, 400);
-    if (!["email_queue", "scheduled_notifications", "moodle_sync", "moodle_enrollment_sync", "failed_syncs"].includes(source)) {
-      return json({ ok: false, error: "Unsupported source" }, 400);
-    }
+    if (!id) return json({ ok: false, error: "id is required", code: "MISSING_ID" }, 400);
 
     if (action === "retry") {
       if (source === "moodle_enrollment_sync") {
         const { data: row } = await serviceDb
           .from("moodle_enrollment_sync")
-          .select("error_code")
+          .select("error_code,last_error")
           .eq("id", id)
           .maybeSingle();
-        if (!isRetryableMoodleError(row?.error_code)) {
+        if (!isRetryableMoodleError(row?.error_code, row?.last_error)) {
           return json({ ok: false, error: `Non-retryable error_code: ${String(row?.error_code || "UNKNOWN")}` }, 409);
         }
       }
@@ -475,8 +490,8 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, action, source, id });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return json({ ok: false, error: message }, 500);
+    const c = classifyError(error);
+    return json({ ok: false, error: c.message, code: c.code }, c.statusCode);
   }
 });
 

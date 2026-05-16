@@ -1,6 +1,12 @@
 ﻿<!doctype html>
 <html lang="en">
 <head>
+  <style>
+    html, body {
+      background: #f5f3ff;
+      margin: 0;
+    }
+  </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rock Solid - Teacher Availability</title>
@@ -15,21 +21,21 @@
     }
 
     /* Page headings */
-    .title  { font-size: 26px; font-weight: 800; margin: 6px 0 2px; color: var(--navy, var(--primary)); }
+    .title  { font-size: 26px; font-weight: 800; margin: 6px 0 2px; color: var(--color-primary); }
     .sub    { font-size: 13px; color: var(--muted); }
     label   { font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px; }
-    strong  { color: var(--navy, var(--primary)); }
+    strong  { color: var(--color-primary); }
 
-    /* Pill badge counter (inside campus selector pills) */
-    .badge { padding: 1px 5px; border-radius: 4px; font-size: 10px; background: var(--lilacSoft, #EDE9FA); color: var(--navy, var(--primary)); font-weight: 700; }
-    .pill.active .badge { background: rgba(255,255,255,.2); color: #fff; }
+    /* Active campus selector badge counter */
+    .fs-badge { padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .fs-btn.active .fs-badge { background: rgba(255,255,255,.2); color: #fff; }
 
     /* Weekly availability grid */
-    .days { display: grid; grid-template-columns: 80px repeat(7,1fr); background: var(--bg, #F7F6FB); border-bottom: 1px solid var(--border); }
-    .days div { padding: 7px; text-align: center; font-size: 11px; font-weight: 700; border-left: 1px solid var(--border); color: var(--navy, var(--primary)); }
+    .days { display: grid; grid-template-columns: 80px repeat(7,1fr); background: var(--color-bg); border-bottom: 1px solid var(--border); }
+    .days div { padding: 7px; text-align: center; font-size: 11px; font-weight: 700; border-left: 1px solid var(--border); color: var(--color-primary); }
     .days div:first-child { text-align: left; border-left: 0; color: var(--muted); }
     .slot { display: grid; grid-template-columns: 80px repeat(7,1fr); border-bottom: 1px solid var(--border); }
-    .time { padding: 8px; background: var(--bg, #F7F6FB); font-size: 11px; color: var(--muted); font-weight: 600; }
+    .time { padding: 8px; background: var(--color-bg); font-size: 11px; color: var(--muted); font-weight: 600; }
     .cell {
       min-height: 38px;
       border-left: 1px solid var(--border);
@@ -53,12 +59,14 @@
     .modal-card { width: 100%; max-width: 600px; max-height: 90vh; overflow: auto; }
   </style>
   <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel='stylesheet' href='../ui/primitives.css' />
   <link rel="stylesheet" href="../ui/components.css" />
   <link rel="stylesheet" href="../ui/layout.css" />
 </head>
 <body>
-<main class="wrap fs-page fs-wrap-xl">
-  <div class="pill" style="background:var(--lilacSoft);border-color:transparent;color:var(--navy);font-weight:700;margin-bottom:6px">Rock Solid Scheduler</div>
+<main class="wrap fs-content fs-page fs-wrap-xl">
+  <div class="fs-btn fs-btn-secondary fs-btn-sm" style="background:var(--lilacSoft);border-color:transparent;color:var(--navy);font-weight:700;margin-bottom:6px">Rock Solid Scheduler</div>
   <h1 class="title">Teacher Availability</h1>
   <div class="sub mb">Select times in your timezone. We automatically convert them for each campus timezone.</div>
   <div id="notice" class="warn mb" style="display:none"></div>
@@ -100,7 +108,7 @@
 
       <div class="card p" style="display:flex;justify-content:space-between;align-items:center">
         <span id="selStats" class="sub">0 slots selected</span>
-        <button id="review" class="btn" disabled>Review &amp; Submit</button>
+        <button id="review" class="fs-btn fs-btn-secondary" disabled>Review &amp; Submit</button>
       </div>
     </section>
 
@@ -113,22 +121,30 @@
 
 <div id="modal" class="modal">
   <div class="card p modal-card">
-    <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0;color:var(--navy)">Review &amp; Submit</h3><button id="close" class="pill">Close</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0;color:var(--navy)">Review &amp; Submit</h3><button id="close" class="fs-btn fs-btn-secondary fs-btn-sm">Close</button></div>
     <p class="sub">Confirm converted campus times before submitting.</p>
     <div id="reviewContent"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="submitState" class="sub"></span><button id="submit" class="btn">Confirm Submit</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="submitState" class="sub"></span><button id="submit" class="fs-btn fs-btn-secondary">Confirm Submit</button></div>
   </div>
 </div>
 
 <script>
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const SLOTS=["6:00 AM","7:00 AM","8:00 AM","9:00 AM","10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM","7:00 PM","8:00 PM","9:00 PM","10:00 PM"];
-const SUBGROUP_LABELS={CESGA:"Prairies (MB / SK)",CESGB:"Atlantic Canada",CSGA:"GTA, Ottawa & Québec",CSGB:"Waterloo & West GTA",WSGA:"Alberta & BC",WSGB:"Southern Alberta"};
+const SUBGROUP_LABELS={CESGA:"Prairies (MB / SK)",CESGB:"Atlantic Canada",CSGA:"GTA, Ottawa & Quebec",CSGB:"Waterloo & West GTA",WSGA:"Alberta & BC",WSGB:"Southern Alberta"};
 const TZ_OPTIONS=["America/Toronto","America/Edmonton","America/Vancouver","America/Regina","America/Winnipeg","America/Halifax","America/St_Johns","UTC"];
 const state={campuses:[],teachers:[],campusSource:"live",selectedCampusCodes:new Set(),activeCampusCode:"",slotSet:new Set(),search:"",
 teacherName:"",teacherEmail:"",teacherTimezone:"",monthKey:"",submitting:false,occupiedByCampus:{},emailTouched:false,campusDebug:null,selectedTeacher:null,conflictCache:{},conflictDebounceTimer:null,conflictLoading:false};
-const SUPABASE_URL = String(window.FS_CONFIG?.SUPABASE_URL || "").trim();
-const SUPABASE_ANON_KEY = String(window.FS_CONFIG?.SUPABASE_ANON_KEY || "").trim();
+function readRuntimeConfig(){
+  const cfg = window.FSConfig?.get ? window.FSConfig.get() : {
+    SUPABASE_URL: String(window.FS_CONFIG?.SUPABASE_URL || "").trim(),
+    SUPABASE_ANON_KEY: String(window.FS_CONFIG?.SUPABASE_ANON_KEY || "").trim(),
+  };
+  return {
+    SUPABASE_URL: String(cfg.SUPABASE_URL || "").trim(),
+    SUPABASE_ANON_KEY: String(cfg.SUPABASE_ANON_KEY || "").trim(),
+  };
+}
 const el=id=>document.getElementById(id); const norm=s=>String(s||"").trim().replace(/\s+/g," ").toLowerCase();
 const show=(id,msg)=>{const n=el(id);n.style.display=msg?"block":"none";n.textContent=msg||""};
 const slotKey=(d,t)=>`${d}__${t}`; const splitKey=k=>{const [day,time]=String(k).split("__");return{day,time}};
@@ -147,13 +163,42 @@ function convertTeacherSlotToCampus(slot,teacherTz,campusTz){const m=selectedMon
 function reportApiError(action, err){
   const msg = `Action: ${action}\nError: ${String(err && err.message ? err.message : err)}`;
   show("error", msg);
+  console.error("[TEACHER_API_REQUEST_FAILED]", { action, error: String(err?.message || err || "") });
+}
+function resolveLoginPath(){
+  const p = window.location.pathname || "";
+  return p.includes("/foundation/") ? "/foundation/auth/login.html" : "/auth/login.html";
+}
+function ensureSupabaseClient(){
+  if (window.supabase && typeof window.supabase.from === "function") return window.supabase;
+  if (!window.supabase || typeof window.supabase.createClient !== "function") {
+    console.error("[SUPABASE_CLIENT_MISSING] Supabase JS client was not loaded.");
+    throw new Error("Supabase JS client was not loaded.");
+  }
+  const cfg = readRuntimeConfig();
+  if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
+    console.error("[CONFIG_MISSING] Missing SUPABASE_URL/SUPABASE_ANON_KEY in window.FS_CONFIG.");
+    throw new Error("Supabase URL/anon key is missing.");
+  }
+  window.supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+  return window.supabase;
+}
+async function ensureSessionOrRedirect(){
+  const client = ensureSupabaseClient();
+  const { data, error } = await client.auth.getSession();
+  if (error || !data?.session) {
+    window.location.href = resolveLoginPath();
+    throw new Error("No active auth session.");
+  }
+  return data.session;
 }
 async function apiGet(action, params){
   try {
+    await ensureSessionOrRedirect();
     if(action === "getTeachers"){
       const data = await window.FSApi.select("teachers", (q) =>
         q.select("teacher_id,full_name,email,active,deleted_at")
-         .eq("active", true)
+         .or("status.eq.ACTIVE,status.eq.Active,active.eq.true")
          .is("deleted_at", null)
          .order("full_name")
       );
@@ -221,6 +266,7 @@ async function apiGet(action, params){
 }
 async function apiPost(action, body){
   try {
+    await ensureSessionOrRedirect();
     if(action !== "submitTeacherAvailability"){
       throw new Error(`Unsupported POST action in Supabase mode: ${action}`);
     }
@@ -233,7 +279,7 @@ async function apiPost(action, body){
     }
     const teacherRows = await window.FSApi.select("teachers", (q) =>
       q.select("teacher_id,email,full_name,active,deleted_at")
-       .eq("active", true)
+       .or("status.eq.ACTIVE,status.eq.Active,active.eq.true")
        .is("deleted_at", null)
        .eq("email", teacherEmail)
        .limit(1)
@@ -259,7 +305,7 @@ async function apiPost(action, body){
       day: s.teacherDay,
       time_slot: to24h(s.teacherTime),
       status: "Tentative",
-      notes: `Campus: ${s.campusCode || "—"} · ${body?.month || ""} ${body?.year || ""}`.trim(),
+      notes: `Campus: ${s.campusCode || "-"} - ${body?.month || ""} ${body?.year || ""}`.trim(),
       created_by: teacherEmail,
       updated_by: teacherEmail
     })).filter((r) => Boolean(r.time_slot));
@@ -384,26 +430,26 @@ function applyTeacherMatch(){
   }).slice(0,8);
   if(exact.length>1){
     hint.textContent="Multiple exact matches found. Choose one:";
-    sug.innerHTML=exact.map((m,i)=>`<button class="pill" data-mi="${i}">${m.teacherName} - ${m.teacherEmail}</button>`).join("");
+    sug.innerHTML=exact.map((m,i)=>`<button class="fs-btn fs-btn-secondary fs-btn-sm" data-mi="${i}">${m.teacherName} - ${m.teacherEmail}</button>`).join("");
     sug.querySelectorAll("[data-mi]").forEach((b,i)=>b.onclick=()=>{selectTeacherMatch(exact[i]);sug.innerHTML="";});
     return;
   }
   if(partial.length){
     hint.textContent="Possible matches:";
-    sug.innerHTML=partial.map((m,i)=>`<button class="pill" data-pi="${i}">${m.teacherName} - ${m.teacherEmail}</button>`).join("");
+    sug.innerHTML=partial.map((m,i)=>`<button class="fs-btn fs-btn-secondary fs-btn-sm" data-pi="${i}">${m.teacherName} - ${m.teacherEmail}</button>`).join("");
     sug.querySelectorAll("[data-pi]").forEach((b,i)=>b.onclick=()=>{el("teacherName").value=partial[i].teacherName||"";state.teacherName=partial[i].teacherName||"";selectTeacherMatch(partial[i]);sug.innerHTML="";render();});
   }
 }
 
 function renderCampusGroups(){const search=state.search.toLowerCase(); const filtered=state.campuses.filter(c=>!search||c.campusName.toLowerCase().includes(search)||c.code.toLowerCase().includes(search)); const groups={}; filtered.forEach(c=>{const g=c.groupID||"UNGROUPED"; const s=c.subgroupID||"OTHER"; groups[g]=groups[g]||{}; groups[g][s]=groups[g][s]||[]; groups[g][s].push(c);});
-  const wrap=el("campusGroups"); wrap.innerHTML=Object.keys(groups).sort().map(g=>`<div style="margin-bottom:12px"><div class="sub" style="font-weight:800;color:var(--navy);font-size:12px;letter-spacing:.5px">${g}</div>${Object.keys(groups[g]).sort().map(sub=>`<div style="margin-top:6px"><div class="sub" style="font-weight:700;color:var(--navy);font-size:11px;text-transform:uppercase;letter-spacing:.5px">${sub}${SUBGROUP_LABELS[sub]?` · ${SUBGROUP_LABELS[sub]}`:""}</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${groups[g][sub].map(c=>{const a=state.selectedCampusCodes.has(c.code); const n=a?state.slotSet.size:0; return `<button class="pill ${a?'active':''}" data-campus="${c.code}">${c.code}<span class="badge">${n}</span></button>`;}).join("")}</div></div>`).join("")}</div>`).join("")||`<div class="sub">No campuses match your search.</div>`;
+  const wrap=el("campusGroups"); wrap.innerHTML=Object.keys(groups).sort().map(g=>`<div style="margin-bottom:12px"><div class="sub" style="font-weight:800;color:var(--navy);font-size:12px;letter-spacing:.5px">${g}</div>${Object.keys(groups[g]).sort().map(sub=>`<div style="margin-top:6px"><div class="sub" style="font-weight:700;color:var(--navy);font-size:11px;text-transform:uppercase;letter-spacing:.5px">${sub}${SUBGROUP_LABELS[sub]?` - ${SUBGROUP_LABELS[sub]}`:""}</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${groups[g][sub].map(c=>{const a=state.selectedCampusCodes.has(c.code); const n=a?state.slotSet.size:0; return `<button class="fs-btn fs-btn-secondary fs-btn-sm ${a?'active':''}" data-campus="${c.code}">${c.code}<span class="fs-badge fs-badge-info">${n}</span></button>`;}).join("")}</div></div>`).join("")}</div>`).join("")||`<div class="sub">No campuses match your search.</div>`;
   wrap.querySelectorAll("[data-campus]").forEach(btn=>btn.onclick=()=>{const code=btn.getAttribute("data-campus"); if(state.selectedCampusCodes.has(code)){state.selectedCampusCodes.delete(code); if(state.activeCampusCode===code) state.activeCampusCode=[...state.selectedCampusCodes][0]||"";} else {state.selectedCampusCodes.add(code); state.activeCampusCode=code;} scheduleConflictRefresh(); render();});
   const shown=filtered.length;
   const total=state.campuses.length;
-  el("campusMeta").textContent=`${state.selectedCampusCodes.size} selected • Showing ${shown} active fellowships${shown!==total?` of ${total}`:""} • source: ${state.campusSource}`;
+  el("campusMeta").textContent=`${state.selectedCampusCodes.size} selected - Showing ${shown} active fellowships${shown!==total?` of ${total}`:""} - source: ${state.campusSource}`;
 }
 
-function renderGrid(){const campus=campusBy(state.activeCampusCode); el("gridTitle").textContent=campus?`${campus.code} - ${campus.campusName}`:"Weekly Grid"; el("gridTzLabel").textContent=`Grid shown in teacher timezone: ${state.teacherTimezone||"(select timezone)"}`;
+function renderGrid(){const campus=campusBy(state.activeCampusCode); const label=selectedCampusLabel(); el("gridTitle").textContent=label||"Weekly Grid"; el("gridTzLabel").textContent=`Grid shown in teacher timezone: ${state.teacherTimezone||"(select timezone)"}`;
   if(campus) console.log("[TA DEBUG] selected campus timezone:", campus.timezone || "");
   if(!state.activeCampusCode){el("gridWrap").innerHTML=`<div class="p sub">Select at least one campus.</div>`; return;}
   let html=`<div class="days"><div>Time</div>${DAYS.map(d=>`<div>${d.slice(0,3)}</div>`).join("")}</div>`;
@@ -413,7 +459,15 @@ function renderGrid(){const campus=campusBy(state.activeCampusCode); el("gridTit
 
 function convertedCampusSlots(campus){return [...state.slotSet].map(k=>{const s=splitKey(k); const conv=convertTeacherSlotToCampus(s,state.teacherTimezone,campus.timezone); return {teacherDay:s.day,teacherTime:s.time,campusDay:conv.campusDay,campusTime:conv.campusTime};});}
 
-function renderSummary(){const selected=state.campuses.filter(c=>state.selectedCampusCodes.has(c.code)); el("summary").innerHTML=`<div class="sub mb"><strong>Teacher Timezone:</strong> ${state.teacherTimezone||"-"}</div>` + (selected.map(c=>{const items=convertedCampusSlots(c); return `<div class="mb"><strong>${c.code}</strong> <span class="sub">${c.campusName} • ${c.timezone}</span><div style="margin-top:4px">${items.map(it=>`<span class="pill" style="padding:2px 8px;font-size:11px">${it.campusDay.slice(0,3)} ${it.campusTime}</span>`).join("")||`<span class="sub">No slots</span>`}</div></div>`;}).join("")||`<span class="sub">No campuses selected.</span>`);
+function selectedCampusLabel(){
+  const selected=state.campuses.filter(c=>state.selectedCampusCodes.has(c.code));
+  if(!selected.length) return "";
+  if(state.campuses.length && selected.length===state.campuses.length) return "All campuses";
+  if(selected.length===1) return `${selected[0].code} - ${selected[0].campusName}`;
+  return selected.map(c=>`${c.code} - ${c.campusName}`).join(", ");
+}
+
+function renderSummary(){const selected=state.campuses.filter(c=>state.selectedCampusCodes.has(c.code)); el("summary").innerHTML=`<div class="sub mb"><strong>Teacher Timezone:</strong> ${state.teacherTimezone||"-"}</div>` + (selected.map(c=>{const items=convertedCampusSlots(c); return `<div class="mb"><strong>${c.code}</strong> <span class="sub">${c.campusName} - ${c.timezone}</span><div style="margin-top:4px">${items.map(it=>`<span class="fs-btn fs-btn-secondary fs-btn-sm" style="padding:2px 8px;font-size:11px">${it.campusDay.slice(0,3)} ${it.campusTime}</span>`).join("")||`<span class="sub">No slots</span>`}</div></div>`;}).join("")||`<span class="sub">No campuses selected.</span>`);
   el("sumTotal").textContent=`${totalSlots()} teacher-time slots`;
 }
 
@@ -423,7 +477,7 @@ function buildRecords(){const m=selectedMonth(); const records=[]; const ts=new 
   groupID:c.groupID,subgroupID:c.subgroupID,month:m.month,year:m.year,status:"PENDING",adminApproved:false,submittedAt:ts}));}); return records;}
 
 function renderReview(){const records=buildRecords(); const byCampus={}; records.forEach(r=>{byCampus[r.campusCode]=byCampus[r.campusCode]||{campusName:r.campusName,campusTimezone:r.campusTimezone,items:[]}; byCampus[r.campusCode].items.push(r);});
-  el("reviewContent").innerHTML=`<div class="sub mb"><strong>Name:</strong> ${state.teacherName||"-"}<br><strong>Email:</strong> ${state.teacherEmail||"-"}<br><strong>Teacher Timezone:</strong> ${state.teacherTimezone||"-"}</div>` + Object.keys(byCampus).map(code=>`<div class="mb"><strong>${code} - ${byCampus[code].campusName}</strong> <span class="sub">(${byCampus[code].campusTimezone})</span><div style="margin-top:4px">${byCampus[code].items.map(it=>`<span class="pill" style="padding:2px 8px;font-size:11px">${it.campusDay.slice(0,3)} ${it.campusTime}</span>`).join("")}</div></div>`).join("");
+  el("reviewContent").innerHTML=`<div class="sub mb"><strong>Name:</strong> ${state.teacherName||"-"}<br><strong>Email:</strong> ${state.teacherEmail||"-"}<br><strong>Teacher Timezone:</strong> ${state.teacherTimezone||"-"}</div>` + Object.keys(byCampus).map(code=>`<div class="mb"><strong>${code} - ${byCampus[code].campusName}</strong> <span class="sub">(${byCampus[code].campusTimezone})</span><div style="margin-top:4px">${byCampus[code].items.map(it=>`<span class="fs-btn fs-btn-secondary fs-btn-sm" style="padding:2px 8px;font-size:11px">${it.campusDay.slice(0,3)} ${it.campusTime}</span>`).join("")}</div></div>`).join("");
 }
 
 async function submitAvailability(){show("error",""); show("ok",""); const records=buildRecords();
@@ -472,13 +526,7 @@ function init(){const browserTz=Intl.DateTimeFormat().resolvedOptions().timeZone
 }
 window.addEventListener("load", () => {
   try {
-    if(!SUPABASE_URL || !SUPABASE_ANON_KEY){
-      throw new Error("Supabase URL/anon key is missing.");
-    }
-    if(!window.supabase || typeof window.supabase.createClient !== "function"){
-      throw new Error("Supabase JS client was not loaded.");
-    }
-    window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    ensureSupabaseClient();
     if(!window.FSApi){
       throw new Error("Shared API client was not loaded.");
     }
@@ -490,16 +538,69 @@ window.addEventListener("load", () => {
 });
 </script>
   <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/runtime.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api-client.js"></script>
   <script src="../js/ui.js"></script>
   <script src="../js/toast.js"></script>
   <script src="../js/modal.js"></script>
-  <script src="../js/teacher-shell.js"></script>
-  <script>window.FSTeacherShell.mount({ active: 'schedule' });</script>
+  <script src="../js/admin-shell.js"></script>
+  <script>
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "schedule", pageTitle: "Schedule" });
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      let email = String(params.get('email') || '').trim();
+      let displayName = '';
+      if (window.supabase && window.supabase.auth && typeof window.supabase.auth.getSession === 'function') {
+        try {
+          const { data } = await window.supabase.auth.getSession();
+          const user = data?.session?.user;
+          if (!email) email = String(user?.email || '').trim();
+          displayName = String(user?.user_metadata?.full_name || '').trim() || String(user?.email || '').trim();
+        } catch (_) {}
+      }
+      const profileName = displayName || email;
+      if (window.FSAdminShell && typeof window.FSAdminShell.setProfile === 'function' && profileName) {
+        window.FSAdminShell.setProfile(profileName, profileName.charAt(0).toUpperCase());
+      }
+      function waitForInputAndFill(emailValue, nameValue) {
+        const emailInput = document.getElementById('teacherEmail');
+        const nameInput = document.getElementById('teacherName');
+        if (emailInput && emailValue) {
+          emailInput.value = emailValue;
+          emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+          emailInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (nameInput && nameValue) {
+          nameInput.value = nameValue;
+          nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+          nameInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (!emailInput) {
+          setTimeout(() => waitForInputAndFill(emailValue, nameValue), 200);
+        }
+      }
+      if (email) {
+        waitForInputAndFill(email, profileName);
+      }
+    })();
+  </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
 
 
 
