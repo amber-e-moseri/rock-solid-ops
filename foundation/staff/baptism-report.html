@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Baptism & Faith Report</title>
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <style>
+    .wrap { padding-top: 24px; }
+    .filters {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      align-items: end;
+    }
+    .filters .field { display: grid; gap: 6px; }
+    .filters label { font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .filters select { width: 100%; }
+    .summary-grid {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+    }
+    .summary-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .summary-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+    .summary-value { margin-top: 6px; font-size: 26px; font-weight: 800; color: var(--color-primary); }
+    .toolbar { margin-top: 12px; display:flex; justify-content:flex-end; }
+    .tbl-outer { margin-top: 12px; overflow:auto; }
+    table { width: 100%; border-collapse: collapse; background:#fff; }
+    th, td { border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; font-size: 13px; }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: #faf9fd; position: sticky; top: 0; z-index: 1; }
+    .pill { display:inline-block; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; }
+    .yes { background: rgba(16,185,129,.14); color:#065f46; }
+    .no { background: rgba(239,68,68,.12); color:#991b1b; }
+    .ns { background: rgba(245,158,11,.14); color:#92400e; }
+    .muted { color: var(--muted); }
+    @media (max-width: 980px) {
+      .filters { grid-template-columns: 1fr 1fr; }
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .wrap { padding: 14px 10px 32px; }
+      .filters { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main class="wrap fs-page fs-wrap-wide">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon">BR</div>
+      <div>
+        <div class="card-title">Baptism & Faith Report</div>
+        <div class="card-sub">Track faith profile responses by fellowship and batch.</div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="field">
+        <label for="fellowshipFilter">Fellowship / Group</label>
+        <select id="fellowshipFilter"><option value="">All</option></select>
+      </div>
+      <div class="field">
+        <label for="batchFilter">Batch</label>
+        <select id="batchFilter"><option value="">All Active Batches</option></select>
+      </div>
+      <div class="field">
+        <label for="waterFilter">Water Baptized</label>
+        <select id="waterFilter">
+          <option value="">All</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+          <option value="I'm not sure">Not Sure</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="bornFilter">Born Again</label>
+        <select id="bornFilter">
+          <option value="">All</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+          <option value="I'm not sure">Not Sure</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card"><div class="summary-label">Total Students Shown</div><div id="kpiTotal" class="summary-value">0</div></div>
+      <div class="summary-card"><div class="summary-label">Need Baptism</div><div id="kpiNeedBaptism" class="summary-value">0</div></div>
+      <div class="summary-card"><div class="summary-label">Not Yet Born Again</div><div id="kpiNotBorn" class="summary-value">0</div></div>
+      <div class="summary-card"><div class="summary-label">Speak In Tongues</div><div id="kpiTongues" class="summary-value">0</div></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn primary" id="downloadCsvBtn">Download CSV</button>
+    </div>
+
+    <div class="tbl-outer">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Fellowship</th>
+            <th>Class</th>
+            <th>Born Again</th>
+            <th>Speaks in Tongues</th>
+            <th>Water Baptized</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="reportBody">
+          <tr><td colspan="8" class="muted">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/config-helper.js"></script>
+<script type="module">
+  import { supabase, requireAuth } from "../auth/auth-client.js";
+
+  const state = {
+    applicants: [],
+    fellowshipMap: new Map(),
+    classMap: new Map(),
+    classBatchMap: new Map(),
+    filters: { fellowship: "", batch: "", water: "", born: "" },
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" }[c]));
+
+  function asFaith(v) {
+    const t = String(v || "").trim();
+    return t || "I'm not sure";
+  }
+  function faithPill(v) {
+    const x = asFaith(v);
+    const cls = x === "Yes" ? "yes" : x === "No" ? "no" : "ns";
+    return `<span class="pill ${cls}">${esc(x === "I'm not sure" ? "Not Sure" : x)}</span>`;
+  }
+
+  function buildFilterOptions(activeBatches) {
+    const fellowshipSel = $("fellowshipFilter");
+    const keys = [...new Set(state.applicants.map((a) => String(a.fellowship_code || "")).filter(Boolean))].sort();
+    fellowshipSel.innerHTML = `<option value="">All</option>` + keys.map((k) => {
+      const label = state.fellowshipMap.get(k) || k;
+      return `<option value="${esc(k)}">${esc(label)}</option>`;
+    }).join("");
+
+    const batchSel = $("batchFilter");
+    batchSel.innerHTML = `<option value="">All Active Batches</option>` + activeBatches.map((b) =>
+      `<option value="${esc(String(b.batch_id || ""))}">${esc(String(b.batch_name || b.batch_id || ""))}</option>`,
+    ).join("");
+  }
+
+  function filteredRows() {
+    return state.applicants.filter((a) => {
+      const fellowship = String(a.fellowship_code || "");
+      const batchId = state.classBatchMap.get(String(a.class_option_id || "")) || "";
+      if (state.filters.fellowship && fellowship !== state.filters.fellowship) return false;
+      if (state.filters.batch && String(batchId) !== state.filters.batch) return false;
+      if (state.filters.water && asFaith(a.water_baptized) !== state.filters.water) return false;
+      if (state.filters.born && asFaith(a.born_again) !== state.filters.born) return false;
+      return true;
+    });
+  }
+
+  function updateKpis(rows) {
+    $("kpiTotal").textContent = String(rows.length);
+    $("kpiNeedBaptism").textContent = String(rows.filter((r) => {
+      const v = asFaith(r.water_baptized);
+      return v === "No" || v === "I'm not sure";
+    }).length);
+    $("kpiNotBorn").textContent = String(rows.filter((r) => {
+      const v = asFaith(r.born_again);
+      return v === "No" || v === "I'm not sure";
+    }).length);
+    $("kpiTongues").textContent = String(rows.filter((r) => asFaith(r.speaks_in_tongues) === "Yes").length);
+  }
+
+  function render() {
+    const rows = filteredRows();
+    updateKpis(rows);
+    const body = $("reportBody");
+    if (!rows.length) {
+      body.innerHTML = `<tr><td colspan="8" class="muted">No records match current filters.</td></tr>`;
+      return;
+    }
+    body.innerHTML = rows.map((a) => {
+      const fellowshipCode = String(a.fellowship_code || "");
+      const fellowship = state.fellowshipMap.get(fellowshipCode) || fellowshipCode || "-";
+      const classOptionId = String(a.class_option_id || "");
+      const classInfo = state.classMap.get(classOptionId);
+      const classLabel = classInfo
+        ? `${classOptionId} · ${String(classInfo.day || "")} ${String(classInfo.class_time || "")}`.trim()
+        : (classOptionId || "-");
+      return `
+        <tr>
+          <td>${esc(a.full_name || "-")}</td>
+          <td>${esc(a.email || "-")}</td>
+          <td>${esc(fellowship)}</td>
+          <td>${esc(classLabel)}</td>
+          <td>${faithPill(a.born_again)}</td>
+          <td>${faithPill(a.speaks_in_tongues)}</td>
+          <td>${faithPill(a.water_baptized)}</td>
+          <td>${esc(String(a.registration_status || "-"))}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  function downloadCsv() {
+    const rows = filteredRows();
+    const headers = ["Name","Email","Fellowship","Class","Born Again","Speaks in Tongues","Water Baptized","Status"];
+    const data = rows.map((a) => {
+      const fellowshipCode = String(a.fellowship_code || "");
+      const fellowship = state.fellowshipMap.get(fellowshipCode) || fellowshipCode || "";
+      const classOptionId = String(a.class_option_id || "");
+      const classInfo = state.classMap.get(classOptionId);
+      const classLabel = classInfo
+        ? `${classOptionId} ${String(classInfo.day || "")} ${String(classInfo.class_time || "")}`.trim()
+        : classOptionId;
+      const cols = [
+        String(a.full_name || ""),
+        String(a.email || ""),
+        String(fellowship || ""),
+        String(classLabel || ""),
+        String(asFaith(a.born_again)),
+        String(asFaith(a.speaks_in_tongues)),
+        String(asFaith(a.water_baptized)),
+        String(a.registration_status || ""),
+      ];
+      return cols.map((v) => `"${v.replace(/"/g, '""')}"`).join(",");
+    });
+    const csv = [headers.join(","), ...data].join("\n");
+    const link = document.createElement("a");
+    link.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    link.download = `baptism-faith-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  }
+
+  function wire() {
+    $("fellowshipFilter").addEventListener("change", (e) => { state.filters.fellowship = e.target.value; render(); });
+    $("batchFilter").addEventListener("change", (e) => { state.filters.batch = e.target.value; render(); });
+    $("waterFilter").addEventListener("change", (e) => { state.filters.water = e.target.value; render(); });
+    $("bornFilter").addEventListener("change", (e) => { state.filters.born = e.target.value; render(); });
+    $("downloadCsvBtn").addEventListener("click", downloadCsv);
+  }
+
+  async function load() {
+    const auth = await requireAuth(["principal", "subgroup_admin", "pastor", "admin", "superadmin"]);
+    if (!auth) return;
+    window.FSAdminShell && window.FSAdminShell.mount({
+      active: "baptismreport",
+      pageTitle: "Baptism Report",
+      role: auth.profile?.role || null,
+    });
+
+    const [appsRes, fellowshipRes, classRes, slotsRes, batchRes] = await Promise.all([
+      supabase
+        .from("applicants")
+        .select("id,full_name,email,fellowship_code,class_option_id,born_again,speaks_in_tongues,water_baptized,registration_status")
+        .in("registration_status", ["ASSIGNED", "ENROLLED", "WAITLISTED"])
+        .order("fellowship_code", { ascending: true })
+        .order("full_name", { ascending: true }),
+      supabase.from("fellowship_map").select("fellowship_code,campus_name,group_id,subgroup_id"),
+      supabase.from("class_options").select("class_option_id,day,class_time,group_id,fellowship_codes"),
+      supabase.from("class_slots").select("class_option_id,batch_id,status,created_at").eq("status", "Active").order("created_at", { ascending: false }),
+      supabase.from("batches").select("batch_id,batch_name,status").eq("status", "Active").order("batch_name", { ascending: true }),
+    ]);
+    if (appsRes.error) throw appsRes.error;
+    if (fellowshipRes.error) throw fellowshipRes.error;
+    if (classRes.error) throw classRes.error;
+    if (slotsRes.error) throw slotsRes.error;
+    if (batchRes.error) throw batchRes.error;
+
+    state.applicants = appsRes.data || [];
+    (fellowshipRes.data || []).forEach((f) => {
+      const code = String(f.fellowship_code || "");
+      if (!code) return;
+      state.fellowshipMap.set(code, String(f.campus_name || f.group_id || f.subgroup_id || code));
+    });
+    (classRes.data || []).forEach((c) => {
+      state.classMap.set(String(c.class_option_id || ""), c);
+    });
+    (slotsRes.data || []).forEach((s) => {
+      const key = String(s.class_option_id || "");
+      if (!key || state.classBatchMap.has(key)) return;
+      state.classBatchMap.set(key, String(s.batch_id || ""));
+    });
+
+    buildFilterOptions(batchRes.data || []);
+    wire();
+    render();
+  }
+
+  load().catch((err) => {
+    $("reportBody").innerHTML = `<tr><td colspan="8" class="muted">Failed to load report: ${esc(err?.message || err)}</td></tr>`;
+  });
+</script>
+<script src="../js/admin-shell.js"></script>
+</body>
+</html>

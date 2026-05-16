@@ -34,6 +34,25 @@
       ]
     },
     {
+      label: "Reports & Exports",
+      items: [
+        {
+          key: "dataexports",
+          label: "Data Exports",
+          href: "data-exports.html",
+          icon: "DE",
+          roles: ["teacher", "principal", "subgroup_admin", "pastor", "admin", "superadmin"],
+        },
+        {
+          key: "baptismreport",
+          label: "Baptism Report",
+          href: "baptism-report.html",
+          icon: "BR",
+          roles: ["principal", "subgroup_admin", "pastor", "admin", "superadmin"],
+        },
+      ]
+    },
+    {
       label: "Teaching",
       items: [
         { key: "attendance", label: "Attendance", href: "TeacherAttendancePortal.html", icon: "AT" },
@@ -145,6 +164,8 @@
     if (p.includes("milestones-admin")) return "milestones";
     if (p.includes("admin-management")) return "adminmanagement";
     if (p.includes("dashboards")) return "dashboards";
+    if (p.includes("data-exports")) return "dataexports";
+    if (p.includes("baptism-report")) return "baptismreport";
     return "";
   }
 
@@ -155,6 +176,10 @@
     NAV_SECTIONS.forEach(function (section) {
       const visibleItems = section.items.filter(function (item) {
         if (isTeacher) return TEACHER_KEYS.has(item.key);
+        if (Array.isArray(item.roles) && item.roles.length) {
+          const currentRole = String(role || "").toLowerCase();
+          return item.roles.includes(currentRole);
+        }
         return true;
       });
       if (!visibleItems.length) return;

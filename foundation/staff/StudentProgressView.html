@@ -70,6 +70,24 @@
   /* Student cell content */
   .student-name { font-weight: 700; font-size: .88rem; color: var(--ink, var(--text)); white-space: nowrap; }
   .student-id   { font-size: .72rem; color: var(--muted); margin-top: 1px; font-weight: 500; }
+  .faith-badges {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .faith-badges .fs-badge {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 5px 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+  }
+  .fs-badge--success { background: rgba(16, 185, 129, 0.14); color: #065f46; border-color: rgba(16, 185, 129, 0.35); }
+  .fs-badge--warning { background: rgba(245, 158, 11, 0.14); color: #92400e; border-color: rgba(245, 158, 11, 0.36); }
+  .fs-badge--danger  { background: rgba(239, 68, 68, 0.12); color: #991b1b; border-color: rgba(239, 68, 68, 0.34); }
+  .fs-badge--neutral { background: rgba(76, 42, 146, 0.10); color: #4C2A92; border-color: rgba(76, 42, 146, 0.26); }
 
   /* Read-only attendance checkbox */
   .cb-cell { width: 52px; }
@@ -202,6 +220,13 @@
   const state = { teacher:null, teachers:[], classes:[], classOptionId:'', students:[], filtered:[], milestones:[], progressView:'classes' };
 
   function esc(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function normFaith(v){ const t = String(v||'').trim(); return t || "I'm not sure"; }
+  function faithBadgeClass(kind, value) {
+    const v = normFaith(value);
+    if (v === 'Yes') return 'fs-badge--success';
+    if (v === 'No') return kind === 'water' ? 'fs-badge--danger' : 'fs-badge--warning';
+    return 'fs-badge--neutral';
+  }
 
   function showRuntimeError(message){
     const root = document.querySelector(".card");
@@ -366,6 +391,11 @@
         <td class="name-col">
           <div class="student-name">${esc(s.fullName||'-')}</div>
           <div class="student-id">${esc(s.studentId||s.personType||'')}</div>
+          <div class="faith-badges">
+            <span class="fs-badge ${faithBadgeClass('born', s.bornAgain)}">Born Again: ${esc(normFaith(s.bornAgain))}</span>
+            <span class="fs-badge ${faithBadgeClass('tongues', s.speaksInTongues)}">Tongues: ${esc(normFaith(s.speaksInTongues))}</span>
+            <span class="fs-badge ${faithBadgeClass('water', s.waterBaptized)}">Baptized: ${esc(normFaith(s.waterBaptized))}</span>
+          </div>
         </td>
         ${checks.map((on, idx) => `
           <td class="cb-cell">
