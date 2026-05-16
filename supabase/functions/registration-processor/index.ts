@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   corsHeaders,
+  applyAllowedOrigin,
   jsonResponse,
   classifyError,
   validateRequired,
@@ -12,6 +13,7 @@ import {
 } from "../shared-utils/edge-hardening.ts";
 
 Deno.serve(async (req) => {
+  applyAllowedOrigin(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

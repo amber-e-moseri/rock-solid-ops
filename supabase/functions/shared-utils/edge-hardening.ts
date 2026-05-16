@@ -333,10 +333,7 @@ export async function safeLogAudit(
   db: any,
   payload: AuditLogPayload,
 ): Promise<boolean> {
-  const fullPayload = {
-    ...payload,
-    logged_at: payload.logged_at || new Date().toISOString(),
-  };
+  const fullPayload = { ...payload };
 
   // Canonical table established by 202605071800_audit_logs_canonicalization.sql.
   try {
