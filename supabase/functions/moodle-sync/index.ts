@@ -208,7 +208,26 @@ async function findOrCreateMoodleUser(
       } catch (_) {
         // ignore lookup errors, proceed to alt username
       }
-      // Both lookups empty - username reserved by deleted user.
+
+      try {
+        const safeEmailUsername = safeUsernameFromEmail(email);
+        const foundBySafeEmailUsername = await callMoodle(moodleUrl, moodleToken, "core_user_get_users_by_field", {
+          field: "username",
+          "values[0]": safeEmailUsername,
+        });
+        const fallbackBySafeEmailUsername = Array.isArray(foundBySafeEmailUsername) ? foundBySafeEmailUsername[0] : null;
+        if (fallbackBySafeEmailUsername?.id) {
+          return {
+            userId: String(fallbackBySafeEmailUsername.id),
+            tempPassword: null,
+            usernameUsed: safeEmailUsername,
+          };
+        }
+      } catch (_) {
+        // ignore lookup errors, proceed to alt username
+      }
+
+      // All lookups empty - username reserved by deleted user.
       // Retry with modified username to avoid conflict.
       const altUsername = username + "_r" + Date.now().toString().slice(-3);
       try {
@@ -324,6 +343,17 @@ Deno.serve(async (req) => {
     const forceId = String(payload?.id || "").trim();
     const limitInput = Number(payload?.limit || 5) || 5;
     const limit = Math.max(1, Math.min(50, limitInput)); // Max 50 to prevent abuse
+
+    const staleThresholdIso = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    await db
+      .from("moodle_enrollment_sync")
+      .update({
+        sync_status: "PENDING",
+        error_code: "TIMEOUT_RESET",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("sync_status", "PROCESSING")
+      .lt("updated_at", staleThresholdIso);
 
     const baseQuery = db
       .from("moodle_enrollment_sync")
@@ -488,6 +518,36 @@ Deno.serve(async (req) => {
             .update({ payload: mergedPayload })
             .eq("id", queueRow.id);
         }
+
+        void fetch(`${SUPABASE_URL}/functions/v1/email-sender`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SERVICE_KEY}`,
+            apikey: SERVICE_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const bodyText = await res.text().catch(() => "");
+              console.error("MOODLE_SYNC_EMAIL_SENDER_TRIGGER_FAILED", {
+                id,
+                email,
+                status: res.status,
+                body: bodyText,
+              });
+              return;
+            }
+            console.log("MOODLE_SYNC_EMAIL_SENDER_TRIGGERED", { id, email });
+          })
+          .catch((triggerErr) => {
+            console.error("MOODLE_SYNC_EMAIL_SENDER_TRIGGER_ERROR", {
+              id,
+              email,
+              error: triggerErr,
+            });
+          });
 
         await logAudit(db, "MOODLE_SYNC_SUCCESS", id, "SUCCESS", {
           email,

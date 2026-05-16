@@ -115,6 +115,7 @@ Deno.serve(async (): Promise<Response> => {
             .eq('id', row.id)
           result.failed++
           result.errors.push(`${row.id}: ${sendErr}`)
+          await new Promise(r => setTimeout(r, 250))
         } else {
           // Step 6: Mark Sent.
           await supabase
@@ -122,6 +123,7 @@ Deno.serve(async (): Promise<Response> => {
             .update({ status: 'Sent', sent_at: new Date().toISOString(), error_message: null })
             .eq('id', row.id)
           result.sent++
+          await new Promise(r => setTimeout(r, 250))
         }
       } catch (rowErr) {
         const msg = rowErr instanceof Error ? rowErr.message : String(rowErr)
