@@ -198,7 +198,6 @@ async function apiGet(action, params){
     if(action === "getTeachers"){
       const data = await window.FSApi.select("teachers", (q) =>
         q.select("teacher_id,full_name,email,active,deleted_at")
-         .or("status.eq.ACTIVE,status.eq.Active,active.eq.true")
          .is("deleted_at", null)
          .order("full_name")
       );
@@ -279,12 +278,12 @@ async function apiPost(action, body){
     }
     const teacherRows = await window.FSApi.select("teachers", (q) =>
       q.select("teacher_id,email,full_name,active,deleted_at")
-       .or("status.eq.ACTIVE,status.eq.Active,active.eq.true")
        .is("deleted_at", null)
-       .eq("email", teacherEmail)
-       .limit(1)
+       .ilike("email", teacherEmail)
     );
-    const teacherId = teacherRows?.[0]?.teacher_id;
+    const teacherId = Array.isArray(teacherRows)
+      ? (teacherRows.find((r) => String(r?.email || "").trim().toLowerCase() === teacherEmail.toLowerCase())?.teacher_id || teacherRows[0]?.teacher_id)
+      : null;
     if(!teacherId){
       throw new Error(`No active teacher found for email ${teacherEmail}.`);
     }
