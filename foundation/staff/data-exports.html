@@ -299,7 +299,7 @@ ORDER BY s.full_name;</pre>
 
   async function loadData() {
     const [classesRes, fellowshipsRes, batchesRes, applicantsRes, studentsRes, milestoneRes, attendanceRes] = await Promise.all([
-      supabase.from("class_options").select("class_option_id,batch_id,fellowship_codes,group_id"),
+      supabase.from("class_slots").select("batch_id,class_option_id,class_options(class_option_id,fellowship_codes,group_id)"),
       supabase.from("fellowship_map").select("fellowship_code,campus_name,group_id"),
       supabase.from("batches").select("batch_id,batch_name,status").order("batch_name"),
       supabase.from("applicants").select("id,full_name,email,fellowship_code,class_option_id,registration_status,born_again,speaks_in_tongues,water_baptized").in("registration_status", ["ASSIGNED","WAITLISTED","ENROLLED"]),
@@ -310,7 +310,12 @@ ORDER BY s.full_name;</pre>
     for (const r of [classesRes, fellowshipsRes, batchesRes, applicantsRes, studentsRes, milestoneRes, attendanceRes]) {
       if (r.error) throw r.error;
     }
-    state.classes = classesRes.data || [];
+    state.classes = (classesRes.data || []).map(slot => ({
+      class_option_id: slot.class_option_id,
+      batch_id: slot.batch_id,
+      fellowship_codes: slot.class_options?.fellowship_codes,
+      group_id: slot.class_options?.group_id,
+    }));
     state.applicants = applicantsRes.data || [];
     state.students = studentsRes.data || [];
     state.milestoneRows = milestoneRes.data || [];
