@@ -483,19 +483,21 @@
 
     async function checkEdgeEndpoint(name) {
       const cfg = adminApi?.getConfig?.() || {};
-      if (!cfg.url || !cfg.anonKey) {
+      const supabaseUrl = String(window.FS_CONFIG?.SUPABASE_URL || cfg.url || "").trim();
+      const anonKey = String(window.FS_CONFIG?.SUPABASE_ANON_KEY || cfg.anonKey || "").trim();
+      if (!supabaseUrl || !anonKey) {
         return { state: "fail", detail: "Missing runtime config." };
       }
 
-      const url = `${cfg.url}/functions/v1/${name}`;
+      const url = `${supabaseUrl}/functions/v1/${name}`;
       try {
         const res = await withTimeout(
           `edge ${name}`,
           () => fetch(url, {
             method: "OPTIONS",
             headers: {
-              apikey: cfg.anonKey,
-              Authorization: `Bearer ${cfg.anonKey}`,
+              apikey: anonKey,
+              Authorization: `Bearer ${anonKey}`,
               "Content-Type": "application/json"
             }
           }),
@@ -728,16 +730,18 @@
       // Moodle API live connectivity check (core_webservice_get_site_info)
       try {
         const cfg = adminApi?.getConfig?.() || {};
-        if (!cfg.url || !cfg.anonKey) {
+        const supabaseUrl = String(window.FS_CONFIG?.SUPABASE_URL || cfg.url || "").trim();
+        const anonKey = String(window.FS_CONFIG?.SUPABASE_ANON_KEY || cfg.anonKey || "").trim();
+        if (!supabaseUrl || !anonKey) {
           pushCheck("moodle-api", "Moodle API Connectivity", "warn", "Missing runtime config — cannot test Moodle connection.");
         } else {
           const moodleRes = await withTimeout(
             "moodle-api-test",
-            () => fetch(`${cfg.url}/functions/v1/moodle-sync`, {
+            () => fetch(`${supabaseUrl}/functions/v1/moodle-sync`, {
               method: "POST",
               headers: {
-                Authorization: `Bearer ${cfg.anonKey}`,
-                apikey: cfg.anonKey,
+                Authorization: `Bearer ${anonKey}`,
+                apikey: anonKey,
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({ action: "test" })
