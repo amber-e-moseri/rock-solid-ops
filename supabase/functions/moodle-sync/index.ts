@@ -13,7 +13,7 @@ import {
   isValidPayload,
   isValidString,
   safeLogAudit,
-} from "../shared-utils/edge-hardening.ts";
+} from "../_shared/http.ts";
 
 type SyncStatus = "PENDING" | "PROCESSING" | "SYNCED" | "FAILED" | "RETRYING" | "SKIPPED";
 type MoodleFailureCode = "MOODLE_WAF_BLOCK" | "MOODLE_REST_DISABLED" | "MOODLE_PERMISSION_DENIED" | "MOODLE_403_UNKNOWN";
@@ -619,3 +619,4 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: c.message, code: c.code }, c.statusCode);
   }
 });
+

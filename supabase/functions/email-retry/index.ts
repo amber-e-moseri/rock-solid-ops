@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createServiceClient } from "../_shared/supabase.ts";
 
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Headers":
@@ -40,7 +40,7 @@ function hasMissingColumnError(error: unknown): boolean {
 }
 
 async function retryScheduledNotification(
-  db: ReturnType<typeof createClient>,
+  db: any,
   id: string,
 ) {
   const { data: row, error: readError } = await db
@@ -94,7 +94,7 @@ async function retryScheduledNotification(
 }
 
 async function retryEmailQueue(
-  db: ReturnType<typeof createClient>,
+  db: any,
   id: string,
 ) {
   const { data: row, error: readError } = await db
@@ -174,11 +174,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY =
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const db = createServiceClient();
     const body = await req.json().catch(() => ({})) as RetryBody;
 
     const id = String(body.id || "").trim();

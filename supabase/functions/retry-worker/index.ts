@@ -8,7 +8,7 @@ import {
   validateErrors,
   isValidString,
   safeLogAudit,
-} from "../shared-utils/edge-hardening.ts";
+} from "../_shared/http.ts";
 
 type RetryAction = "retry" | "resolve";
 type RetrySource = "email_queue" | "scheduled_notifications" | "moodle_sync" | "moodle_enrollment_sync" | "failed_syncs";
@@ -494,4 +494,5 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: c.message, code: c.code }, c.statusCode);
   }
 });
+
 

@@ -1,12 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { writeSyncLog } from '../_shared/audit.ts'
+import { createServiceClient } from "../_shared/supabase.ts";
 
 // ── Clients ──────────────────────────────────────────────────
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  { auth: { persistSession: false } }
-)
+const supabase = createServiceClient()
 
 const RESEND_API_KEY  = Deno.env.get('RESEND_API_KEY')!
 const BATCH_SIZE      = 50
@@ -246,5 +241,12 @@ async function logSync(
   message: string,
   details?: Record<string, unknown>
 ): Promise<void> {
-  await writeSyncLog(supabase, phase, message, details ?? null, 'email-sender')
+  await supabase.from('audit_logs').insert({
+    actor_email: 'email-sender@system',
+    action:      phase,
+    entity_type: 'email_queue',
+    entity_id:   'batch',
+    status:      'SUCCESS',
+    details:     { message, ...(details ?? {}) },
+  }).catch(() => {})
 }

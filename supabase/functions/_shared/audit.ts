@@ -1,4 +1,4 @@
-import { safeLogAudit } from "../shared-utils/edge-hardening.ts";
+import { safeLogAudit } from "./http.ts";
 
 export function withTrace(
   details: Record<string, unknown> = {},
@@ -37,10 +37,22 @@ export async function writeSyncLog(
   details: Record<string, unknown> | null = null,
   runBy = "system",
 ): Promise<void> {
-  await db.from("sync_log").insert({
-    phase,
-    message,
-    details: details ?? null,
-    run_by: runBy,
+  const phaseText = String(phase || "").toUpperCase();
+  const status = phaseText.includes("ERROR") || phaseText.includes("FAILED")
+    ? "FAILED"
+    : phaseText.includes("SKIP")
+    ? "SKIPPED"
+    : "SUCCESS";
+  await db.from("audit_logs").insert({
+    action: phase || "SYNC_EVENT",
+    entity_type: "edge_function",
+    entity_id: String(runBy || "system"),
+    status,
+    details: {
+      message,
+      run_by: runBy,
+      ...(details ?? {}),
+    },
+    logged_at: new Date().toISOString(),
   });
 }

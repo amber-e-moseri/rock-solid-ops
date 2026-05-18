@@ -1,4 +1,4 @@
-import { errorResponse, jsonResponse } from "../shared-utils/edge-hardening.ts";
+import { errorResponse, jsonResponse } from "./http.ts";
 
 export function ok<T>(data: T): Response {
   return jsonResponse({

@@ -9,7 +9,8 @@ import {
   validateErrors,
   isValidPayload,
   safeLogAudit,
-} from "../shared-utils/edge-hardening.ts";
+} from "../_shared/http.ts";
+import { assignApplicant } from "../_shared/lib/assign-applicant.ts";
 
 const allowedOrigins = [
   "https://rocksolidsuite.netlify.app",
@@ -186,6 +187,7 @@ Deno.serve(async (req) => {
 
     const nowIso = new Date().toISOString();
     const flowTraceId = crypto.randomUUID();
+    const applicantId = crypto.randomUUID();
     const debugTrail: Record<string, unknown> = {
       started_at: nowIso,
       phase: "received",
@@ -215,7 +217,21 @@ Deno.serve(async (req) => {
       isDuplicate,
     });
 
-    type RegistrationStatus =
+    const normalizeBool = (v: unknown) =>
+      v === true || String(v ?? "").toLowerCase() === "true";
+
+    const canAutoAssign = !normalizeBool(body.assignment_deferred) && !normalizeBool(body.manual_review_required);
+    const assignment = await assignApplicant(applicantId, db, {
+      mode: "registration",
+      nowIso,
+      batch_id,
+      class_option_id,
+      availability,
+      canAutoAssign,
+      isDuplicate,
+      duplicateCount,
+    });
+    const registrationStatus = String(assignment.status || "PENDING") as
       | "PENDING"
       | "ASSIGNED"
       | "WAITLISTED"
@@ -223,128 +239,22 @@ Deno.serve(async (req) => {
       | "REVIEW"
       | "INACTIVE"
       | "COMPLETED";
-
-    type AvailabilityStatus =
+    const availabilityStatus = String(assignment.availabilityStatus || "MANUAL_REVIEW_REQUIRED") as
       | "CLASS_ASSIGNED"
       | "NO_MATCHING_TIME"
       | "CLASS_FULL"
       | "MANUAL_REVIEW_REQUIRED"
       | "NO_CLASS_AVAILABLE";
-
-    const normalizeBool = (v: unknown) =>
-      v === true || String(v ?? "").toLowerCase() === "true";
-
-    const canAutoAssign = !normalizeBool(body.assignment_deferred) && !normalizeBool(body.manual_review_required);
-
-    let registrationStatus: RegistrationStatus = "PENDING";
-    let availabilityStatus: AvailabilityStatus = "MANUAL_REVIEW_REQUIRED";
-    let classIsFull = false;
-    let assignedAt: string | null = null;
-    let waitlistedAt: string | null = null;
-    let reviewedAt: string | null = null;
-    let reviewNotes: string | null = null;
-
-    if (isDuplicate) {
-      registrationStatus = "DUPLICATE";
-      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-      reviewedAt = nowIso;
-      reviewNotes = `Duplicate registration detected. This email has submitted ${duplicateCount} times.`;
-    } else if (!canAutoAssign) {
-      registrationStatus = "REVIEW";
-      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-      reviewedAt = nowIso;
-      reviewNotes = "Auto-assignment deferred for manual review.";
-    } else if (class_option_id) {
-      const { data: classOptionRow, error: classOptionError } = await db
-        .from("class_options")
-        .select("class_option_id,max_capacity,active,enrollment_open")
-        .eq("class_option_id", class_option_id)
-        .maybeSingle();
-
-      if (classOptionError) {
-        console.error("REGISTRATION_PROCESSOR_CLASS_OPTION_LOAD_ERROR", classOptionError);
-        registrationStatus = "REVIEW";
-        availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-        reviewedAt = nowIso;
-        reviewNotes = "Could not safely validate selected class option.";
-      } else if (!classOptionRow) {
-        registrationStatus = "REVIEW";
-        availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-        reviewedAt = nowIso;
-        reviewNotes = "Selected class option no longer exists.";
-      } else {
-        const maxCapacity = Number(classOptionRow.max_capacity || 0);
-        const { count: assignedCount, error: assignedCountError } = await db
-          .from("applicants")
-          .select("*", { count: "exact", head: true })
-          .eq("class_option_id", class_option_id)
-          .eq("registration_status", "ASSIGNED");
-
-        if (assignedCountError) {
-          console.error("REGISTRATION_PROCESSOR_CAPACITY_COUNT_ERROR", assignedCountError);
-          registrationStatus = "REVIEW";
-          availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-          reviewedAt = nowIso;
-          reviewNotes = "Could not validate class capacity safely.";
-        } else {
-          classIsFull = maxCapacity > 0 && Number(assignedCount || 0) >= maxCapacity;
-          if (classIsFull) {
-            registrationStatus = "WAITLISTED";
-            availabilityStatus = "CLASS_FULL";
-            waitlistedAt = nowIso;
-          } else {
-            registrationStatus = "ASSIGNED";
-            availabilityStatus = "CLASS_ASSIGNED";
-            assignedAt = nowIso;
-            // Resolve batch_id from class_slots if not provided by form
-            if (!batch_id && class_option_id) {
-              const { data: activeBatch } = await db
-                .from("batches")
-                .select("batch_id")
-                .or("active.eq.true,registration_open.eq.true")
-                .eq("archived", false)
-                .order("start_date", { ascending: false })
-                .limit(1)
-                .maybeSingle();
-              const activeBatchId = String(activeBatch?.batch_id || "").trim();
-              if (!activeBatchId) {
-                console.warn("REGISTRATION_PROCESSOR_NO_ACTIVE_BATCH_FOUND");
-              } else {
-                const { data: slotRow } = await db
-                  .from("class_slots")
-                  .select("batch_id")
-                  .eq("class_option_id", class_option_id)
-                  .eq("batch_id", activeBatchId)
-                  .eq("status", "Active")
-                  .maybeSingle();
-                if (slotRow?.batch_id) batch_id = slotRow.batch_id;
-              }
-            }
-          }
-        }
-      }
-    } else if (availability) {
-      registrationStatus = "WAITLISTED";
-      availabilityStatus = "NO_MATCHING_TIME";
-      waitlistedAt = nowIso;
-    } else {
-      registrationStatus = "WAITLISTED";
-      availabilityStatus = "NO_CLASS_AVAILABLE";
-      waitlistedAt = nowIso;
-    }
-
-    const legacyStatus =
-      registrationStatus === "ASSIGNED"
-        ? "Enrolled"
-        : registrationStatus === "WAITLISTED"
-        ? "Waitlisted"
-        : registrationStatus === "DUPLICATE"
-        ? "Duplicate"
-        : registrationStatus === "REVIEW"
-        ? "Review"
-        : "Pending";
+    const classIsFull = Boolean(assignment.classIsFull);
+    const assignedAt = assignment.assignedAt ?? null;
+    const waitlistedAt = assignment.waitlistedAt ?? null;
+    const reviewedAt = assignment.reviewedAt ?? null;
+    const reviewNotes = assignment.reviewNotes ?? null;
+    const legacyStatus = String(assignment.legacyStatus || "Pending");
+    batch_id = assignment.batchId ?? batch_id;
 
     const applicantInsertBase = {
+      id: applicantId,
       full_name,
       first_name,
       last_name,
@@ -711,6 +621,23 @@ Deno.serve(async (req) => {
       }
     } else if (registrationStatus === "WAITLISTED") {
       await writeAudit("REGISTRATION_WAITLISTED", "SUCCESS", commonAuditDetails);
+    } else if (registrationStatus === "INACTIVE") {
+      await writeAudit("REGISTRATION_INACTIVE", "SUCCESS", commonAuditDetails);
+      // Fire-and-forget: decrement slot and check waitlist for next eligible student
+      if (class_option_id && batch_id) {
+        void fetch(`${SUPABASE_URL}/functions/v1/waitlist-processor`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            applicant_id:    String(insertedApplicant?.id || ""),
+            class_option_id,
+            batch_id,
+          }),
+        }).catch(() => {});
+      }
     } else if (registrationStatus === "DUPLICATE") {
       await writeAudit("REGISTRATION_DUPLICATE", "SUCCESS", commonAuditDetails);
     } else if (registrationStatus === "REVIEW") {
@@ -735,3 +662,4 @@ Deno.serve(async (req) => {
     return jsonResponse({ ok: false, error: c.message, code: c.code, statusCode: c.statusCode }, c.statusCode);
   }
 });
+
