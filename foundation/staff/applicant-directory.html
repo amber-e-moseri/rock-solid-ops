@@ -216,6 +216,33 @@
           <select id="statusFilter"><option value="">All Status</option></select>
           <input id="dateFilter" type="date" />
           <button class="btn fs-btn fs-btn-secondary" id="clearFilters">Clear Filters</button>
+          <button class="btn fs-btn fs-btn-secondary" id="toggleAdvFilters">Advanced ▾ <span id="advFilterBadge" style="display:none;background:var(--primary);color:#fff;border-radius:999px;padding:1px 7px;font-size:10px;margin-left:4px"></span></button>
+        </div>
+      </section>
+
+      <section class="card" id="advFilterPanel" style="display:none;margin-top:-2px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">Advanced Filters</div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
+          <div class="field"><label for="afDateFrom" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Registered From</label><input id="afDateFrom" type="date" style="width:100%;border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px" /></div>
+          <div class="field"><label for="afDateTo" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Registered To</label><input id="afDateTo" type="date" style="width:100%;border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px" /></div>
+          <div class="field"><label for="afMoodle" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Moodle Account</label>
+            <select id="afMoodle" style="width:100%;border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px">
+              <option value="">Any</option><option value="yes">Has Moodle account</option>
+              <option value="no">No Moodle account</option><option value="synced">Synced</option><option value="failed">Sync failed</option>
+            </select>
+          </div>
+          <div class="field"><label for="afAttStatus" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700">Attendance Status</label>
+            <select id="afAttStatus" style="width:100%;border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px">
+              <option value="">Any</option><option value="never">Never Attended</option>
+              <option value="active">Active (75%+)</option><option value="atrisk">At Risk (&lt;75%)</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn fs-btn fs-btn-primary primary" id="afApplyBtn">Apply Filters</button>
+          <button class="btn fs-btn fs-btn-secondary" id="afResetBtn">Reset</button>
+          <button class="btn fs-btn fs-btn-secondary" id="afSaveBtn">Save Preset</button>
+          <select id="afPresetSelect" style="border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 12px;min-width:140px"><option value="">Load preset…</option></select>
         </div>
       </section>
 
@@ -228,6 +255,19 @@
           <button class="btn fs-btn fs-btn-secondary" id="refreshBtn">Refresh</button>
         </div>
         <div id="flashArea"></div>
+        <div id="bulkBar" style="display:none;padding:10px 14px;background:color-mix(in srgb,var(--primary) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--primary) 30%,var(--line));border-radius:var(--radius-lg);margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span id="bulkCount" style="font-weight:800;font-size:13px;white-space:nowrap;color:var(--primary)">0 selected</span>
+          <select id="bulkStatusSelect" style="border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 10px">
+            <option value="">Change Status…</option>
+            <option value="PENDING">PENDING</option><option value="ASSIGNED">ASSIGNED</option>
+            <option value="WAITLISTED">WAITLISTED</option><option value="REVIEW">REVIEW</option><option value="INACTIVE">INACTIVE</option>
+          </select>
+          <select id="bulkClassSelect" style="border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 10px;min-width:160px"><option value="">Change Class…</option></select>
+          <button class="btn fs-btn fs-btn-secondary" id="bulkEmailBtn">Send Email</button>
+          <button class="btn fs-btn fs-btn-secondary" id="bulkExportBtn">Export CSV</button>
+          <button class="btn fs-btn fs-btn-secondary" id="bulkClearBtn">✕ Clear</button>
+          <div id="bulkProgress" style="display:none;font-size:12px;color:var(--muted)"></div>
+        </div>
         <div class="table-wrap fs-table-wrap" id="tableWrap"></div>
         <div class="mobile-cards" id="mobileCards"></div>
         <div class="sticky-mobile"><button class="btn fs-btn fs-btn-primary primary" style="width:100%" id="openSelectedBtn">Open Latest Viewed Student</button></div>
@@ -259,6 +299,22 @@
       <section class="card" style="margin:0"><strong>Notification History</strong><div id="notificationHistory" class="list"></div></section>
       <section class="card" style="margin:0"><strong>Email History</strong><div id="emailHistory" class="list"></div></section>
       <section class="card" style="margin:0"><strong>Audit History</strong><div id="auditHistory" class="list"></div></section>
+      <section class="card" style="margin:0">
+        <strong>Status Override</strong>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px;align-items:end">
+          <select id="statusOverrideSelect" style="border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px;">
+            <option value="">— pick status —</option>
+            <option value="PENDING">PENDING</option>
+            <option value="WAITLISTED">WAITLISTED</option>
+            <option value="REVIEW">REVIEW</option>
+            <option value="DUPLICATE">DUPLICATE</option>
+            <option value="CLASS_ASSIGNED">CLASS_ASSIGNED</option>
+            <option value="COMPLETED">COMPLETED</option>
+          </select>
+          <button class="btn fs-btn fs-btn-primary primary" id="applyStatusOverrideBtn">Apply</button>
+        </div>
+        <div id="statusOverrideMsg" style="margin-top:6px;font-size:12px;color:#b42318"></div>
+      </section>
     </div>
   </aside>
 
@@ -284,7 +340,11 @@
       </div>
       <div class="kv" id="classMeta"></div>
       <div id="modalWarnings"></div>
-      <div class="warn">Safety: if class is full this update is blocked. This flow never sends email directly; it creates <code>notification_events</code> only.</div>
+      <div class="field" style="grid-column:1/-1">
+        <label for="correctionReason">Reason for Change <span style="color:#b42318">*</span></label>
+        <textarea id="correctionReason" rows="3" style="width:100%;border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px;resize:vertical;min-height:64px;transition:border-color .16s ease,box-shadow .16s ease;" placeholder="Explain why the class is being changed (min 10 characters)…"></textarea>
+      </div>
+      <div class="warn">Safety: if class is full this update is blocked. This flow queues a <code>class_reassignment_notice</code> email and resets Moodle sync.</div>
       <div class="btns" style="justify-content:flex-end">
         <button class="btn fs-btn fs-btn-secondary" id="cancelCorrectionBtn">Cancel</button>
         <button class="btn fs-btn fs-btn-primary primary" id="saveCorrectionBtn">Confirm & Save</button>

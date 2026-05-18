@@ -144,7 +144,7 @@
 <script src="../js/config-helper.js"></script>
 <script type="module">
 import { CONFIG, supabase } from "../auth/auth-client.js";
-import { requireAuth } from "../auth/auth-client.js";
+import { requireAuth, isRegionalSecretary } from "../auth/auth-client.js";
 import { logout } from "../auth/logout.js";
 
 const PAGE_SIZE = 12;
@@ -349,8 +349,9 @@ function buildRoleNavDropdown(profile){
 
 (async function boot(){
   try {
-    const auth = await requireAuth(['admin','superadmin']);
+    const auth = await requireAuth(['admin','superadmin','regional_secretary']);
     if (!auth) return;
+    if (!(["admin","superadmin"].includes(String(auth.profile?.role || "").toLowerCase()) || isRegionalSecretary(auth.profile?.role))) return;
     window.FSAdminShell && window.FSAdminShell.setProfile(auth.profile.email || auth.profile.name, null);
     buildRoleNavDropdown(auth.profile);
     wireEvents();
@@ -367,5 +368,4 @@ function buildRoleNavDropdown(profile){
 </script>
 </body>
 </html>
-
 

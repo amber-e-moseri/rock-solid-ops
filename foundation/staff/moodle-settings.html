@@ -79,11 +79,10 @@
   <script src="../js/config-helper.js"></script>
   <script src="../js/admin-shell.js"></script>
   <script type="module">
-    import { supabase, getCurrentProfile } from "../auth/auth-client.js";
+    import { supabase, getCurrentProfile, isAdmin } from "../auth/auth-client.js";
 
     const $ = (id) => document.getElementById(id);
     const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
-    const roleAllow = new Set(["admin","superadmin","subgroup_admin","pastor"]);
     let mappings = [];
 
     function msg(text, bad = false) {
@@ -113,7 +112,7 @@
       const { data } = await supabase.auth.getSession();
       if (!data?.session) { window.location.href = "login.html"; return false; }
       const p = await getCurrentProfile();
-      if (!p || !roleAllow.has(String(p.role || ""))) {
+      if (!p || !isAdmin(p.role)) {
         document.body.innerHTML = "<main class='main fs-content'><section class='fs-card'><div class='fs-banner fs-banner-danger'>Access denied.</div></section></main>";
         return false;
       }
@@ -220,5 +219,4 @@
   </script>
 </body>
 </html>
-
 

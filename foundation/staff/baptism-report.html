@@ -130,7 +130,7 @@
 <script src="../js/config.js"></script>
 <script src="../js/config-helper.js"></script>
 <script type="module">
-  import { supabase, requireAuth } from "../auth/auth-client.js";
+  import { supabase, requireAuth, isRegionalSecretary } from "../auth/auth-client.js";
 
   const state = {
     applicants: [],
@@ -262,8 +262,9 @@
   }
 
   async function load() {
-    const auth = await requireAuth(["principal", "subgroup_admin", "pastor", "admin", "superadmin"]);
+    const auth = await requireAuth(["principal", "subgroup_admin", "pastor", "admin", "superadmin", "regional_secretary"]);
     if (!auth) return;
+    if (!(["principal", "subgroup_admin", "pastor", "admin", "superadmin"].includes(String(auth.profile?.role || "").toLowerCase()) || isRegionalSecretary(auth.profile?.role))) return;
     window.FSAdminShell && window.FSAdminShell.mount({
       active: "baptismreport",
       pageTitle: "Baptism Report",

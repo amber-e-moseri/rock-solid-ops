@@ -216,18 +216,8 @@
     }
 
     function ensureSupabaseClient() {
-      if (window.supabase && typeof window.supabase.from === "function") return window.supabase;
-      if (!window.supabase || typeof window.supabase.createClient !== "function") {
-        console.error("[SUPABASE_CLIENT_MISSING] Supabase client library is not loaded.");
-        throw new Error("Supabase client library is not loaded.");
-      }
-      const cfg = readRuntimeConfig();
-      if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
-        console.error("[CONFIG_MISSING] Missing SUPABASE_URL/SUPABASE_ANON_KEY in window.FS_CONFIG.");
-        throw new Error("Missing runtime Supabase config.");
-      }
-      window.supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
-      return window.supabase;
+      if (window.FS_SUPABASE_CLIENT && typeof window.FS_SUPABASE_CLIENT.from === "function") return window.FS_SUPABASE_CLIENT;
+      throw new Error("Supabase client is not initialized.");
     }
     function resolveLoginPath(){
       const p = window.location.pathname || "";
@@ -295,7 +285,9 @@
     }
 
     async function mountTeacherShell() {
-      if (window.FSAdminShell && typeof window.FSAdminShell.mount === "function") {
+      const inTeacherFrame = window.self !== window.top &&
+        window.parent?.location?.pathname?.includes('teacher/');
+      if (!inTeacherFrame && window.FSAdminShell && typeof window.FSAdminShell.mount === "function") {
         await window.FSAdminShell.mount({
           active: "attendance",
           profileName: state.teacher?.fullName || "Teacher",
@@ -312,8 +304,9 @@
 
       let sessionEmail = "";
       try {
-        if (window.supabase?.auth?.getSession) {
-          const sessionRes = await window.supabase.auth.getSession();
+        const sessionClient = ensureSupabaseClient();
+        if (sessionClient?.auth?.getSession) {
+          const sessionRes = await sessionClient.auth.getSession();
           sessionEmail = String(sessionRes?.data?.session?.user?.email || "").trim();
         }
       } catch (_) {}
@@ -517,9 +510,9 @@
       if (!email) {
         email = String(sessionStorage.getItem("fs_teacher_email") || "").trim();
       }
-      if (!email && window.supabase) {
+      if (!email) {
         try {
-          const { data } = await window.supabase.auth.getSession();
+          const { data } = await ensureSupabaseClient().auth.getSession();
           email = String(data?.session?.user?.email || "").trim();
         } catch (_) {}
       }
@@ -573,14 +566,31 @@
   <script src="../js/config-helper.js"></script>
   <script src="../js/toast.js"></script>
   <script src="../js/runtime.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api-client.js"></script>
   <script src="../js/ui.js"></script>
   <script src="../js/toast.js"></script>
   <script src="../js/modal.js"></script>
   <script src="../js/admin-shell.js"></script>
-  <script>
+  <script type="module">
+    import { supabase, getCurrentProfile, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
+    window.FS_SUPABASE_CLIENT = supabase;
+    window["supabase"] = supabase;
+
+    const { data } = await supabase.auth.getSession();
+    if (!data?.session) {
+      window.location.href = "login.html";
+    } else {
+      const profile = await getCurrentProfile();
+      if (!profile || !(isAdmin(profile.role) || isRegionalSecretary(profile.role))) {
+        window.location.href = "login.html";
+      }
+    }
+  </script>
+  <script type="module">
+    import { supabase } from "../auth/auth-client.js";
+    window.FS_SUPABASE_CLIENT = supabase;
+    window["supabase"] = supabase;
     mountTeacherShell();
   </script>
 </body>

@@ -170,10 +170,76 @@ function renderTable(rows) {
   }).join("");
 }
 
+function groupDuplicates() {
+  const byEmail = new Map();
+  for (const app of state.applicants) {
+    const email = String(app.email || "").toLowerCase().trim();
+    if (!email) continue;
+    if (!byEmail.has(email)) byEmail.set(email, []);
+    byEmail.get(email).push(app);
+  }
+  return [...byEmail.values()].filter((g) => g.length > 1);
+}
+
+function renderDuplicates() {
+  const groups = groupDuplicates();
+  const section = document.getElementById("dupSection");
+  const badge = document.getElementById("dupBadge");
+  const body = document.getElementById("dupBody");
+  if (!section || !badge || !body) return;
+  if (!groups.length) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "";
+  badge.textContent = `${groups.length} group${groups.length === 1 ? "" : "s"}`;
+
+  body.innerHTML = groups.map((group) => {
+    const sorted = [...group].sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    const rows = sorted.map((app, idx) => {
+      const st = normalizedRegistrationStatus(app);
+      const isPrimary = idx === 0;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--color-border)">
+        <div>
+          <strong>${esc(applicantName(app))}</strong>${isPrimary ? ` <span style="font-size:11px;color:var(--color-success-fg);font-weight:600">PRIMARY</span>` : ""}
+          <div style="font-size:12px;color:var(--color-text-muted)">${esc(app.email || "-")} · ${esc(app.fellowship_code || "-")} · <span class="${statusClass(st)}">${esc(st)}</span></div>
+        </div>
+        <div class="actions">
+          ${!isPrimary ? `<button class="btn" data-dup-dismiss="${esc(app.id)}">Dismiss</button>` : ""}
+          <button class="btn" data-dup-flag="${esc(app.id)}">Flag Review</button>
+          <button class="btn" data-open="${esc(app.id)}">Open</button>
+        </div>
+      </div>`;
+    }).join("");
+    return `<div style="margin-bottom:var(--space-3);padding:var(--space-3);border:1px solid color-mix(in srgb,var(--color-danger-fg) 20%,transparent);border-radius:var(--radius-md);background:var(--color-danger-bg)">
+      <div style="font-size:12px;font-weight:700;color:var(--color-danger-fg);margin-bottom:4px">${esc(sorted[0].email || "")} — ${sorted.length} registrations</div>
+      ${rows}
+    </div>`;
+  }).join("");
+
+  // Wire dismiss + flag buttons
+  body.querySelectorAll("[data-dup-dismiss]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-dup-dismiss");
+      await markStatus("DUPLICATE");
+      state.selectedApplicantId = id;
+      await markStatus("DUPLICATE");
+      await loadData();
+    });
+  });
+  body.querySelectorAll("[data-dup-flag]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      state.selectedApplicantId = btn.getAttribute("data-dup-flag");
+      await markStatus("REVIEW");
+    });
+  });
+}
+
 function renderAll() {
   const rows = filteredApplicants();
   renderSummary(rows);
   renderTable(rows);
+  renderDuplicates();
 }
 
 function byId(arr, id, key = "id") {
@@ -462,6 +528,14 @@ async function markStatus(nextStatus) {
       details: { applicant_id: app.id, status },
     });
 
+    supabase.from("in_app_notifications").insert({
+      recipient_role: "admin",
+      title: "Registration updated",
+      body: `${applicantName(app)} moved to ${status}`,
+      type: "info",
+      created_at: new Date().toISOString(),
+    }).then(() => {}).catch(() => {});
+
     showFlash(`Applicant marked ${status}.`, "success");
     await loadData();
     openDetail(app.id);
@@ -636,7 +710,7 @@ async function boot() {
 
   const profile = await getCurrentProfile();
   const mainEl = document.querySelector("main");
-  const allowed = new Set(["admin", "superadmin", "principal"]);
+  const allowed = new Set(["admin", "superadmin", "principal", "regional_secretary"]);
   if (!requireRole(profile, allowed, { containerEl: mainEl })) return;
   state.profile = profile;
 

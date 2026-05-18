@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Waitlist Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
+    .tab-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--space-4); }
+    .tab { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-primary); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 600 var(--fs-meta)/1.4 inherit; cursor: pointer; }
+    .tab.active { background: var(--color-primary); color: var(--color-primary-fg); border-color: var(--color-primary); }
+    .summary-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-raised); }
+    .summary-label { font-size: var(--fs-label); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+    .summary-value { font-size: 26px; font-weight: 800; color: var(--color-text-primary); line-height: 1.1; margin-top: var(--space-1); }
+    .fill-bar-wrap { width: 80px; height: 8px; background: var(--color-border); border-radius: 99px; overflow: hidden; display: inline-block; vertical-align: middle; }
+    .fill-bar { height: 100%; border-radius: 99px; }
+    .fill-green  { background: var(--color-success-fg); }
+    .fill-amber  { background: var(--color-warning-fg); }
+    .fill-red    { background: var(--color-danger-fg); }
+    .spots-ok    { color: var(--color-success-fg); font-weight: 700; }
+    .spots-none  { color: var(--color-danger-fg); font-weight: 700; }
+    .btn { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-1) var(--space-2); font: 500 var(--fs-meta)/1.4 inherit; background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; white-space: nowrap; }
+    .btn:hover { background: var(--color-surface-raised); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--color-primary); color: var(--color-primary-fg); border-color: var(--color-primary); }
+    .btn-success { background: var(--color-success-bg); color: var(--color-success-fg); border-color: color-mix(in srgb,var(--color-success-fg) 30%,transparent); }
+    .btn-danger  { background: var(--color-danger-bg); color: var(--color-danger-fg); border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); }
+    .btn-sm { padding: 2px 8px; font-size: 11px; }
+    .queue-panel { background: var(--color-surface-raised); border-top: 1px solid var(--color-border); padding: var(--space-3); }
+    .queue-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .queue-table th { text-align: left; padding: 6px 8px; font-size: 11px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--color-border); }
+    .queue-table td { padding: 6px 8px; border-bottom: 1px solid color-mix(in srgb,var(--color-border) 50%,transparent); }
+    .wait-amber td { background: var(--color-warning-bg); }
+    .wait-red td   { background: var(--color-danger-bg); }
+    .cap-input { width: 60px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 3px 6px; font: inherit; font-size: 12px; text-align: center; }
+    .status-select { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 3px 6px; font: inherit; font-size: 12px; background: var(--color-surface); }
+    .msg { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-raised); font-size: var(--fs-body); }
+    .msg.error   { border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .msg.success { border-color: color-mix(in srgb,var(--color-success-fg) 30%,transparent); background: var(--color-success-bg); color: var(--color-success-fg); }
+    .override-panel { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); background: var(--color-surface); margin-top: var(--space-4); }
+    .override-panel h3 { margin: 0 0 var(--space-3); font-size: var(--fs-body); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-2); margin-bottom: var(--space-2); }
+    @media (max-width: 700px) { .form-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="fs-page-header">
+      <h1 class="fs-page-title">Waitlist Management</h1>
+      <div class="fs-page-actions">
+        <select class="fs-select" id="batchFilter" style="min-width:160px"><option value="">All Batches</option></select>
+        <button id="runCheckBtn" class="fs-btn fs-btn-primary">Run Waitlist Check</button>
+        <button id="refreshBtn" class="fs-btn fs-btn-secondary">Refresh</button>
+      </div>
+    </div>
+
+    <section class="fs-metric-grid" id="summaryGrid" style="margin-bottom:var(--space-4)"></section>
+
+    <div class="tab-bar" id="tabBar">
+      <button class="tab active" data-tab="queue">Waitlist Queue</button>
+      <button class="tab" data-tab="capacity">Slot Capacity Settings</button>
+    </div>
+
+    <div id="flashArea" style="margin-bottom:var(--space-2)"></div>
+
+    <!-- TAB 1: Waitlist Queue -->
+    <div id="tab-queue">
+      <div class="fs-table-wrap" id="queueTableWrap">
+        <table class="fs-table" id="queueTable">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Class</th>
+              <th>Teacher</th>
+              <th>Day / Time</th>
+              <th>Fellowship</th>
+              <th>Enrolled</th>
+              <th>Capacity</th>
+              <th>Available</th>
+              <th>Waitlisted</th>
+              <th>Fill</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="queueTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: Slot Capacity Settings -->
+    <div id="tab-capacity" style="display:none">
+      <div style="display:flex;gap:var(--space-2);align-items:center;margin-bottom:var(--space-3);flex-wrap:wrap">
+        <span style="font-size:var(--fs-meta);font-weight:600">Set All Capacity:</span>
+        <input class="fs-input" id="bulkCapInput" type="number" min="1" placeholder="e.g. 25" style="width:90px" />
+        <button id="bulkCapBtn" class="btn">Apply to All Visible</button>
+      </div>
+      <div class="fs-table-wrap">
+        <table class="fs-table" id="capTable">
+          <thead>
+            <tr>
+              <th>Class</th>
+              <th>Teacher</th>
+              <th>Day / Time</th>
+              <th>Batch</th>
+              <th>Enrolled</th>
+              <th>Current Max</th>
+              <th>New Max</th>
+              <th>Waitlisted</th>
+              <th>Status</th>
+              <th>Save</th>
+            </tr>
+          </thead>
+          <tbody id="capTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Manual Override -->
+      <div class="override-panel" id="overridePanel" style="display:none">
+        <h3>Manual Enrollment Override</h3>
+        <div class="form-row">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--color-text-muted);display:block;margin-bottom:4px">Student Email</label>
+            <input class="fs-input" id="ovEmail" type="email" placeholder="student@email.com" />
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--color-text-muted);display:block;margin-bottom:4px">Class</label>
+            <select class="fs-select" id="ovClass"></select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--color-text-muted);display:block;margin-bottom:4px">Reason (required)</label>
+            <input class="fs-input" id="ovReason" type="text" placeholder="Reason for override" />
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+          <button id="forceEnrollBtn" class="btn btn-success">Force Enroll</button>
+          <button id="forceWaitlistBtn" class="btn">Force to Waitlist</button>
+        </div>
+        <div id="ovMsg" style="margin-top:var(--space-2)"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module">
+    import { supabase, requireAuth, getCurrentProfile } from "../auth/auth-client.js";
+
+    const WAITLIST_FN = window.FS_CONFIG?.SUPABASE_URL
+      ? `${window.FS_CONFIG.SUPABASE_URL}/functions/v1/waitlist-processor`
+      : null;
+    const SERVICE_KEY = window.FS_CONFIG?.SUPABASE_ANON_KEY || "";
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (m) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]));
+    const fmt = (v) => v ? new Date(v).toLocaleDateString("en-CA", { year:"numeric", month:"short", day:"numeric" }) : "-";
+    const daysSince = (v) => v ? Math.floor((Date.now() - new Date(v).getTime()) / 86400000) : null;
+
+    const state = {
+      slots: [],
+      classOptions: {},
+      waitlistCounts: {},
+      batches: [],
+      profile: null,
+      isSuperadmin: false,
+      activeBatch: "",
+      activeTab: "queue",
+    };
+
+    function showFlash(msg, type = "") {
+      $("flashArea").innerHTML = msg ? `<div class="msg ${type}">${msg}</div>` : "";
+      if (msg && type !== "error") setTimeout(() => { $("flashArea").innerHTML = ""; }, 5000);
+    }
+
+    function fillBarHtml(pct) {
+      const cls = pct >= 90 ? "fill-red" : pct >= 75 ? "fill-amber" : "fill-green";
+      return `<div class="fill-bar-wrap"><div class="fill-bar ${cls}" style="width:${Math.min(100,pct)}%"></div></div> <span style="font-size:11px;color:var(--color-text-muted)">${pct}%</span>`;
+    }
+
+    // ── Summary cards ─────────────────────────────────────────────────────────
+    async function loadSummary() {
+      const batchF = state.activeBatch;
+
+      let wlQuery = supabase.from("applicants").select("id", { count: "exact", head: true })
+        .eq("registration_status", "WAITLISTED");
+      if (batchF) wlQuery = wlQuery.eq("batch_id", batchF);
+      const { count: totalWl } = await wlQuery;
+
+      const slotsWithSpace = state.slots.filter((s) => {
+        if (batchF && s.batch_id !== batchF) return false;
+        const avail = s.max_capacity != null ? s.max_capacity - s.current_enrolment : 999;
+        return avail > 0;
+      }).length;
+
+      const { data: oldest } = await supabase.from("applicants").select("waitlisted_at")
+        .eq("registration_status", "WAITLISTED").order("waitlisted_at", { ascending: true }).limit(1).maybeSingle();
+      const longestWait = oldest?.waitlisted_at ? daysSince(oldest.waitlisted_at) : 0;
+
+      const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+      const { count: promotedToday } = await supabase.from("audit_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("action", "WAITLIST_PROMOTED")
+        .gte("created_at", todayStart.toISOString());
+
+      $("summaryGrid").innerHTML = [
+        ["Total Waitlisted",        totalWl ?? 0],
+        ["Classes With Open Spots", slotsWithSpace],
+        ["Longest Wait (days)",     longestWait ?? 0],
+        ["Promoted Today",          promotedToday ?? 0],
+      ].map(([lbl, val]) => `<article class="summary-card">
+        <div class="summary-label">${esc(lbl)}</div>
+        <div class="summary-value">${val}</div>
+      </article>`).join("");
+    }
+
+    // ── Queue table (Tab 1) ───────────────────────────────────────────────────
+    function renderQueueTable() {
+      const batchF = state.activeBatch;
+      const slots  = state.slots.filter((s) => !batchF || s.batch_id === batchF);
+      const tbody  = $("queueTableBody");
+
+      if (!slots.length) {
+        tbody.innerHTML = `<tr><td colspan="11"><div class="msg">No active class slots found.</div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = slots.map((slot) => {
+        const co       = state.classOptions[slot.class_option_id] || {};
+        const wl       = state.waitlistCounts[`${slot.class_option_id}:${slot.batch_id}`] || 0;
+        const avail    = slot.max_capacity != null ? slot.max_capacity - slot.current_enrolment : "∞";
+        const pct      = slot.max_capacity ? Math.round((slot.current_enrolment / slot.max_capacity) * 100) : 0;
+        const availHtml = (typeof avail === "number" && avail <= 0)
+          ? `<span class="spots-none">0</span>`
+          : `<span class="spots-ok">${avail}</span>`;
+        const fc = (co.fellowship_codes || []).join(", ") || "-";
+        const rowId = `qrow-${slot.class_slot_id}`;
+
+        return `<tr id="${rowId}">
+          <td><button class="btn btn-sm" data-expand="${slot.class_slot_id}">▶ Queue</button></td>
+          <td style="font-size:12px;font-weight:600">${esc(slot.class_option_id)}</td>
+          <td style="font-size:12px">${esc(co.teacher_name || "-")}</td>
+          <td style="font-size:12px">${esc((co.day || "") + " " + (co.class_time || "")).trim() || "-"}</td>
+          <td style="font-size:12px">${esc(fc)}</td>
+          <td style="font-size:12px">${slot.current_enrolment}</td>
+          <td style="font-size:12px">${slot.max_capacity ?? "∞"}</td>
+          <td>${availHtml}</td>
+          <td style="font-size:12px;font-weight:${wl>0?"700":"400"};color:${wl>0?"var(--color-warning-fg)":"inherit"}">${wl}</td>
+          <td>${slot.max_capacity ? fillBarHtml(pct) : "-"}</td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="btn btn-sm btn-success" data-promote-one="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${typeof avail === "number" && avail <= 0 ? "disabled" : ""}>Promote Next</button>
+              <button class="btn btn-sm btn-primary" data-promote-all="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${wl === 0 ? "disabled" : ""}>Promote All</button>
+              <input class="cap-input" data-cap-slot="${esc(slot.class_slot_id)}" value="${slot.max_capacity ?? ""}" placeholder="∞" title="Edit capacity" />
+            </div>
+          </td>
+        </tr>
+        <tr id="queue-${slot.class_slot_id}" style="display:none">
+          <td colspan="11" class="queue-panel"><div class="loading-queue">Loading...</div></td>
+        </tr>`;
+      }).join("");
+    }
+
+    async function loadQueueForSlot(slotId, classOptionId, batchId) {
+      const { data: rows } = await supabase
+        .from("applicants")
+        .select("id,full_name,email,phone,fellowship_code,class_option_id,batch_id,waitlisted_at")
+        .eq("class_option_id", classOptionId)
+        .eq("batch_id", batchId)
+        .eq("registration_status", "WAITLISTED")
+        .order("waitlisted_at", { ascending: true })
+        .limit(100);
+
+      const panel = document.getElementById(`queue-${slotId}`);
+      if (!panel) return;
+
+      const co       = state.classOptions[classOptionId] || {};
+      const coOpts   = state.slots
+        .map((s) => state.classOptions[s.class_option_id])
+        .filter(Boolean)
+        .filter((c, i, arr) => arr.findIndex((x) => x.class_option_id === c.class_option_id) === i);
+
+      if (!rows?.length) {
+        panel.querySelector(".loading-queue, .queue-panel > *").outerHTML =
+          '<div class="msg" style="margin:8px 0">No students on the waitlist for this class.</div>';
+        panel.innerHTML = `<td colspan="11" class="queue-panel"><div class="msg">No students on the waitlist for this class.</div></td>`;
+        return;
+      }
+
+      const tableHtml = `<table class="queue-table">
+        <thead><tr><th>#</th><th>Name</th><th>Fellowship</th><th>Email</th><th>Phone</th><th>Waiting Since</th><th>Days</th><th>Actions</th></tr></thead>
+        <tbody>${rows.map((r, i) => {
+          const days = daysSince(r.waitlisted_at) ?? 0;
+          const rowCls = days > 14 ? "wait-red" : days > 7 ? "wait-amber" : "";
+          const reassignOpts = coOpts.map((c) =>
+            `<option value="${esc(c.class_option_id)}"${c.class_option_id === classOptionId ? " selected" : ""}>${esc(c.class_option_id)} – ${esc(c.teacher_name || "")}</option>`
+          ).join("");
+          return `<tr class="${rowCls}">
+            <td style="font-weight:700">${i+1}</td>
+            <td>${esc(r.full_name)}</td>
+            <td>${esc(r.fellowship_code || "-")}</td>
+            <td>${esc(r.email)}</td>
+            <td>${esc(r.phone || "-")}</td>
+            <td>${fmt(r.waitlisted_at)}</td>
+            <td style="font-weight:${days>7?"700":"400"}">${days}d</td>
+            <td>
+              <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center">
+                <button class="btn btn-sm btn-success" data-q-promote="${esc(r.id)}" data-q-slot="${esc(slotId)}">Promote</button>
+                <button class="btn btn-sm" data-q-top="${esc(r.id)}" data-q-slot="${esc(slotId)}">Move to Top</button>
+                <button class="btn btn-sm btn-danger" data-q-remove="${esc(r.id)}" data-q-slot="${esc(slotId)}">Remove</button>
+                <select class="status-select" data-q-reassign="${esc(r.id)}" data-q-slot="${esc(slotId)}">${reassignOpts}</select>
+                <button class="btn btn-sm" data-q-doReassign="${esc(r.id)}" data-q-slot="${esc(slotId)}">Move</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>`;
+
+      panel.innerHTML = `<td colspan="11" class="queue-panel">${tableHtml}</td>`;
+    }
+
+    // ── Capacity table (Tab 2) ────────────────────────────────────────────────
+    function renderCapTable() {
+      const batchF = state.activeBatch;
+      const slots  = state.slots.filter((s) => !batchF || s.batch_id === batchF);
+      const tbody  = $("capTableBody");
+
+      if (!slots.length) {
+        tbody.innerHTML = `<tr><td colspan="10"><div class="msg">No slots found.</div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = slots.map((slot) => {
+        const co  = state.classOptions[slot.class_option_id] || {};
+        const wl  = state.waitlistCounts[`${slot.class_option_id}:${slot.batch_id}`] || 0;
+        const bat = state.batches.find((b) => b.batch_id === slot.batch_id);
+        return `<tr id="caprow-${esc(slot.class_slot_id)}">
+          <td style="font-size:12px;font-weight:600">${esc(slot.class_option_id)}</td>
+          <td style="font-size:12px">${esc(co.teacher_name || "-")}</td>
+          <td style="font-size:12px">${esc((co.day || "") + " " + (co.class_time || "")).trim() || "-"}</td>
+          <td style="font-size:12px">${esc(bat?.batch_name || slot.batch_id)}</td>
+          <td style="font-size:12px">${slot.current_enrolment}</td>
+          <td style="font-size:12px">${slot.max_capacity ?? "Unlimited"}</td>
+          <td><input class="cap-input" id="newcap-${esc(slot.class_slot_id)}" type="number" min="0" value="${slot.max_capacity ?? ""}" placeholder="∞" style="width:70px" /></td>
+          <td style="font-size:12px;font-weight:${wl>0?"700":"400"};color:${wl>0?"var(--color-warning-fg)":"inherit"}">${wl}</td>
+          <td><select class="status-select" id="slotstat-${esc(slot.class_slot_id)}" data-slot="${esc(slot.class_slot_id)}" data-co="${esc(slot.class_option_id)}" data-batch="${esc(slot.batch_id)}">
+            <option value="Active"${slot.status==="Active"?" selected":""}>Active</option>
+            <option value="Closed"${slot.status==="Closed"?" selected":""}>Closed</option>
+            <option value="Cancelled"${slot.status==="Cancelled"?" selected":""}>Cancelled</option>
+          </select></td>
+          <td><button class="btn btn-sm btn-primary" data-save-cap="${esc(slot.class_slot_id)}" data-co="${esc(slot.class_option_id)}" data-batch="${esc(slot.batch_id)}" data-old="${slot.max_capacity ?? ""}">Save</button></td>
+        </tr>`;
+      }).join("");
+    }
+
+    // ── Data loading ──────────────────────────────────────────────────────────
+    async function loadData() {
+      showFlash("Loading...");
+      const [slotsRes, batchesRes] = await Promise.all([
+        supabase.from("class_slots").select("class_slot_id,class_option_id,batch_id,status,current_enrolment,max_capacity").order("class_option_id"),
+        supabase.from("batches").select("batch_id,batch_name").order("created_at", { ascending: false }).limit(50),
+      ]);
+
+      state.slots   = slotsRes.data || [];
+      state.batches = batchesRes.data || [];
+
+      // Load class options
+      const coIds = [...new Set(state.slots.map((s) => s.class_option_id).filter(Boolean))];
+      if (coIds.length) {
+        const { data: cos } = await supabase.from("class_options")
+          .select("class_option_id,teacher_name,day,class_time,fellowship_codes")
+          .in("class_option_id", coIds);
+        (cos || []).forEach((c) => { state.classOptions[c.class_option_id] = c; });
+      }
+
+      // Load waitlist counts
+      const { data: wlRows } = await supabase.from("applicants")
+        .select("class_option_id,batch_id")
+        .eq("registration_status", "WAITLISTED");
+      state.waitlistCounts = {};
+      (wlRows || []).forEach((r) => {
+        const key = `${r.class_option_id}:${r.batch_id}`;
+        state.waitlistCounts[key] = (state.waitlistCounts[key] || 0) + 1;
+      });
+
+      // Populate batch filter
+      const cur = $("batchFilter").value;
+      $("batchFilter").innerHTML = '<option value="">All Batches</option>' +
+        state.batches.map((b) => `<option value="${esc(b.batch_id)}">${esc(b.batch_name || b.batch_id)}</option>`).join("");
+      if (cur) $("batchFilter").value = cur;
+      state.activeBatch = $("batchFilter").value;
+
+      // Override panel class dropdown
+      if (state.isSuperadmin) {
+        $("ovClass").innerHTML = coIds.map((id) => {
+          const co = state.classOptions[id];
+          return `<option value="${esc(id)}">${esc(id)} – ${esc(co?.teacher_name || "")}</option>`;
+        }).join("");
+      }
+
+      showFlash("");
+      await loadSummary();
+      renderQueueTable();
+      renderCapTable();
+    }
+
+    async function callWaitlistFn(body) {
+      if (!WAITLIST_FN) return null;
+      const res = await fetch(WAITLIST_FN, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SERVICE_KEY}` },
+        body: JSON.stringify(body),
+      });
+      return res.json().catch(() => null);
+    }
+
+    // ── Event wiring ──────────────────────────────────────────────────────────
+    function bindEvents() {
+      $("refreshBtn").addEventListener("click", loadData);
+      $("batchFilter").addEventListener("change", () => {
+        state.activeBatch = $("batchFilter").value;
+        renderQueueTable();
+        renderCapTable();
+        loadSummary();
+      });
+
+      $("tabBar").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-tab]");
+        if (!btn) return;
+        state.activeTab = btn.dataset.tab;
+        $("tabBar").querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === btn));
+        $("tab-queue").style.display    = state.activeTab === "queue"    ? "" : "none";
+        $("tab-capacity").style.display = state.activeTab === "capacity" ? "" : "none";
+      });
+
+      $("runCheckBtn").addEventListener("click", async () => {
+        $("runCheckBtn").disabled = true;
+        showFlash("Running waitlist check...");
+        const result = await callWaitlistFn({});
+        $("runCheckBtn").disabled = false;
+        if (result?.ok) {
+          showFlash(`Promoted ${result.promoted} student(s). ${result.emails_queued} email(s) queued.`, "success");
+          await loadData();
+        } else {
+          showFlash(`Check failed: ${result?.error || "unknown error"}`, "error");
+        }
+      });
+
+      // Queue table — expand, promote, capacity edit
+      $("queueTableBody").addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-expand]");
+        if (btn) {
+          const slotId = btn.dataset.expand;
+          const row    = document.getElementById(`queue-${slotId}`);
+          if (!row) return;
+          const expanded = row.style.display !== "none";
+          row.style.display = expanded ? "none" : "";
+          btn.textContent   = expanded ? "▶ Queue" : "▼ Queue";
+          if (!expanded) {
+            const slot = state.slots.find((s) => s.class_slot_id === slotId);
+            if (slot) await loadQueueForSlot(slotId, slot.class_option_id, slot.batch_id);
+          }
+          return;
+        }
+
+        const promOne = e.target.closest("[data-promote-one]");
+        if (promOne) {
+          promOne.disabled = true;
+          const result = await callWaitlistFn({ class_option_id: promOne.dataset.promoteOne, batch_id: promOne.dataset.batch });
+          promOne.disabled = false;
+          showFlash(result?.ok ? `Promoted ${result.promoted} student(s).` : `Error: ${result?.error}`, result?.ok ? "success" : "error");
+          if (result?.ok) await loadData();
+          return;
+        }
+
+        const promAll = e.target.closest("[data-promote-all]");
+        if (promAll) {
+          promAll.disabled = true;
+          showFlash("Promoting all eligible students...");
+          const result = await callWaitlistFn({ class_option_id: promAll.dataset.promoteAll, batch_id: promAll.dataset.batch });
+          promAll.disabled = false;
+          showFlash(result?.ok ? `Promoted ${result.promoted} student(s).` : `Error: ${result?.error}`, result?.ok ? "success" : "error");
+          if (result?.ok) await loadData();
+          return;
+        }
+      });
+
+      // Cap inline save
+      $("queueTableBody").addEventListener("change", async (e) => {
+        const inp = e.target.closest("[data-cap-slot]");
+        if (!inp) return;
+        const slotId = inp.dataset.capSlot;
+        const newVal = parseInt(inp.value) || null;
+        const slot   = state.slots.find((s) => s.class_slot_id === slotId);
+        if (!slot) return;
+        const { error } = await supabase.from("class_slots").update({ max_capacity: newVal }).eq("class_slot_id", slotId);
+        if (error) { showFlash(`Capacity save failed: ${error.message}`, "error"); return; }
+        slot.max_capacity = newVal;
+        showFlash("Capacity updated.", "success");
+        if (newVal && newVal > (slot.max_capacity || 0)) {
+          callWaitlistFn({ class_option_id: slot.class_option_id, batch_id: slot.batch_id }).then((r) => {
+            if (r?.promoted > 0) showFlash(`Capacity increased. ${r.promoted} student(s) promoted from waitlist.`, "success");
+          });
+        }
+        await loadData();
+      });
+
+      // Queue panel actions (delegated from tbody)
+      document.addEventListener("click", async (e) => {
+        // Promote specific student
+        const qProm = e.target.closest("[data-q-promote]");
+        if (qProm) {
+          qProm.disabled = true;
+          const result = await callWaitlistFn({ applicant_id: qProm.dataset.qPromote });
+          qProm.disabled = false;
+          showFlash(result?.ok ? `Student promoted.` : `Error: ${result?.error}`, result?.ok ? "success" : "error");
+          if (result?.ok) await loadData();
+          return;
+        }
+
+        // Move to top
+        const qTop = e.target.closest("[data-q-top]");
+        if (qTop) {
+          const longAgo = new Date(Date.now() - 999 * 86400000).toISOString();
+          const { error } = await supabase.from("applicants")
+            .update({ waitlisted_at: longAgo }).eq("id", qTop.dataset.qTop);
+          showFlash(error ? `Error: ${error.message}` : "Moved to top of queue.", error ? "error" : "success");
+          if (!error) await loadData();
+          return;
+        }
+
+        // Remove from waitlist
+        const qRem = e.target.closest("[data-q-remove]");
+        if (qRem) {
+          if (!confirm("Remove this student from the waitlist? Their status will be set to INACTIVE.")) return;
+          qRem.disabled = true;
+          const { error } = await supabase.from("applicants")
+            .update({ registration_status: "INACTIVE" }).eq("id", qRem.dataset.qRemove);
+          qRem.disabled = false;
+          showFlash(error ? `Error: ${error.message}` : "Student removed from waitlist.", error ? "error" : "success");
+          if (!error) await loadData();
+          return;
+        }
+
+        // Reassign to different class
+        const qMove = e.target.closest("[data-q-doreassign]");
+        if (qMove) {
+          const sel = document.querySelector(`[data-q-reassign="${qMove.dataset.qDoreassign}"]`);
+          const newCoId = sel?.value;
+          if (!newCoId) return;
+          qMove.disabled = true;
+          const { error } = await supabase.from("applicants")
+            .update({ class_option_id: newCoId }).eq("id", qMove.dataset.qDoreassign);
+          qMove.disabled = false;
+          showFlash(error ? `Error: ${error.message}` : "Student reassigned.", error ? "error" : "success");
+          if (!error) await loadData();
+          return;
+        }
+      });
+
+      // Capacity table save
+      $("capTableBody").addEventListener("click", async (e) => {
+        const saveBtn = e.target.closest("[data-save-cap]");
+        if (!saveBtn) return;
+        const slotId    = saveBtn.dataset.saveCap;
+        const coId      = saveBtn.dataset.co;
+        const batchId   = saveBtn.dataset.batch;
+        const oldCap    = saveBtn.dataset.old ? parseInt(saveBtn.dataset.old) : null;
+        const newCapEl  = document.getElementById(`newcap-${slotId}`);
+        const statusEl  = document.getElementById(`slotstat-${slotId}`);
+        const newCap    = newCapEl?.value ? parseInt(newCapEl.value) : null;
+        const newStatus = statusEl?.value || "Active";
+
+        if (newStatus === "Cancelled") {
+          const { count } = await supabase.from("applicants")
+            .select("id", { count: "exact", head: true })
+            .eq("class_option_id", coId).eq("batch_id", batchId).eq("registration_status", "ASSIGNED");
+          if (!confirm(`Cancel this slot? ${count || 0} enrolled student(s) will receive a cancellation email. Waitlisted students will be set to INACTIVE.`)) return;
+          // Set waitlisted to INACTIVE
+          await supabase.from("applicants").update({ registration_status: "INACTIVE" })
+            .eq("class_option_id", coId).eq("batch_id", batchId).eq("registration_status", "WAITLISTED");
+          // Queue cancellation emails
+          const { data: enrolled } = await supabase.from("applicants")
+            .select("id,full_name,email,fellowship_code").eq("class_option_id", coId)
+            .eq("batch_id", batchId).eq("registration_status", "ASSIGNED");
+          const co = state.classOptions[coId] || {};
+          const emailRows = (enrolled || []).map((ap) => ({
+            recipient_email: ap.email,
+            recipient_name:  ap.full_name || "",
+            template_key:    "class_slot_cancelled",
+            subject:         "Important: Your Foundation School class has been cancelled",
+            status:          "Pending",
+            payload: {
+              first_name:   String(ap.full_name || "Student").split(/\s+/)[0],
+              full_name:    ap.full_name,
+              class_time:   co.class_time || "",
+              class_day:    co.day || "",
+              teacher_name: co.teacher_name || "",
+            },
+          }));
+          if (emailRows.length) await supabase.from("email_queue").insert(emailRows);
+        }
+
+        const { error } = await supabase.from("class_slots")
+          .update({ max_capacity: newCap, status: newStatus }).eq("class_slot_id", slotId);
+        if (error) { showFlash(`Save failed: ${error.message}`, "error"); return; }
+
+        await supabase.from("audit_logs").insert({
+          actor_email: state.profile?.email || null,
+          action: "SLOT_CAPACITY_UPDATED", entity_type: "class_slot", entity_id: slotId,
+          status: "SUCCESS", details: { old_capacity: oldCap, new_capacity: newCap, class_option_id: coId, batch_id: batchId, new_status: newStatus },
+          created_at: new Date().toISOString(),
+        });
+
+        showFlash("Slot updated.", "success");
+        if (newCap && (!oldCap || newCap > oldCap)) {
+          showFlash("Capacity increased — checking waitlist...", "success");
+          callWaitlistFn({ class_option_id: coId, batch_id: batchId }).then((r) => {
+            if (r?.promoted > 0) showFlash(`${r.promoted} student(s) promoted from waitlist!`, "success");
+          });
+        }
+        await loadData();
+      });
+
+      // Bulk capacity
+      $("bulkCapBtn").addEventListener("click", async () => {
+        const val = parseInt($("bulkCapInput").value);
+        if (!val || val < 1) { showFlash("Enter a valid capacity value.", "error"); return; }
+        const batchF = state.activeBatch;
+        const targets = state.slots.filter((s) => !batchF || s.batch_id === batchF);
+        if (!confirm(`Set max capacity to ${val} for ${targets.length} slot(s)?`)) return;
+        for (const slot of targets) {
+          await supabase.from("class_slots").update({ max_capacity: val }).eq("class_slot_id", slot.class_slot_id);
+        }
+        showFlash(`Updated ${targets.length} slot(s). Checking waitlist...`, "success");
+        callWaitlistFn(batchF ? {} : {}).then((r) => {
+          if (r?.promoted > 0) showFlash(`${r.promoted} student(s) promoted!`, "success");
+        });
+        await loadData();
+      });
+
+      // Override panel (superadmin/admin only)
+      if (state.isSuperadmin) {
+        $("overridePanel").style.display = "";
+
+        $("forceEnrollBtn").addEventListener("click", async () => {
+          const email   = $("ovEmail").value.trim();
+          const coId    = $("ovClass").value;
+          const reason  = $("ovReason").value.trim();
+          if (!email || !coId || !reason) { $("ovMsg").innerHTML = '<div class="msg error">Email, class, and reason are required.</div>'; return; }
+          const batchId = state.activeBatch || state.slots.find((s) => s.class_option_id === coId)?.batch_id;
+          const { data: app } = await supabase.from("applicants").select("id").eq("email", email).limit(1).maybeSingle();
+          if (!app) { $("ovMsg").innerHTML = '<div class="msg error">Applicant not found.</div>'; return; }
+          await supabase.from("applicants").update({ registration_status: "ASSIGNED", assigned_at: new Date().toISOString() }).eq("id", app.id);
+          await supabase.from("class_slots").update({ current_enrolment: supabase.rpc ? undefined : undefined }).eq("class_option_id", coId).eq("batch_id", batchId);
+          // Simple increment via raw rpc not available; use select+update pattern
+          const { data: slot } = await supabase.from("class_slots").select("class_slot_id,current_enrolment").eq("class_option_id", coId).eq("batch_id", batchId).limit(1).maybeSingle();
+          if (slot) await supabase.from("class_slots").update({ current_enrolment: slot.current_enrolment + 1 }).eq("class_slot_id", slot.class_slot_id);
+          await supabase.from("moodle_enrollment_sync").upsert({ email, batch_id: batchId, class_option_id: coId, sync_status: "PENDING" }, { onConflict: "email,batch_id" });
+          await supabase.from("audit_logs").insert({ actor_email: state.profile?.email, action: "MANUAL_ENROLLMENT_OVERRIDE", entity_type: "applicant", entity_id: app.id, status: "SUCCESS", details: { email, coId, reason }, created_at: new Date().toISOString() });
+          $("ovMsg").innerHTML = '<div class="msg success">Student force-enrolled and Moodle sync queued.</div>';
+          await loadData();
+        });
+
+        $("forceWaitlistBtn").addEventListener("click", async () => {
+          const email  = $("ovEmail").value.trim();
+          const coId   = $("ovClass").value;
+          const reason = $("ovReason").value.trim();
+          if (!email || !coId || !reason) { $("ovMsg").innerHTML = '<div class="msg error">Email, class, and reason are required.</div>'; return; }
+          const batchId = state.activeBatch || state.slots.find((s) => s.class_option_id === coId)?.batch_id;
+          const { data: app } = await supabase.from("applicants").select("id").eq("email", email).limit(1).maybeSingle();
+          if (!app) { $("ovMsg").innerHTML = '<div class="msg error">Applicant not found.</div>'; return; }
+          await supabase.from("applicants").update({ registration_status: "WAITLISTED", waitlisted_at: new Date().toISOString(), class_option_id: coId, batch_id: batchId }).eq("id", app.id);
+          await supabase.from("audit_logs").insert({ actor_email: state.profile?.email, action: "MANUAL_WAITLIST_OVERRIDE", entity_type: "applicant", entity_id: app.id, status: "SUCCESS", details: { email, coId, reason }, created_at: new Date().toISOString() });
+          $("ovMsg").innerHTML = '<div class="msg success">Student placed on waitlist.</div>';
+          await loadData();
+        });
+      }
+    }
+
+    async function boot() {
+      if (!window.FS_CONFIG?.SUPABASE_URL) {
+        window.FSAdminShell?.mount({ active: "waitlist", pageTitle: "Waitlist Management", profileName: "Not connected" });
+        showFlash("Not connected — open via live server with config.js", "error");
+        return;
+      }
+      const auth = await requireAuth(["admin", "superadmin", "regional_secretary"]);
+      if (!auth) return;
+      state.profile     = auth.profile;
+      state.isSuperadmin = ["admin","superadmin"].includes((auth.profile?.role || "").toLowerCase());
+
+      window.FSAdminShell?.mount({ active: "waitlist", pageTitle: "Waitlist Management", role: auth.profile?.role });
+
+      bindEvents();
+      await loadData();
+    }
+
+    boot().catch((e) => showFlash(`Boot failed: ${esc(e?.message || e)}`, "error"));
+  </script>
+</body>
+</html>

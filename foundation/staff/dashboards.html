@@ -14,94 +14,181 @@
   <link rel="stylesheet" href="../ui/primitives.css" />
   <style>
     body { font-family: "Manrope", system-ui, sans-serif; }
-    .hero-title { margin: 0; font-size: clamp(1.6rem, 3.2vw, 2.2rem); }
-    .hero-sub { margin-top: 6px; }
-    .fill-bar-track { background: var(--color-border); border-radius: 4px; height: 6px; width: 100%; min-width: 60px; }
-    .fill-bar-fill  { background: var(--color-primary); border-radius: 4px; height: 6px; }
-    .fill-bar-fill.fill-warn  { background: var(--color-warning-fg); }
-    .fill-bar-fill.fill-danger { background: var(--color-danger-fg); }
-    .two-col { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
-    .two-col > div { flex: 1; min-width: 220px; }
-    .state { padding: 14px; border: 1px solid var(--color-border); border-radius: 12px;
-             background: var(--color-surface); color: var(--color-text-muted); }
+
+    /* KPI row */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .kpi-card {
+      border: 1px solid var(--color-border, var(--border));
+      background: var(--color-surface, var(--surface, #fff));
+      border-radius: 14px;
+      padding: 16px 18px;
+      box-shadow: var(--shadow-soft, 0 1px 4px rgba(0,0,0,.06));
+    }
+    .kpi-card .kpi-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--color-primary, #4C2A92);
+      line-height: 1.1;
+    }
+    .kpi-card .kpi-label {
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--color-text-muted, var(--muted));
+    }
+    .kpi-card.kpi-warn .kpi-value  { color: #c07400; }
+    .kpi-card.kpi-danger .kpi-value { color: #b53030; }
+
+    /* Two-column chart row */
+    .chart-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .chart-card { margin-bottom: 0; }
+    .chart-card h3 { margin: 0 0 14px; font-size: 14px; font-weight: 800; }
+    .chart-wrap { position: relative; }
+
+    /* Fill bars */
+    .fill-bar-track { background: var(--color-border, #e5e7eb); border-radius: 4px; height: 6px; width: 100%; min-width: 60px; }
+    .fill-bar-fill  { background: var(--color-primary, #4C2A92); border-radius: 4px; height: 6px; }
+    .fill-bar-fill.fill-warn   { background: #d97706; }
+    .fill-bar-fill.fill-danger { background: #dc2626; }
+
+    /* Side-by-side ops row */
+    .ops-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .ops-card { margin-bottom: 0; }
+    .ops-card h4 { margin: 0 0 12px; font-size: 13px; font-weight: 800; }
+
+    .state {
+      padding: 14px;
+      border: 1px solid var(--color-border, var(--border));
+      border-radius: 12px;
+      background: var(--color-surface, var(--surface));
+      color: var(--color-text-muted, var(--muted));
+      font-size: 13px;
+    }
     .hidden { display: none !important; }
+
+    /* Table */
+    .fs-table-wrap { overflow: auto; border: 1px solid var(--color-border, var(--border)); border-radius: 12px; }
+    table.fs-table { width: 100%; min-width: 560px; border-collapse: collapse; }
+    table.fs-table th,
+    table.fs-table td { padding: 10px 12px; border-bottom: 1px solid var(--color-border, var(--border)); text-align: left; font-size: 13px; }
+    table.fs-table th { font-size: 11px; text-transform: uppercase; color: var(--color-text-muted, var(--muted)); letter-spacing: .05em; font-weight: 700; }
+    table.fs-table tr:last-child td { border-bottom: none; }
+
+    @media (max-width: 900px) {
+      .kpi-row    { grid-template-columns: repeat(2, 1fr); }
+      .chart-row  { grid-template-columns: 1fr; }
+      .ops-row    { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      .kpi-row { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 <body>
   <main class="fs-page">
-    <section class="hero">
-      <h1 class="hero-title">Operational Dashboards</h1>
-      <p class="hero-sub">Live registration and delivery summary.</p>
+    <section class="hero" style="margin-bottom:16px;">
+      <h1 style="margin:0;font-size:clamp(1.4rem,3vw,2rem);font-weight:800;">Operational Dashboards</h1>
+      <p style="margin:4px 0 0;color:var(--color-text-muted,var(--muted));">Live registration and delivery summary.</p>
     </section>
 
-    <!-- Scope banner (shown only for scoped roles) -->
-    <div id="scopeBanner" class="fs-banner fs-banner-info hidden">
+    <!-- Scope banner -->
+    <div id="scopeBanner" class="fs-banner fs-banner-info hidden" style="margin-bottom:12px;">
       <strong>Scoped view:</strong> Showing data for your assigned subgroups only.
     </div>
 
-    <!-- Batch filter + refresh -->
-    <section class="card">
+    <!-- Batch filter -->
+    <section class="card" style="margin-bottom:16px;">
       <div class="fs-row" style="gap:12px;align-items:center;flex-wrap:wrap;">
-        <label for="batchFilter" style="font-weight:600;white-space:nowrap;">Batch:</label>
+        <label for="batchFilter" style="font-weight:700;white-space:nowrap;font-size:13px;">Batch:</label>
         <select id="batchFilter" class="fs-select" style="min-width:200px;">
           <option value="">All Batches</option>
         </select>
         <button id="refreshBtn" class="fs-btn fs-btn-primary fs-btn-sm">Refresh</button>
-        <span id="lastRefreshed" class="fs-metric-label" style="margin-left:auto;"></span>
+        <span id="lastRefreshed" style="margin-left:auto;font-size:12px;color:var(--color-text-muted,var(--muted));"></span>
       </div>
     </section>
 
-    <!-- Stale queue alert (hidden when count = 0) -->
-    <div id="staleQueueBanner" class="fs-banner fs-banner-warning hidden">
+    <!-- Stale queue alert -->
+    <div id="staleQueueBanner" class="fs-banner fs-banner-warning hidden" style="margin-bottom:12px;">
       <strong><span id="staleQueueCount">0</span> registration(s)</strong> have been in
       REVIEW status for over 48 hours.
-      <a href="applicant-directory.html" class="fs-btn fs-btn-sm fs-btn-secondary"
-         style="margin-left:12px;">View Applicants</a>
+      <a href="applicant-directory.html" class="fs-btn fs-btn-sm fs-btn-secondary" style="margin-left:12px;">View Applicants</a>
     </div>
 
-    <!-- Registration Summary -->
-    <section class="card">
-      <div class="fs-row" style="margin-bottom:12px;">
-        <strong>Registration Summary</strong>
+    <!-- KPI cards -->
+    <div class="kpi-row">
+      <article class="kpi-card">
+        <div class="kpi-value" id="kpiEnrolled">—</div>
+        <div class="kpi-label">Total Enrolled</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-value" id="kpiWaitlisted">—</div>
+        <div class="kpi-label">Waitlisted</div>
+      </article>
+      <article class="kpi-card kpi-warn">
+        <div class="kpi-value" id="kpiStale">—</div>
+        <div class="kpi-label">Stale Reviews (&gt;48 h)</div>
+      </article>
+      <article class="kpi-card kpi-danger">
+        <div class="kpi-value" id="kpiFailedSyncs">—</div>
+        <div class="kpi-label">Failed Syncs</div>
+      </article>
+    </div>
+
+    <!-- Row 2: bar chart + doughnut -->
+    <div class="chart-row">
+      <section class="card chart-card">
+        <h3>Registration Status</h3>
+        <div id="regChartState" class="state">Loading…</div>
+        <div id="regChartWrap" class="chart-wrap hidden">
+          <canvas id="regChart" height="220"></canvas>
+        </div>
+      </section>
+      <section class="card chart-card">
+        <h3>Fellowship Breakdown</h3>
+        <div id="fellowshipChartState" class="state">Loading…</div>
+        <div id="fellowshipChartWrap" class="chart-wrap hidden">
+          <canvas id="fellowshipChart" height="220"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <!-- Row 3: weekly line chart -->
+    <section class="card" style="margin-bottom:16px;">
+      <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Weekly Registrations (last 12 weeks)</h3>
+      <div id="weeklyChartState" class="state">Loading…</div>
+      <div id="weeklyChartWrap" class="chart-wrap hidden">
+        <canvas id="weeklyChart" height="120"></canvas>
       </div>
-      <div id="regStats" class="fs-metric-grid"></div>
-      <div id="regStatsState" class="state">Loading summary…</div>
     </section>
 
-    <!-- Fellowship Breakdown -->
-    <section class="card">
-      <h3 style="margin-top:0;">Fellowship Breakdown</h3>
-      <div id="fellowshipState" class="state">Loading…</div>
-      <div id="fellowshipWrap" class="fs-table-wrap hidden">
-        <table class="fs-table">
-          <thead><tr><th>Fellowship</th><th>Registrations</th></tr></thead>
-          <tbody id="fellowshipRows"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Weekly Trend -->
-    <section class="card">
-      <h3 style="margin-top:0;">Weekly Registrations (last 12 weeks)</h3>
-      <div id="weeklyState" class="state">Loading…</div>
-      <div id="weeklyWrap" class="fs-table-wrap hidden">
-        <table class="fs-table">
-          <thead><tr><th>Week Starting</th><th>New Registrations</th></tr></thead>
-          <tbody id="weeklyRows"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Class Capacity -->
-    <section class="card">
-      <h3 style="margin-top:0;">Class Capacity</h3>
+    <!-- Row 4: class capacity -->
+    <section class="card" style="margin-bottom:16px;">
+      <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Class Capacity</h3>
       <div id="capacityState" class="state">Loading…</div>
       <div id="capacityWrap" class="fs-table-wrap hidden">
         <table class="fs-table">
           <thead>
             <tr>
               <th>Day</th><th>Time</th><th>Fellowship</th>
-              <th>Enrolled</th><th>Max</th><th style="min-width:80px;">Fill</th>
+              <th>Enrolled</th><th>Max</th><th style="min-width:100px;">Fill</th>
             </tr>
           </thead>
           <tbody id="capacityRows"></tbody>
@@ -109,32 +196,27 @@
       </div>
     </section>
 
-    <!-- Failed Syncs + Escalation -->
-    <section class="card">
-      <div class="two-col">
-        <div>
-          <h4 style="margin-top:0;">Failed Syncs</h4>
-          <div id="failedSyncState" class="state">Loading…</div>
-          <ul id="failedSyncList" class="hidden" style="margin:0;padding:0;list-style:none;line-height:2;"></ul>
-          <a href="failed-sync-retry-center.html"
-             class="fs-btn fs-btn-sm fs-btn-secondary"
-             style="margin-top:10px;display:inline-flex;">Open Retry Center</a>
-        </div>
-        <div>
-          <h4 style="margin-top:0;">Escalation Tasks</h4>
-          <div id="escalationState" class="state">Loading…</div>
-          <div id="escalationList" class="hidden"></div>
-          <p class="fs-metric-label" style="font-size:11px;margin-top:8px;">
-            Tasks raised by the system. Statuses reflect Supabase tracking only —
-            resolve in ClickUp directly.
-          </p>
-        </div>
-      </div>
-    </section>
+    <!-- Row 5: failed syncs + escalation -->
+    <div class="ops-row">
+      <section class="card ops-card">
+        <h4>Failed Syncs</h4>
+        <div id="failedSyncState" class="state">Loading…</div>
+        <ul id="failedSyncList" class="hidden" style="margin:0;padding:0;list-style:none;line-height:2.2;"></ul>
+        <a href="failed-sync-retry-center.html" class="fs-btn fs-btn-sm fs-btn-secondary" style="margin-top:12px;display:inline-flex;">Open Retry Center</a>
+      </section>
+      <section class="card ops-card">
+        <h4>Escalation Tasks</h4>
+        <div id="escalationState" class="state">Loading…</div>
+        <div id="escalationList" class="hidden"></div>
+        <p style="font-size:11px;color:var(--color-text-muted,var(--muted));margin-top:10px;">
+          Tasks raised by the system. Resolve in ClickUp directly.
+        </p>
+      </section>
+    </div>
 
-    <!-- Recent Registrations -->
-    <section class="card">
-      <h3 style="margin-top:0;">Recent Registrations</h3>
+    <!-- Recent registrations -->
+    <section class="card" style="margin-bottom:16px;">
+      <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Recent Registrations</h3>
       <div id="recentState" class="state">Loading…</div>
       <div id="recentWrap" class="fs-table-wrap hidden">
         <table class="fs-table">
@@ -149,73 +231,58 @@
       </div>
     </section>
 
-    <!-- Migration Notes -->
+    <!-- Migration notes -->
     <section class="card">
-      <h3 style="margin-top:0;">Migration Notes</h3>
-      <ul id="migrationNotes" style="margin:0 0 0 18px;color:var(--color-text-muted);"></ul>
+      <h3 style="margin:0 0 10px;font-size:14px;font-weight:800;">Migration Notes</h3>
+      <ul id="migrationNotes" style="margin:0 0 0 18px;color:var(--color-text-muted,var(--muted));font-size:13px;"></ul>
     </section>
   </main>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+          integrity="sha512-CQBWl4fJHWbryGE+Pc3UJWW1UoKEMDyMBAfBhBuHBZUKs+u7Y4gPWjFVMLPE5HtAqVpMOfPOBod9Rk2DvTEQ=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="../js/config.js"></script>
   <script src="../js/config-helper.js"></script>
   <script src="../js/admin-shell.js"></script>
 
   <script type="module">
-    import { supabase, getCurrentProfile } from "../auth/auth-client.js";
+    import { supabase, getCurrentProfile, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
 
     const $ = (id) => document.getElementById(id);
-    const roleAllow    = new Set(["admin", "superadmin", "subgroup_admin", "pastor"]);
-    const scopedRoles  = new Set(["subgroup_admin", "pastor"]);
+
+    const PURPLE      = "#4C2A92";
+    const PURPLE_SOFT = "rgba(76,42,146,0.12)";
+    const PALETTE     = ["#4C2A92","#7B52C8","#A97EE8","#C9B4F2","#6B3FA0","#9B6BD6","#D4BCF7","#3D1F7A"];
+
+    const isScopedRole = (role) => !isAdmin(role) && !isRegionalSecretary(role);
     const missingItems = new Set();
 
-    // ── State ────────────────────────────────────────────────────────────────
-    let _scope   = { profile: null, subgroups: null }; // null subgroups = no filter
+    let _scope   = { profile: null, subgroups: null };
     let _batchId = null;
+    let _charts  = {};
 
     function getParams() {
       return { p_batch_id: _batchId || null, p_subgroups: _scope.subgroups || null };
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-    function showState(id, msg) {
-      const el = $(id);
-      el.textContent = msg;
-      el.classList.remove("hidden");
+    function show(id)  { $(id).classList.remove("hidden"); }
+    function hide(id)  { $(id).classList.add("hidden"); }
+    function setState(id, msg) { $(id).textContent = msg; show(id); }
+
+    function isMissingTable(err) {
+      const m = String(err?.message || "").toLowerCase();
+      return err?.code === "42P01" || m.includes("does not exist") || m.includes("relation");
     }
 
-    function hideState(id) { $(id).classList.add("hidden"); }
-
-    function isMissingTable(error) {
-      const m = String(error?.message || "").toLowerCase();
-      return error?.code === "42P01" || m.includes("does not exist") || m.includes("relation");
-    }
-
-    function fmtTime(v) {
-      if (!v) return "—";
-      const d = new Date(v);
-      return isNaN(d) ? String(v) : d.toLocaleString();
-    }
-
-    function fmtDate(v) {
-      if (!v) return "—";
-      const d = new Date(v);
-      return isNaN(d) ? String(v) : d.toLocaleDateString();
-    }
-
-    function findAny(obj, keys) {
-      return keys.map((k) => obj?.[k]).find((v) => v !== undefined && v !== null && v !== "") || "—";
-    }
+    function fmtTime(v)  { if (!v) return "—"; const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleString(); }
+    function fmtDate(v)  { if (!v) return "—"; const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleDateString(); }
+    function findAny(obj, keys) { return keys.map((k) => obj?.[k]).find((v) => v != null && v !== "") ?? "—"; }
 
     const STATUS_BADGE = {
-      ASSIGNED:   "fs-badge-success",
-      PENDING:    "fs-badge-info",
-      WAITLISTED: "fs-badge-warning",
-      DUPLICATE:  "fs-badge-danger",
-      REVIEW:     "fs-badge-warning",
-      INACTIVE:   "fs-badge-neutral",
-      COMPLETED:  "fs-badge-neutral",
+      ASSIGNED: "fs-badge-success", PENDING: "fs-badge-info", WAITLISTED: "fs-badge-warning",
+      DUPLICATE: "fs-badge-danger", REVIEW: "fs-badge-warning", INACTIVE: "fs-badge-neutral",
     };
-
     function statusBadge(s) {
       const cls = STATUS_BADGE[String(s || "").toUpperCase()] || "fs-badge-neutral";
       return `<span class="fs-badge ${cls}">${s || "—"}</span>`;
@@ -223,37 +290,42 @@
 
     function fillBarHtml(pct) {
       const p = Math.min(Number(pct) || 0, 100);
-      const extra = p >= 90 ? "fill-danger" : p >= 75 ? "fill-warn" : "";
-      return `<div class="fill-bar-track">
-        <div class="fill-bar-fill ${extra}" style="width:${p}%;"></div>
-      </div>
-      <span style="font-size:11px;color:var(--color-text-muted);">${p}%</span>`;
+      const cls = p >= 90 ? "fill-danger" : p >= 75 ? "fill-warn" : "";
+      return `<div class="fill-bar-track"><div class="fill-bar-fill ${cls}" style="width:${p}%;"></div></div>
+              <span style="font-size:11px;color:var(--color-text-muted,var(--muted));">${p}%</span>`;
+    }
+
+    function destroyChart(key) {
+      if (_charts[key]) { _charts[key].destroy(); delete _charts[key]; }
     }
 
     // ── Scope resolver ───────────────────────────────────────────────────────
     async function resolveScope() {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) {
-        window.location.href = "login.html";
-        return null;
-      }
+      if (!sessionData?.session) { window.location.href = "login.html"; return null; }
 
       const profile = await getCurrentProfile();
-      if (!profile || !roleAllow.has(profile.role)) {
-        showState("regStatsState", "Access denied for this account.");
+      if (!profile || !(isAdmin(profile.role) || isRegionalSecretary(profile.role))) {
+        setState("regChartState", "Access denied for this account.");
         return null;
       }
 
       let subgroups = null;
-      if (scopedRoles.has(profile.role)) {
+      if (isScopedRole(profile.role)) {
         const { data } = await supabase
           .from("admin_users")
-          .select("subgroups")
+          .select("subgroup_id,group_id,subgroups")
           .eq("auth_user_id", profile.user_id)
           .maybeSingle();
-        if (data?.subgroups?.length > 0) {
-          subgroups = data.subgroups;
-          $("scopeBanner").classList.remove("hidden");
+        if (data) {
+          if (data.subgroups?.length > 0) {
+            subgroups = data.subgroups;
+          } else if (data.subgroup_id) {
+            subgroups = [data.subgroup_id];
+          } else if (data.group_id) {
+            subgroups = [data.group_id];
+          }
+          if (subgroups) show("scopeBanner");
         }
       }
 
@@ -267,7 +339,7 @@
         .select("batch_id,batch_name,active")
         .order("created_at", { ascending: false })
         .limit(20);
-      if (!data || data.length === 0) return;
+      if (!data?.length) return;
 
       const sel = $("batchFilter");
       data.forEach((b) => {
@@ -275,117 +347,148 @@
         opt.value = b.batch_id;
         opt.textContent = (b.active ? "★ " : "") + (b.batch_name || b.batch_id);
         sel.appendChild(opt);
-        if (b.active && !_batchId) {
-          _batchId = b.batch_id;
-          opt.selected = true;
-        }
+        if (b.active && !_batchId) { _batchId = b.batch_id; opt.selected = true; }
       });
     }
 
-    // ── Widget: Registration Summary ─────────────────────────────────────────
+    // ── Widget: KPI cards + Registration Status chart ────────────────────────
     async function loadRegistrationSummary() {
-      showState("regStatsState", "Loading summary…");
-      $("regStats").innerHTML = "";
+      setState("regChartState", "Loading…");
+      hide("regChartWrap");
+      destroyChart("reg");
 
       const { data, error } = await supabase.rpc("get_registration_summary", getParams());
-
       if (error) {
         if (isMissingTable(error)) missingItems.add("get_registration_summary RPC");
-        showState("regStatsState", error.message || "Could not load registration summary.");
+        setState("regChartState", error.message || "Could not load registration summary.");
         return;
       }
 
       const rows = data || [];
-      if (rows.length === 0) {
-        showState("regStatsState", "No registration data found for this filter.");
-        return;
-      }
+      if (!rows.length) { setState("regChartState", "No registration data for this filter."); return; }
 
-      $("regStats").innerHTML = rows.map((r) => `
-        <article class="fs-metric">
-          <div class="fs-metric-value">${Number(r.cnt).toLocaleString()}</div>
-          <div class="fs-metric-label">${r.reg_status}</div>
-        </article>
-      `).join("");
-      hideState("regStatsState");
+      // Populate KPI cards
+      const byStatus = Object.fromEntries(rows.map((r) => [r.reg_status, Number(r.cnt)]));
+      $("kpiEnrolled").textContent   = (byStatus["ASSIGNED"] ?? byStatus["ENROLLED"] ?? 0).toLocaleString();
+      $("kpiWaitlisted").textContent = (byStatus["WAITLISTED"] ?? 0).toLocaleString();
+
+      // Bar chart
+      const labels = rows.map((r) => r.reg_status);
+      const values = rows.map((r) => Number(r.cnt));
+      hide("regChartState");
+      show("regChartWrap");
+
+      _charts.reg = new Chart($("regChart"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{ label: "Count", data: values, backgroundColor: PALETTE.slice(0, labels.length), borderRadius: 6 }],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+        },
+      });
     }
 
-    // ── Widget: Fellowship Breakdown ─────────────────────────────────────────
+    // ── Widget: Fellowship Breakdown doughnut ────────────────────────────────
     async function loadFellowshipBreakdown() {
-      showState("fellowshipState", "Loading…");
-      $("fellowshipWrap").classList.add("hidden");
+      setState("fellowshipChartState", "Loading…");
+      hide("fellowshipChartWrap");
+      destroyChart("fellowship");
 
       const { data, error } = await supabase.rpc("get_fellowship_breakdown", getParams());
-
       if (error) {
         if (isMissingTable(error)) missingItems.add("get_fellowship_breakdown RPC");
-        showState("fellowshipState", error.message || "Could not load fellowship data.");
+        setState("fellowshipChartState", error.message || "Could not load fellowship data.");
         return;
       }
 
       const rows = data || [];
-      if (rows.length === 0) {
-        showState("fellowshipState", "No fellowship data for this filter.");
-        return;
-      }
+      if (!rows.length) { setState("fellowshipChartState", "No fellowship data for this filter."); return; }
 
-      $("fellowshipRows").innerHTML = rows.map((r) => `
-        <tr>
-          <td>${r.fellowship}</td>
-          <td>${Number(r.cnt).toLocaleString()}</td>
-        </tr>
-      `).join("");
-      hideState("fellowshipState");
-      $("fellowshipWrap").classList.remove("hidden");
+      hide("fellowshipChartState");
+      show("fellowshipChartWrap");
+
+      _charts.fellowship = new Chart($("fellowshipChart"), {
+        type: "doughnut",
+        data: {
+          labels: rows.map((r) => r.fellowship),
+          datasets: [{
+            data: rows.map((r) => Number(r.cnt)),
+            backgroundColor: PALETTE.slice(0, rows.length),
+            borderWidth: 2,
+            borderColor: "#fff",
+          }],
+        },
+        options: {
+          responsive: true,
+          cutout: "60%",
+          plugins: {
+            legend: { position: "right", labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+          },
+        },
+      });
     }
 
-    // ── Widget: Weekly Trend ─────────────────────────────────────────────────
+    // ── Widget: Weekly Trend line chart ──────────────────────────────────────
     async function loadWeeklyTrend() {
-      showState("weeklyState", "Loading…");
-      $("weeklyWrap").classList.add("hidden");
+      setState("weeklyChartState", "Loading…");
+      hide("weeklyChartWrap");
+      destroyChart("weekly");
 
       const { data, error } = await supabase.rpc("get_registrations_by_week", getParams());
-
       if (error) {
         if (isMissingTable(error)) missingItems.add("get_registrations_by_week RPC");
-        showState("weeklyState", error.message || "Could not load weekly data.");
+        setState("weeklyChartState", error.message || "Could not load weekly data.");
         return;
       }
 
-      const rows = data || [];
-      if (rows.length === 0) {
-        showState("weeklyState", "No weekly data for this filter.");
-        return;
-      }
+      const rows = (data || []).slice(-12);
+      if (!rows.length) { setState("weeklyChartState", "No weekly data for this filter."); return; }
 
-      $("weeklyRows").innerHTML = rows.map((r) => `
-        <tr>
-          <td>${fmtDate(r.week_start)}</td>
-          <td>${Number(r.cnt).toLocaleString()}</td>
-        </tr>
-      `).join("");
-      hideState("weeklyState");
-      $("weeklyWrap").classList.remove("hidden");
+      hide("weeklyChartState");
+      show("weeklyChartWrap");
+
+      _charts.weekly = new Chart($("weeklyChart"), {
+        type: "line",
+        data: {
+          labels: rows.map((r) => fmtDate(r.week_start)),
+          datasets: [{
+            label: "Registrations",
+            data: rows.map((r) => Number(r.cnt)),
+            borderColor: PURPLE,
+            backgroundColor: PURPLE_SOFT,
+            fill: true,
+            tension: 0.35,
+            pointRadius: 4,
+            pointBackgroundColor: PURPLE,
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        },
+      });
     }
 
     // ── Widget: Class Capacity ───────────────────────────────────────────────
     async function loadCapacity() {
-      showState("capacityState", "Loading…");
-      $("capacityWrap").classList.add("hidden");
+      setState("capacityState", "Loading…");
+      hide("capacityWrap");
 
       const { data, error } = await supabase.rpc("get_capacity_summary", getParams());
-
       if (error) {
         if (isMissingTable(error)) missingItems.add("get_capacity_summary RPC");
-        showState("capacityState", error.message || "Could not load capacity data.");
+        setState("capacityState", error.message || "Could not load capacity data.");
         return;
       }
 
       const rows = data || [];
-      if (rows.length === 0) {
-        showState("capacityState", "No class data for this filter.");
-        return;
-      }
+      if (!rows.length) { setState("capacityState", "No class data for this filter."); return; }
 
       $("capacityRows").innerHTML = rows.map((r) => `
         <tr>
@@ -397,44 +500,44 @@
           <td>${r.max_capacity > 0 ? fillBarHtml(r.pct) : "—"}</td>
         </tr>
       `).join("");
-      hideState("capacityState");
-      $("capacityWrap").classList.remove("hidden");
+      hide("capacityState");
+      show("capacityWrap");
     }
 
-    // ── Widget: Stale Queue Banner ───────────────────────────────────────────
+    // ── Widget: Stale Queue banner + KPI ─────────────────────────────────────
     async function loadStaleQueue() {
       const { data, error } = await supabase.rpc("get_stale_queue_items", getParams());
       if (error) return;
-
       const cnt = Number(data?.[0]?.cnt || 0);
+      $("kpiStale").textContent = cnt.toLocaleString();
       if (cnt > 0) {
         $("staleQueueCount").textContent = cnt.toLocaleString();
-        $("staleQueueBanner").classList.remove("hidden");
+        show("staleQueueBanner");
       } else {
-        $("staleQueueBanner").classList.add("hidden");
+        hide("staleQueueBanner");
       }
     }
 
     // ── Widget: Failed Syncs ─────────────────────────────────────────────────
     async function loadFailedSyncs() {
-      showState("failedSyncState", "Loading…");
-      $("failedSyncList").classList.add("hidden");
+      setState("failedSyncState", "Loading…");
+      hide("failedSyncList");
 
       const { data, error } = await supabase.rpc("get_failed_sync_counts", {
         p_subgroups: _scope.subgroups || null,
       });
-
       if (error) {
         if (isMissingTable(error)) missingItems.add("get_failed_sync_counts RPC");
-        showState("failedSyncState", error.message || "Could not load sync data.");
+        setState("failedSyncState", error.message || "Could not load sync data.");
+        $("kpiFailedSyncs").textContent = "—";
         return;
       }
 
       const rows = data || [];
-      if (rows.length === 0) {
-        showState("failedSyncState", "No failed syncs.");
-        return;
-      }
+      const total = rows.reduce((s, r) => s + Number(r.cnt), 0);
+      $("kpiFailedSyncs").textContent = total.toLocaleString();
+
+      if (!rows.length || total === 0) { setState("failedSyncState", "No failed syncs."); return; }
 
       const sourceLabel = { moodle_sync: "Moodle Sync", email_queue: "Email Queue" };
       $("failedSyncList").innerHTML = rows.map((r) => {
@@ -443,30 +546,26 @@
         const cls   = cnt > 0 ? "fs-badge-danger" : "fs-badge-success";
         return `<li><span class="fs-badge ${cls}" style="margin-right:8px;">${cnt}</span>${label}</li>`;
       }).join("");
-      hideState("failedSyncState");
-      $("failedSyncList").classList.remove("hidden");
+      hide("failedSyncState");
+      show("failedSyncList");
     }
 
     // ── Widget: Escalation Summary ───────────────────────────────────────────
     async function loadEscalationSummary() {
-      showState("escalationState", "Loading…");
-      $("escalationList").classList.add("hidden");
+      setState("escalationState", "Loading…");
+      hide("escalationList");
 
       const { data, error } = await supabase.rpc("get_escalation_summary", {
         p_subgroups: _scope.subgroups || null,
       });
-
       if (error) {
         if (isMissingTable(error)) missingItems.add("get_escalation_summary RPC");
-        showState("escalationState", error.message || "Could not load escalation data.");
+        setState("escalationState", error.message || "Could not load escalation data.");
         return;
       }
 
       const rows = data || [];
-      if (rows.length === 0) {
-        showState("escalationState", "No escalation tasks on record.");
-        return;
-      }
+      if (!rows.length) { setState("escalationState", "No escalation tasks on record."); return; }
 
       const statusCls = { CREATED: "fs-badge-warning", PENDING: "fs-badge-info", FAILED: "fs-badge-danger" };
       $("escalationList").innerHTML = `
@@ -481,40 +580,41 @@
             </tr>`;
           }).join("")}</tbody>
         </table>`;
-      hideState("escalationState");
-      $("escalationList").classList.remove("hidden");
+      hide("escalationState");
+      show("escalationList");
     }
 
     // ── Widget: Recent Registrations ─────────────────────────────────────────
     async function loadRecent() {
-      showState("recentState", "Loading…");
-      $("recentWrap").classList.add("hidden");
+      setState("recentState", "Loading…");
+      hide("recentWrap");
 
-      let q = supabase.from("applicants").select("*").order("created_at", { ascending: false }).limit(20);
-
-      const { data, error } = await q;
-
+      const { data, error } = await supabase
+        .from("applicants")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
       if (error) {
         if (isMissingTable(error)) missingItems.add("applicants");
-        showState("recentState", error.message || "Could not load recent registrations.");
+        setState("recentState", error.message || "Could not load recent registrations.");
         return;
       }
 
       const rows = (data || []).map((row) => `
         <tr>
-          <td>${fmtTime(findAny(row, ["created_at", "submitted_at"]))}</td>
-          <td>${findAny(row, ["full_name", "name", "applicant_name"])}</td>
-          <td>${findAny(row, ["email", "email_address"])}</td>
-          <td>${findAny(row, ["fellowship_code", "fellowship", "group_id"])}</td>
-          <td>${findAny(row, ["batch_id", "batch_name"])}</td>
-          <td>${statusBadge(findAny(row, ["registration_status", "status"]))}</td>
-          <td>${findAny(row, ["availability_status", "availability_outcome"])}</td>
+          <td>${fmtTime(findAny(row, ["created_at","submitted_at"]))}</td>
+          <td>${findAny(row, ["full_name","name","applicant_name"])}</td>
+          <td>${findAny(row, ["email","email_address"])}</td>
+          <td>${findAny(row, ["fellowship_code","fellowship","group_id"])}</td>
+          <td>${findAny(row, ["batch_id","batch_name"])}</td>
+          <td>${statusBadge(findAny(row, ["registration_status","status"]))}</td>
+          <td>${findAny(row, ["availability_status","availability_outcome"])}</td>
         </tr>
       `).join("");
 
       $("recentRows").innerHTML = rows || `<tr><td colspan="7">No recent registrations found.</td></tr>`;
-      hideState("recentState");
-      $("recentWrap").classList.remove("hidden");
+      hide("recentState");
+      show("recentWrap");
     }
 
     // ── Migration notes ──────────────────────────────────────────────────────
@@ -557,20 +657,13 @@
 
       await loadBatchOptions();
 
-      $("batchFilter").addEventListener("change", (e) => {
-        _batchId = e.target.value || null;
-        refresh();
-      });
-
+      $("batchFilter").addEventListener("change", (e) => { _batchId = e.target.value || null; refresh(); });
       $("refreshBtn").addEventListener("click", refresh);
 
       await refresh();
     }
 
     init();
-  </script>
-  <script>
-    window.FSAdminShell && window.FSAdminShell.mount({ active: "dashboards", pageTitle: "Dashboards" });
   </script>
 </body>
 </html>

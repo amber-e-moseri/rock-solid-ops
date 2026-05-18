@@ -1,4 +1,4 @@
-﻿# Foundation School System
+# Foundation School System
 
 Supabase-first registration and operations platform for Foundation School (staff/admin portals, student lifecycle, attendance/session outcomes, milestones, notifications, and Moodle sync).
 
@@ -19,7 +19,7 @@ Supabase-first registration and operations platform for Foundation School (staff
 - `registration-processor` (canonical intake path)
 - `moodle-sync` (enrollment sync)
 - `retry-worker` (manual + scheduled retry sweep)
-- `sender-worker` / `notification-dispatcher` / `email-retry` / `reminder-processor`
+- `sender-worker` / `notification-dispatcher` / `email-retry` / `notification-batch-processor`
 - `teacher-portal-api`
 
 ## Audit Logging Canonicalization
@@ -85,4 +85,5 @@ supabase secrets set CLICKUP_DEFAULT_ASSIGNEE_ID="..."
 #### Assignment examples
 - `CSGA`: Chloe is primary assignee; Jason is watcher/secondary follower.
 - `CSGB`: Jason is primary assignee (configured in `clickup_admin_mappings`).
+
 

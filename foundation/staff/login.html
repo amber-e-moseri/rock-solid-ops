@@ -6,7 +6,6 @@
   <title>Rock Solid — Admin Login</title>
   <script src="../js/config.js"></script>
   <script src="../js/config-helper.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --navy: var(--color-primary);
@@ -155,7 +154,8 @@
     </form>
   </div>
 
-  <script>
+  <script type="module">
+    import { supabase as db } from "../auth/auth-client.js"
     const safeNext = () => {
       const raw = new URLSearchParams(window.location.search).get('next') || ''
       if (!raw.startsWith('/') || raw.startsWith('//')) return 'admin-portal.html'
@@ -173,9 +173,6 @@
       err.textContent = 'Configuration is missing. Please set foundation/js/config.js before signing in.'
       err.classList.add('show')
     }
-
-    const { createClient } = window.supabase
-    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
     // Redirect immediately if session already exists
     ;(async () => {
@@ -216,7 +213,6 @@
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
-
 
 
 

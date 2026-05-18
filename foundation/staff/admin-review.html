@@ -88,6 +88,13 @@
 
     <section class="fs-metric-grid" id="summaryGrid" aria-label="Review summaries" style="margin-bottom: var(--space-4);"></section>
 
+    <section id="dupSection" style="display:none;margin-bottom:var(--space-4);background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-4);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
+        <h3 style="margin:0;font-size:var(--fs-section-title)">Duplicate Registrations <span id="dupBadge" class="status-chip status-duplicate" style="margin-left:8px;vertical-align:middle"></span></h3>
+      </div>
+      <div id="dupBody"></div>
+    </section>
+
     <div class="fs-action-bar">
       <div class="fs-action-bar-search">
         <label class="filter-label" for="searchInput">Search</label>

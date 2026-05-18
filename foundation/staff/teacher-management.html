@@ -85,9 +85,10 @@
             <tr>
               <th>Name</th>
               <th>Email</th>
-              <th>Group</th>
+              <th>Fellowship</th>
               <th>Subgroup</th>
               <th>Status</th>
+              <th>Class</th>
               <th>Created</th>
               <th>Actions</th>
             </tr>
@@ -98,6 +99,23 @@
       <div id="mobileCards" class="mobile-cards"></div>
     </section>
   </main>
+
+  <!-- Reason/action confirmation modal -->
+  <div id="actionReasonModal" class="tm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="actionReasonTitle">
+    <div class="tm-modal" style="max-width:480px;">
+      <h2 id="actionReasonTitle">Confirm Action</h2>
+      <p id="actionReasonDesc" style="margin:0;color:var(--color-text-secondary,var(--muted));font-size:14px;"></p>
+      <div class="tm-field tm-field-full" style="margin-top:12px;">
+        <label class="tm-label" for="actionReasonInput">Reason <span id="actionReasonRequired" style="color:var(--color-danger-fg,#b53030);">*</span></label>
+        <textarea id="actionReasonInput" class="fs-input" rows="3" placeholder="Enter reason…" style="resize:vertical;"></textarea>
+        <p id="actionReasonError" class="tm-note" style="color:var(--color-danger-fg,#b53030);min-height:18px;margin-top:4px;"></p>
+      </div>
+      <div class="tm-modal-actions">
+        <button id="actionReasonCancelBtn" type="button" class="btn fs-btn fs-btn-secondary">Cancel</button>
+        <button id="actionReasonConfirmBtn" type="button" class="btn fs-btn fs-btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
 
   <div id="addTeacherModal" class="tm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addTeacherModalTitle">
     <div class="tm-modal">

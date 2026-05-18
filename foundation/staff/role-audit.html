@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Role Audit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
+    .tab-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--space-3); }
+    .tab { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-primary); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 600 var(--fs-meta)/1.4 inherit; cursor: pointer; transition: background 120ms; }
+    .tab.active { background: var(--color-primary); color: var(--color-primary-fg); border-color: var(--color-primary); }
+    .tab:hover:not(.active) { background: var(--color-surface-raised); }
+    .summary-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-raised); }
+    .summary-label { font-size: var(--fs-label); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+    .summary-value { font-size: 26px; font-weight: 800; color: var(--color-text-primary); line-height: 1.1; margin-top: var(--space-1); }
+    .role-chip { display: inline-block; padding: 2px 8px; border-radius: var(--radius-full); font-size: var(--fs-badge); font-weight: 700; }
+    .role-superadmin { background: #fef3c7; color: #92400e; }
+    .role-admin { background: #ede9fe; color: #5b21b6; }
+    .role-pastor { background: #d1fae5; color: #065f46; }
+    .role-principal { background: #dbeafe; color: #1e40af; }
+    .role-teacher { background: #e0f2fe; color: #0c4a6e; }
+    .role-subgroup_admin { background: #fce7f3; color: #9d174d; }
+    .role-other { background: var(--color-surface-raised); color: var(--color-text-muted); }
+    .inactive-row td { opacity: 0.55; }
+    .btn { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 500 var(--fs-meta)/1.4 inherit; background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; white-space: nowrap; }
+    .btn:hover { background: var(--color-surface-raised); }
+    .btn-danger  { background: var(--color-danger-bg); color: var(--color-danger-fg); border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); }
+    .btn-success { background: var(--color-success-bg); color: var(--color-success-fg); border-color: color-mix(in srgb,var(--color-success-fg) 30%,transparent); }
+    .inline-role { display: flex; align-items: center; gap: 6px; }
+    .role-select { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px 6px; font: inherit; font-size: var(--fs-meta); background: var(--color-surface); }
+    .msg { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-raised); font-size: var(--fs-body); }
+    .msg.error   { border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .msg.success { border-color: color-mix(in srgb,var(--color-success-fg) 30%,transparent); background: var(--color-success-bg); color: var(--color-success-fg); }
+    @media (max-width:900px) { .fs-table-wrap { display:none; } .mobile-cards { display:grid !important; } }
+    .mobile-cards { display: none; gap: var(--space-2); }
+    .mobile-card { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); background: var(--color-surface); }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="fs-page-header">
+      <h1 class="fs-page-title">Role Audit</h1>
+      <div class="fs-page-actions">
+        <button id="refreshBtn" class="fs-btn fs-btn-secondary">Refresh</button>
+      </div>
+    </div>
+
+    <section class="fs-metric-grid" id="summaryGrid" style="margin-bottom:var(--space-4)"></section>
+
+    <div class="tab-bar" id="tabBar">
+      <button class="tab active" data-tab="all">All</button>
+      <button class="tab" data-tab="admin">Admins</button>
+      <button class="tab" data-tab="teacher">Teachers</button>
+      <button class="tab" data-tab="pastor">Pastors</button>
+      <button class="tab" data-tab="pending">Pending</button>
+      <button class="tab" data-tab="inactive">Inactive</button>
+    </div>
+
+    <div class="fs-action-bar" style="margin-bottom:var(--space-3)">
+      <div class="fs-action-bar-search">
+        <input class="fs-input" id="searchInput" type="search" placeholder="Search name or email" />
+      </div>
+    </div>
+
+    <div id="flashArea" style="margin-bottom:var(--space-2)"></div>
+
+    <div class="fs-table-wrap">
+      <table class="fs-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Active</th>
+            <th>Joined</th>
+            <th>Last Updated</th>
+            <th>Teacher Record</th>
+            <th>Linked Classes</th>
+            <th id="actionsHeader" style="display:none">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="mobile-cards" id="mobileCards"></div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module">
+    import { supabase, requireAuth } from "../auth/auth-client.js";
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (m) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]));
+    const fmtDate = (v) => v ? new Date(v).toLocaleDateString("en-CA", { year:"numeric", month:"short", day:"numeric" }) : "-";
+
+    const ALL_ROLES = ["superadmin","admin","pastor","principal","subgroup_admin","teacher","student","pending"];
+
+    const state = {
+      profiles: [],
+      teachers: [],
+      classCounts: {},
+      profile: null,
+      activeTab: "all",
+      isSuperadmin: false,
+    };
+
+    function showFlash(msg, type = "success") {
+      $("flashArea").innerHTML = msg ? `<div class="msg ${type}">${esc(msg)}</div>` : "";
+      if (msg && type !== "error") setTimeout(() => { $("flashArea").innerHTML = ""; }, 4000);
+    }
+
+    function roleChip(role) {
+      const r = String(role || "other").toLowerCase();
+      const cls = `role-chip role-${ALL_ROLES.includes(r) ? r : "other"}`;
+      return `<span class="${cls}">${esc(role || "—")}</span>`;
+    }
+
+    function filteredProfiles() {
+      const q   = ($("searchInput")?.value || "").toLowerCase().trim();
+      const tab = state.activeTab;
+
+      return state.profiles.filter((p) => {
+        const role = (p.role || "").toLowerCase();
+        if (tab === "admin"    && !["admin","superadmin"].includes(role)) return false;
+        if (tab === "teacher"  && role !== "teacher") return false;
+        if (tab === "pastor"   && !["pastor","principal"].includes(role)) return false;
+        if (tab === "pending"  && role !== "pending") return false;
+        if (tab === "inactive" && p.is_active !== false) return false;
+        if (q) {
+          const pool = [p.full_name, p.email].join(" ").toLowerCase();
+          if (!pool.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderSummary() {
+      const ps = state.profiles;
+      const admins   = ps.filter((p) => ["admin","superadmin"].includes((p.role||"").toLowerCase())).length;
+      const teachers = ps.filter((p) => (p.role||"").toLowerCase() === "teacher").length;
+      const pastors  = ps.filter((p) => ["pastor","principal"].includes((p.role||"").toLowerCase())).length;
+      const pending  = ps.filter((p) => (p.role||"").toLowerCase() === "pending").length;
+      const inactive = ps.filter((p) => p.is_active === false).length;
+
+      $("summaryGrid").innerHTML = [
+        ["Total Users",  ps.length],
+        ["Admins",       admins],
+        ["Teachers",     teachers],
+        ["Pastors",      pastors],
+        ["Pending",      pending],
+        ["Inactive",     inactive],
+      ].map(([lbl, val]) => `
+        <article class="summary-card">
+          <div class="summary-label">${esc(lbl)}</div>
+          <div class="summary-value">${val}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderTable() {
+      const rows   = filteredProfiles();
+      const tbody  = $("tableBody");
+      const cards  = $("mobileCards");
+      const showAct = state.isSuperadmin;
+
+      $("actionsHeader").style.display = showAct ? "" : "none";
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="${showAct?9:8}"><div class="msg">No users match the current filters.</div></td></tr>`;
+        cards.innerHTML = `<div class="msg">No users found.</div>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map((p) => {
+        const hasTeacher = state.teachers.some((t) => (t.email||"").toLowerCase() === (p.email||"").toLowerCase());
+        const classCount = state.classCounts[p.email] || 0;
+        const inactive   = p.is_active === false;
+        const roleSelect = showAct ? `
+          <div class="inline-role">
+            <select class="role-select" data-action="changerole" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">
+              ${ALL_ROLES.map((r) => `<option value="${r}"${r===p.role?" selected":""}>${r}</option>`).join("")}
+            </select>
+          </div>` : roleChip(p.role);
+
+        const actBtns = showAct ? `
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
+            ${inactive
+              ? `<button class="btn btn-success" data-action="activate" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Activate</button>`
+              : `<button class="btn btn-danger"  data-action="deactivate" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Deactivate</button>`}
+          </div>` : "";
+
+        return `<tr class="${inactive?"inactive-row":""}">
+          <td><strong>${esc(p.full_name || "—")}</strong></td>
+          <td style="font-size:12px">${esc(p.email || "—")}</td>
+          <td>${roleSelect}</td>
+          <td style="font-size:12px">${p.is_active === false ? "No" : "Yes"}</td>
+          <td style="font-size:12px">${fmtDate(p.created_at)}</td>
+          <td style="font-size:12px">${fmtDate(p.updated_at)}</td>
+          <td style="font-size:12px">${hasTeacher ? "Yes" : "—"}</td>
+          <td style="font-size:12px">${classCount > 0 ? classCount : "—"}</td>
+          ${showAct ? `<td>${actBtns}</td>` : ""}
+        </tr>`;
+      }).join("");
+
+      cards.innerHTML = rows.map((p) => {
+        const inactive = p.is_active === false;
+        return `<article class="mobile-card${inactive?" inactive-row":""}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div>
+              <strong>${esc(p.full_name || "—")}</strong>
+              <div style="font-size:12px;color:var(--color-text-muted)">${esc(p.email || "—")}</div>
+            </div>
+            ${roleChip(p.role)}
+          </div>
+          <div style="font-size:12px;color:var(--color-text-muted);margin-top:6px">Joined ${fmtDate(p.created_at)} · ${p.is_active===false?"Inactive":"Active"}</div>
+          ${state.isSuperadmin ? `<div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+            <select class="role-select" data-action="changerole" data-uid="${esc(p.id)}" data-email="${esc(p.email)}" style="flex:1;min-width:100px">
+              ${ALL_ROLES.map((r) => `<option value="${r}"${r===p.role?" selected":""}>${r}</option>`).join("")}
+            </select>
+            ${inactive
+              ? `<button class="btn btn-success" data-action="activate"   data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Activate</button>`
+              : `<button class="btn btn-danger"  data-action="deactivate" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Deactivate</button>`}
+          </div>` : ""}
+        </article>`;
+      }).join("");
+    }
+
+    async function handleAction(action, uid, email, newRole) {
+      const now = new Date().toISOString();
+      const actor = state.profile?.email || null;
+
+      if (action === "changerole") {
+        if (!newRole) return;
+        const { error } = await supabase.from("profiles").update({ role: newRole, updated_at: now }).eq("id", uid);
+        if (error) { showFlash(`Role change failed: ${error.message}`, "error"); return; }
+        await supabase.from("audit_logs").insert({
+          action: "ROLE_CHANGED", entity_type: "user", entity_id: uid,
+          actor_email: actor, status: "SUCCESS",
+          details: { email, new_role: newRole }, created_at: now,
+        });
+        const p = state.profiles.find((x) => x.id === uid);
+        if (p) p.role = newRole;
+        showFlash(`Role updated to "${newRole}" for ${email}.`);
+        renderTable();
+      }
+
+      if (action === "deactivate") {
+        const { error } = await supabase.from("profiles").update({ is_active: false, updated_at: now }).eq("id", uid);
+        if (error) { showFlash(`Deactivate failed: ${error.message}`, "error"); return; }
+        await supabase.from("audit_logs").insert({
+          action: "USER_DEACTIVATED", entity_type: "user", entity_id: uid,
+          actor_email: actor, status: "SUCCESS",
+          details: { email }, created_at: now,
+        });
+        const p = state.profiles.find((x) => x.id === uid);
+        if (p) p.is_active = false;
+        showFlash(`${email} deactivated.`);
+        renderTable();
+      }
+
+      if (action === "activate") {
+        const { error } = await supabase.from("profiles").update({ is_active: true, updated_at: now }).eq("id", uid);
+        if (error) { showFlash(`Activate failed: ${error.message}`, "error"); return; }
+        await supabase.from("audit_logs").insert({
+          action: "USER_ACTIVATED", entity_type: "user", entity_id: uid,
+          actor_email: actor, status: "SUCCESS",
+          details: { email }, created_at: now,
+        });
+        const p = state.profiles.find((x) => x.id === uid);
+        if (p) p.is_active = true;
+        showFlash(`${email} reactivated.`);
+        renderTable();
+      }
+    }
+
+    async function loadData() {
+      showFlash("Loading...");
+      const [profilesRes, teachersRes] = await Promise.all([
+        supabase.from("profiles").select("id,full_name,email,role,is_active,created_at,updated_at").order("created_at", { ascending: false }).limit(2000),
+        supabase.from("teachers").select("email,class_option_id").limit(2000),
+      ]);
+
+      state.profiles = profilesRes.data || [];
+      state.teachers = teachersRes.data || [];
+
+      // Count linked classes per teacher email
+      state.classCounts = {};
+      for (const t of state.teachers) {
+        if (t.email && t.class_option_id) {
+          state.classCounts[t.email] = (state.classCounts[t.email] || 0) + 1;
+        }
+      }
+
+      showFlash("");
+      renderSummary();
+      renderTable();
+    }
+
+    function bindEvents() {
+      $("refreshBtn").addEventListener("click", loadData);
+      $("searchInput").addEventListener("input", renderTable);
+
+      $("tabBar").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-tab]");
+        if (!btn) return;
+        state.activeTab = btn.dataset.tab;
+        $("tabBar").querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === btn));
+        renderTable();
+      });
+
+      // Role select and action buttons — event delegation
+      document.addEventListener("change", async (e) => {
+        const sel = e.target.closest("select[data-action='changerole']");
+        if (!sel) return;
+        if (!state.isSuperadmin) return;
+        await handleAction("changerole", sel.dataset.uid, sel.dataset.email, sel.value);
+      });
+
+      document.addEventListener("click", async (e) => {
+        const btn = e.target.closest("button[data-action][data-uid]");
+        if (!btn || !state.isSuperadmin) return;
+        btn.disabled = true;
+        await handleAction(btn.dataset.action, btn.dataset.uid, btn.dataset.email);
+        btn.disabled = false;
+      });
+    }
+
+    async function boot() {
+      if (!window.FS_CONFIG?.SUPABASE_URL) {
+        window.FSAdminShell?.mount({ active: "roleaudit", pageTitle: "Role Audit", profileName: "Not connected" });
+        showFlash("Not connected — open via live server with config.js", "error");
+        return;
+      }
+      const auth = await requireAuth(["admin", "superadmin"]);
+      if (!auth) return;
+      state.profile     = auth.profile;
+      state.isSuperadmin = (auth.profile?.role || "").toLowerCase() === "superadmin";
+
+      window.FSAdminShell?.mount({ active: "roleaudit", pageTitle: "Role Audit", role: auth.profile?.role });
+
+      bindEvents();
+      await loadData();
+    }
+
+    boot().catch((e) => showFlash(`Boot failed: ${esc(e?.message || e)}`, "error"));
+  </script>
+</body>
+</html>

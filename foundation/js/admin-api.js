@@ -70,7 +70,7 @@
       const status = String(opts?.status || "ALL").toUpperCase();
       let query = client
         .from("teachers")
-        .select("teacher_id,full_name,email,phone,group_id,subgroup_id,status,active,notes,created_at,updated_at,suspended_at,suspended_reason,deactivated_at,rejected_at,deleted_at")
+        .select("teacher_id,full_name,email,phone,group_id,subgroup_id,fellowship_code,status,active,notes,created_at,updated_at,suspended_at,suspended_reason,suspended_by,deactivated_at,deactivated_reason,deactivated_by,rejected_at,rejected_reason,activated_at,activated_by,teacher_user_id,deleted_at")
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       if (status !== "ALL") {
@@ -195,6 +195,8 @@
       if (naturalErr) throw naturalErr;
 
       const classOptionId = String(naturalMatch?.class_option_id || deterministicId);
+      // INVARIANT: After this step, at least one class_options row must exist
+      // for batch_id + class_option_id. If missing, audit and throw — do not proceed.
       const upsertPayload = {
         class_option_id: classOptionId,
         class_id: classOptionId,
@@ -221,7 +223,37 @@
       const { error: upsertErr } = await client
         .from("class_options")
         .upsert(upsertPayload, { onConflict: "class_option_id" });
-      if (upsertErr) throw upsertErr;
+      if (upsertErr) {
+        throw new Error(`CLASS_OPTIONS insert failed: ${String(upsertErr.message || upsertErr)}`);
+      }
+
+      const { count, error: persistedErr } = await client
+        .from("class_options")
+        .select("*", { count: "exact", head: true })
+        .eq("class_option_id", classOptionId)
+        .eq("group_id", groupId)
+        .eq("subgroup_id", subgroupId);
+      if (persistedErr) throw persistedErr;
+      if (!count || count === 0) {
+        const reviewDetails = {
+          applicant_id: String(args?.applicantId || "").trim() || null,
+          approval_action: "ensureClassOptionForAvailability",
+          batch_id: batchId,
+          class_option_id: classOptionId,
+          teacher_id: teacherId,
+          subgroup_id: subgroupId,
+          source: "approval_flow",
+        };
+        await client.from("audit_logs").insert({
+          action: "CLASS_OPTIONS_MISSING_AFTER_APPROVAL",
+          entity_type: "applicant",
+          entity_id: reviewDetails.applicant_id || classOptionId,
+          status: "FAILED",
+          details: reviewDetails,
+          logged_at: new Date().toISOString()
+        });
+        throw new Error(`CLASS_OPTIONS invariant violated: no row exists after insert for applicant ${reviewDetails.applicant_id || "(unknown)"}`);
+      }
 
       return {
         class_option_id: classOptionId,

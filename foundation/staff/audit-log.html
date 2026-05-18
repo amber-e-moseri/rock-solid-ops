@@ -78,10 +78,9 @@
   <script src="../js/config-helper.js"></script>
   <script src="../js/admin-shell.js"></script>
   <script type="module">
-    import { supabase, getCurrentProfile } from "../auth/auth-client.js";
+    import { supabase, getCurrentProfile, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
 
     const state = { rows: [], filtered: [], missingTables: [] };
-    const roleAllow = new Set(["admin", "superadmin", "subgroup_admin", "pastor"]);
     const $ = (id) => document.getElementById(id);
 
     const isMissingTable = (error) => {
@@ -123,7 +122,7 @@
         return null;
       }
       const profile = await getCurrentProfile();
-      if (!profile || !roleAllow.has(profile.role)) {
+      if (!profile || !(isAdmin(profile.role) || isRegionalSecretary(profile.role))) {
         setState("Access denied for this account.");
         return null;
       }
@@ -271,8 +270,6 @@
   </script>
 </body>
 </html>
-
-
 
 
 

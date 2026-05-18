@@ -7,6 +7,8 @@ import { safeLogAudit, writeAudit } from "../_lib/teacher-auth.ts";
 
 export async function approveAvailabilityAction(ctx: ActionContext): Promise<Response> {
   const { db, auth, params } = ctx;
+      // INVARIANT: After this step, at least one class_options row must exist
+      // for batch_id + class_option_id. If missing, audit and throw — do not proceed.
       async function ensureClassOptionPersisted(classOptionId: string, pathLabel: string) {
         const normalized = String(classOptionId || "").trim();
         if (!normalized) {
@@ -27,6 +29,36 @@ export async function approveAvailabilityAction(ctx: ActionContext): Promise<Res
         );
 
         if (classOptionRes.error || !classOptionRes.data) {
+          try {
+            await db.from("failed_syncs").insert({
+              source_table: "teacher_availability",
+              source_id: availabilityId,
+              sync_type: "class_options",
+              status: "FAILED",
+              error_message: classOptionRes.error?.message || "class_options row missing after approval",
+              retry_count: 0,
+              last_retry_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+          } catch (_) {
+            // best-effort visibility in Retry Center
+          }
+          await safeLogAudit(db, {
+            action: "CLASS_OPTIONS_MISSING_AFTER_APPROVAL",
+            actorEmail: auth.teacher.email,
+            actorId: auth.user.id,
+            entityType: "applicant",
+            entityId: normalized,
+            status: "FAILED",
+            details: {
+              applicant_id: null,
+              approval_action: rpcName,
+              availability_id: availabilityId,
+              path: pathLabel,
+              reason: classOptionRes.error?.message || "class_options row missing after approval",
+            },
+          });
           throw new ApiError(
             "INTERNAL_ERROR",
             `${rpcName}: approval completed but CLASS_OPTIONS row is missing for class_option_id=${normalized}`,

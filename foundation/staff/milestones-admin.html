@@ -119,7 +119,7 @@
 <script src="../js/config-helper.js"></script>
 <script type="module">
 import { CONFIG, supabase } from "../auth/auth-client.js";
-import { requireAuth } from "../auth/auth-client.js";
+import { requireAuth, isRegionalSecretary } from "../auth/auth-client.js";
 import { logout } from "../auth/logout.js";
 
 const $ = (id) => document.getElementById(id);
@@ -435,8 +435,9 @@ async function boot() {
     return;
   }
 
-  const auth = await requireAuth(["admin", "superadmin"]);
+  const auth = await requireAuth(["admin", "superadmin", "regional_secretary"]);
   if (!auth) return;
+  if (!(["admin", "superadmin"].includes(String(auth.profile?.role || "").toLowerCase()) || isRegionalSecretary(auth.profile?.role))) return;
   state.auth = auth;
   state.isSuperadmin = String(auth.profile?.role || "").toLowerCase() === "superadmin";
 
@@ -457,7 +458,6 @@ boot().catch((e) => flash(`Failed to load milestones admin: ${e.message || e}`, 
   </script>
 </body>
 </html>
-
 
 
 

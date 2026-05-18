@@ -170,18 +170,8 @@ function resolveLoginPath(){
   return p.includes("/foundation/") ? "/foundation/auth/login.html" : "/auth/login.html";
 }
 function ensureSupabaseClient(){
-  if (window.supabase && typeof window.supabase.from === "function") return window.supabase;
-  if (!window.supabase || typeof window.supabase.createClient !== "function") {
-    console.error("[SUPABASE_CLIENT_MISSING] Supabase JS client was not loaded.");
-    throw new Error("Supabase JS client was not loaded.");
-  }
-  const cfg = readRuntimeConfig();
-  if (!cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) {
-    console.error("[CONFIG_MISSING] Missing SUPABASE_URL/SUPABASE_ANON_KEY in window.FS_CONFIG.");
-    throw new Error("Supabase URL/anon key is missing.");
-  }
-  window.supabase = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
-  return window.supabase;
+  if (window.FS_SUPABASE_CLIENT && typeof window.FS_SUPABASE_CLIENT.from === "function") return window.FS_SUPABASE_CLIENT;
+  throw new Error("Supabase client is not initialized.");
 }
 async function ensureSessionOrRedirect(){
   const client = ensureSupabaseClient();
@@ -562,22 +552,37 @@ window.addEventListener("load", () => {
   <script src="../js/config-helper.js"></script>
   <script src="../js/toast.js"></script>
   <script src="../js/runtime.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api-client.js"></script>
   <script src="../js/ui.js"></script>
   <script src="../js/toast.js"></script>
   <script src="../js/modal.js"></script>
   <script src="../js/admin-shell.js"></script>
-  <script>
+  <script type="module">
+    import { supabase, getCurrentProfile, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
+    window.FS_SUPABASE_CLIENT = supabase;
+    window["supabase"] = supabase;
+
+    const { data } = await supabase.auth.getSession();
+    if (!data?.session) {
+      window.location.href = "login.html";
+    } else {
+      const profile = await getCurrentProfile();
+      if (!profile || !(isAdmin(profile.role) || isRegionalSecretary(profile.role))) {
+        window.location.href = "login.html";
+      }
+    }
+  </script>
+  <script type="module">
+    import { supabase } from "../auth/auth-client.js";
     window.FSAdminShell && window.FSAdminShell.mount({ active: "schedule", pageTitle: "Schedule" });
     (async () => {
       const params = new URLSearchParams(window.location.search);
       let email = String(params.get('email') || '').trim();
       let displayName = '';
-      if (window.supabase && window.supabase.auth && typeof window.supabase.auth.getSession === 'function') {
+      if (supabase && supabase.auth && typeof supabase.auth.getSession === 'function') {
         try {
-          const { data } = await window.supabase.auth.getSession();
+          const { data } = await supabase.auth.getSession();
           const user = data?.session?.user;
           if (!email) email = String(user?.email || '').trim();
           displayName = String(user?.user_metadata?.full_name || '').trim() || String(user?.email || '').trim();

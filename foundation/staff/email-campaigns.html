@@ -1,10 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rock Solid - Email Campaigns</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 :root{--navy:var(--color-primary);--gold:var(--color-warning);--bg:var(--color-bg);--border:var(--color-border);--text:var(--color-text-primary);--muted:var(--color-text-muted);--success:var(--color-success-fg);--success-bg:var(--color-success-bg);--danger:var(--color-danger-fg);--danger-bg:var(--color-danger-bg);--warn:var(--color-warning-fg);--warn-bg:var(--color-warning-bg);--info:var(--color-info-fg);--info-bg:var(--color-info-bg)}
@@ -17,10 +16,10 @@ main{max-width:1180px;margin:0 auto;padding:28px 24px 60px}
 button,.btn{border:0;border-radius:9px;padding:10px 15px;font-weight:700;cursor:pointer;background:var(--navy);color:white;text-decoration:none;display:inline-block}
 button.secondary{background:white;color:var(--text);border:1px solid var(--border)}
 input,select,textarea{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font:inherit;background:white}
-label{font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px}
+label{font-size:12px;font-weight:700;color:var(--color-text-muted);display:block;margin-bottom:6px}
 .table-wrap{overflow:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;background:#f8f6ff;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;white-space:nowrap}
+th{text-align:left;background:#f8f6ff;color:var(--color-text-muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;white-space:nowrap}
 td{border-top:1px solid var(--border);padding:10px 12px;vertical-align:top}
 tr:hover td{background:#faf9ff}
 .badge{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:700}
@@ -28,14 +27,15 @@ tr:hover td{background:#faf9ff}
 .bad{background:var(--danger-bg);color:var(--danger)}
 .wait{background:var(--warn-bg);color:var(--warn)}
 .info{background:var(--info-bg);color:var(--info)}
-.muted{color:var(--muted)}
+.muted{color:var(--color-text-muted)}
 .error{background:var(--danger-bg);border:1px solid #fca5a5;color:var(--danger);padding:12px;border-radius:10px;margin:10px 0}
 .actions{display:flex;gap:7px;flex-wrap:wrap}
-.small{font-size:12px;color:var(--muted)}
+.small{font-size:12px;color:var(--color-text-muted)}
 </style>
   <link rel="stylesheet" href="../ui/tokens.css" />
   <link rel="stylesheet" href="../ui/premium-theme.css" />
-  <link rel="stylesheet" href="../ui/admin-shell.css" />`r`n  <link rel="stylesheet" href="../ui/primitives.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
 </head>
 
 <body>
@@ -92,17 +92,15 @@ tr:hover td{background:#faf9ff}
 
 <script src="../js/config.js"></script>
 <script src="../js/config-helper.js"></script>
-<script>
-const cfg = window.FSConfig?.get ? window.FSConfig.get() : {
-  SUPABASE_URL: (window.FS_CONFIG && window.FS_CONFIG.SUPABASE_URL) || "",
-  SUPABASE_ANON_KEY: (window.FS_CONFIG && window.FS_CONFIG.SUPABASE_ANON_KEY) || "",
-};
-const SUPABASE_URL = String(cfg.SUPABASE_URL || "").trim();
-const SUPABASE_ANON_KEY = String(cfg.SUPABASE_ANON_KEY || "").trim();
+<script type="module">
+import { supabase, requireAuth, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
 
-const db = (window.supabase && typeof window.supabase.createClient === "function")
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+const auth = await requireAuth(["superadmin", "admin", "subgroup_admin", "pastor", "principal", "regional_secretary"]);
+if (!auth || !(isAdmin(auth.profile?.role) || isRegionalSecretary(auth.profile?.role))) {
+  window.location.href = "/foundation/auth/login.html";
+}
+
+const db = supabase;
 
 const $ = id => document.getElementById(id);
 

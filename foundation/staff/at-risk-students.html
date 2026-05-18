@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - At Risk Students</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
+    .tab-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--space-3); }
+    .tab { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-primary); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 600 var(--fs-meta)/1.4 inherit; cursor: pointer; transition: background 120ms; }
+    .tab.active { background: var(--color-primary); color: var(--color-primary-fg); border-color: var(--color-primary); }
+    .tab:hover:not(.active) { background: var(--color-surface-raised); }
+    .summary-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-raised); }
+    .summary-label { font-size: var(--fs-label); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+    .summary-value { font-size: 26px; font-weight: 800; color: var(--color-text-primary); line-height: 1.1; margin-top: var(--space-1); }
+    .scenario-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-full); font-size: var(--fs-badge); font-weight: 700; }
+    .scenario-never-started { background: var(--color-info-bg); color: var(--color-info-fg); }
+    .scenario-dropped-off   { background: var(--color-warning-bg); color: var(--color-warning-fg); }
+    .scenario-final-notice  { background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .scenario-moodle-no-login { background: #ede9fe; color: #5b21b6; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 500 var(--fs-meta)/1.4 inherit; background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; white-space: nowrap; }
+    .btn:hover { background: var(--color-surface-raised); }
+    .btn-primary { background: var(--color-primary); color: var(--color-primary-fg); border-color: var(--color-primary); }
+    .btn-success { background: var(--color-success-bg); color: var(--color-success-fg); border-color: color-mix(in srgb,var(--color-success-fg) 30%,transparent); }
+    .btn-danger  { background: var(--color-danger-bg); color: var(--color-danger-fg); border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); }
+    .actions { display: flex; gap: 4px; flex-wrap: wrap; }
+    .msg { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-raised); font-size: var(--fs-body); }
+    .msg.error   { border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .msg.success { border-color: color-mix(in srgb,var(--color-success-fg) 30%,transparent); background: var(--color-success-bg); color: var(--color-success-fg); }
+    @media (max-width: 900px) { .fs-table-wrap { display: none; } .mobile-cards { display: grid !important; } }
+    .mobile-cards { display: none; gap: var(--space-2); }
+    .mobile-card { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); background: var(--color-surface); }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="fs-page-header">
+      <h1 class="fs-page-title">At Risk Students</h1>
+      <div class="fs-page-actions">
+        <button id="refreshBtn" class="fs-btn fs-btn-secondary">Refresh</button>
+      </div>
+    </div>
+
+    <section class="fs-metric-grid" id="summaryGrid" style="margin-bottom:var(--space-4)"></section>
+
+    <div class="fs-action-bar" style="margin-bottom:var(--space-3)">
+      <div class="fs-action-bar-search">
+        <input class="fs-input" id="searchInput" type="search" placeholder="Search name or email" />
+      </div>
+      <div class="fs-action-bar-filters">
+        <select class="fs-select" id="batchFilter"><option value="">All Batches</option></select>
+        <select class="fs-select" id="scenarioFilter">
+          <option value="">All Scenarios</option>
+          <option value="never_started">Never Started</option>
+          <option value="dropped_off">Dropped Off</option>
+          <option value="moodle_no_login">Moodle No Login</option>
+          <option value="final_notice">Final Notice Sent</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="tab-bar" id="tabBar">
+      <button class="tab active" data-tab="all">All At Risk</button>
+      <button class="tab" data-tab="never_started">Never Started</button>
+      <button class="tab" data-tab="dropped_off">Dropped Off</button>
+      <button class="tab" data-tab="final_notice">Final Notice Sent</button>
+    </div>
+
+    <div id="flashArea" style="margin-bottom:var(--space-2)"></div>
+
+    <div class="fs-table-wrap">
+      <table class="fs-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Fellowship</th>
+            <th>Class / Teacher</th>
+            <th>Scenario</th>
+            <th>Last Action</th>
+            <th>Days Since Attendance</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="mobile-cards" id="mobileCards"></div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module">
+    import { supabase, requireAuth, isRegionalSecretary } from "../auth/auth-client.js";
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (m) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]));
+    const fmt = (v) => v ? new Date(v).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" }) : "-";
+
+    const SCENARIO_LABELS = {
+      never_started:  "Never Started",
+      dropped_off:    "Dropped Off",
+      moodle_no_login:"Moodle No Login",
+      final_notice:   "Final Notice Sent",
+    };
+    const SCENARIO_CLASSES = {
+      never_started:   "scenario-badge scenario-never-started",
+      dropped_off:     "scenario-badge scenario-dropped-off",
+      moodle_no_login: "scenario-badge scenario-moodle-no-login",
+      final_notice:    "scenario-badge scenario-final-notice",
+    };
+
+    const state = {
+      logs: [],        // student_engagement_log rows
+      students: [],    // students rows (joined)
+      batches: [],
+      profile: null,
+      activeTab: "all",
+    };
+
+    function showFlash(msg, type = "success") {
+      $("flashArea").innerHTML = msg ? `<div class="msg ${type}">${esc(msg)}</div>` : "";
+      if (msg) setTimeout(() => { $("flashArea").innerHTML = ""; }, 4500);
+    }
+
+    function scenarioBadge(scenario) {
+      const cls = SCENARIO_CLASSES[scenario] || "scenario-badge";
+      const lbl = SCENARIO_LABELS[scenario] || scenario;
+      return `<span class="${cls}">${esc(lbl)}</span>`;
+    }
+
+    function daysSince(isoDate) {
+      if (!isoDate) return null;
+      return Math.floor((Date.now() - new Date(isoDate).getTime()) / 86400000);
+    }
+
+    function filteredRows() {
+      const q         = String($("searchInput")?.value || "").toLowerCase().trim();
+      const batchF    = $("batchFilter")?.value || "";
+      const scenarioF = $("scenarioFilter")?.value || "";
+      const tab       = state.activeTab;
+
+      return state.logs.filter((log) => {
+        if (tab !== "all" && log.scenario !== tab) return false;
+        if (scenarioF && log.scenario !== scenarioF) return false;
+        if (batchF && log.batch_id !== batchF) return false;
+        if (q) {
+          const pool = [log.student_email, log._name].join(" ").toLowerCase();
+          if (!pool.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderSummary() {
+      const total       = state.logs.length;
+      const neverStart  = state.logs.filter((l) => l.scenario === "never_started").length;
+      const droppedOff  = state.logs.filter((l) => l.scenario === "dropped_off").length;
+      const finalNotice = state.logs.filter((l) => l.scenario === "final_notice").length;
+      const withdrawn   = state.students.filter((s) => s.status === "Withdrawn").length;
+
+      $("summaryGrid").innerHTML = [
+        ["Total At Risk",       total],
+        ["Never Started",       neverStart],
+        ["Dropped Off",         droppedOff],
+        ["Final Notice Sent",   finalNotice],
+        ["Withdrawn This Batch", withdrawn],
+      ].map(([lbl, val]) => `
+        <article class="summary-card">
+          <div class="summary-label">${esc(lbl)}</div>
+          <div class="summary-value">${esc(val)}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderTable() {
+      const rows = filteredRows();
+      const tbody = $("tableBody");
+      const cards = $("mobileCards");
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="msg">No at-risk students match the current filters.</div></td></tr>`;
+        cards.innerHTML = `<div class="msg">No at-risk students found.</div>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map((log) => {
+        const stu = state.students.find((s) => (s.email || "").toLowerCase() === (log.student_email || "").toLowerCase());
+        const dayAgo = log.email_sent_at ? daysSince(log.email_sent_at) : null;
+        const attDays = stu?._last_att_date ? daysSince(stu._last_att_date) : null;
+        return `<tr>
+          <td><strong>${esc(log._name || log.student_email)}</strong><div style="font-size:12px;color:var(--color-text-muted)">${esc(log.student_email)}</div></td>
+          <td>${esc(stu?.fellowship_code || "-")}</td>
+          <td>${esc(stu?._class_label || "-")}</td>
+          <td>${scenarioBadge(log.scenario)}</td>
+          <td style="font-size:12px">${dayAgo != null ? `${dayAgo}d ago` : "-"}</td>
+          <td style="font-size:12px">${attDays != null ? `${attDays}d ago` : "Never"}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-success" data-action="responded" data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Mark Responded</button>
+              <button class="btn btn-danger"  data-action="withdrawn"  data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Withdraw</button>
+              <button class="btn"             data-action="checkin"    data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}" data-scenario="${esc(log.scenario)}">Send Check-in</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+
+      cards.innerHTML = rows.map((log) => {
+        const stu = state.students.find((s) => (s.email || "").toLowerCase() === (log.student_email || "").toLowerCase());
+        return `<article class="mobile-card">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+            <div><strong>${esc(log._name || log.student_email)}</strong><div style="font-size:12px;color:var(--color-text-muted)">${esc(log.student_email)}</div></div>
+            ${scenarioBadge(log.scenario)}
+          </div>
+          <div style="margin-top:6px;font-size:12px;color:var(--color-text-muted)">${esc(stu?.fellowship_code || "-")} · ${esc(stu?._class_label || "No class")}</div>
+          <div class="actions" style="margin-top:8px">
+            <button class="btn btn-success" data-action="responded" data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Responded</button>
+            <button class="btn btn-danger"  data-action="withdrawn"  data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Withdraw</button>
+            <button class="btn"             data-action="checkin"    data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}" data-scenario="${esc(log.scenario)}">Check-in</button>
+          </div>
+        </article>`;
+      }).join("");
+    }
+
+    async function handleAction(action, email, batchId, scenario) {
+      const now = new Date().toISOString();
+      const stu = state.students.find((s) => (s.email || "").toLowerCase() === email.toLowerCase());
+
+      if (action === "responded") {
+        await supabase.from("students")
+          .update({ status: "Active", needs_attention_flag: false, needs_attention_reason: null, updated_at: now })
+          .eq("email", email);
+        await supabase.from("student_engagement_log")
+          .update({ action_taken: "skipped", notes: "Marked responded by admin" })
+          .eq("student_email", email)
+          .eq("batch_id", batchId);
+        await supabase.from("audit_logs").insert({
+          action: "ENGAGEMENT_MARKED_RESPONDED", entity_type: "student",
+          entity_id: stu?.student_id || email, actor_email: state.profile?.email || null,
+          status: "SUCCESS", details: { email, batch_id: batchId }, created_at: now,
+        });
+        showFlash(`${email} marked as responded — status restored to Active.`);
+      }
+
+      if (action === "withdrawn") {
+        await supabase.from("students")
+          .update({ status: "Withdrawn", needs_attention_flag: false, updated_at: now })
+          .eq("email", email);
+        await supabase.from("student_engagement_log")
+          .update({ action_taken: "status_updated", notes: "Withdrawn by admin" })
+          .eq("student_email", email)
+          .eq("batch_id", batchId);
+        await supabase.from("audit_logs").insert({
+          action: "STUDENT_WITHDRAWN", entity_type: "student",
+          entity_id: stu?.student_id || email, actor_email: state.profile?.email || null,
+          status: "SUCCESS", details: { email, batch_id: batchId }, created_at: now,
+        });
+        showFlash(`${email} marked as Withdrawn.`);
+      }
+
+      if (action === "checkin") {
+        const firstName = String(stu?.full_name || email).split(/\s+/)[0];
+        const templateKey = scenario === "dropped_off" ? "engagement_dropped_off" : "engagement_never_started";
+        const subject = scenario === "dropped_off"
+          ? `We miss you at Foundation School — ${firstName}`
+          : `We saved your spot at Foundation School — ${firstName}`;
+        const { error } = await supabase.from("email_queue").insert({
+          recipient_email: email,
+          recipient_name: stu?.full_name || "",
+          template_key:   templateKey,
+          subject,
+          status:         "Pending",
+          payload:        {
+            first_name:      firstName,
+            full_name:       stu?.full_name || "",
+            class_time:      stu?._class_label || "your class",
+            teacher_name:    stu?.teacher_name || "your teacher",
+            moodle_url:      "https://rocksolid.lwcanada.org/",
+            last_attended_date: stu?._last_att_date ? fmt(stu._last_att_date) : "not yet",
+            sessions_missed: "—",
+          },
+        });
+        if (error) { showFlash(`Email queue failed: ${error.message}`, "error"); return; }
+        showFlash(`Check-in email queued for ${email}.`);
+      }
+
+      await loadData();
+    }
+
+    async function loadData() {
+      showFlash("Loading...");
+      const [logsRes, studentsRes, batchesRes] = await Promise.all([
+        supabase.from("student_engagement_log").select("*").order("created_at", { ascending: false }).limit(2000),
+        supabase.from("students").select("student_id,email,full_name,fellowship_code,class_option_id,teacher_name,batch_id,status,needs_attention_flag,needs_attention_reason").limit(3000),
+        supabase.from("batches").select("batch_id,batch_name").order("created_at", { ascending: false }).limit(200),
+      ]);
+
+      state.batches  = batchesRes.data || [];
+      state.students = (studentsRes.data || []);
+      state.logs     = (logsRes.data || []);
+
+      // Enrich logs with student name
+      for (const log of state.logs) {
+        const stu = state.students.find((s) => (s.email || "").toLowerCase() === (log.student_email || "").toLowerCase());
+        log._name = stu?.full_name || "";
+      }
+
+      // Enrich students with class label + last attendance
+      const classIds = [...new Set(state.students.map((s) => s.class_option_id).filter(Boolean))];
+      const classMap = new Map();
+      if (classIds.length) {
+        const { data: clsRows } = await supabase.from("class_options").select("class_option_id,teacher_name,day,class_time").in("class_option_id", classIds);
+        (clsRows || []).forEach((c) => classMap.set(c.class_option_id, c));
+      }
+      for (const stu of state.students) {
+        const cls = classMap.get(stu.class_option_id);
+        stu._class_label = cls ? `${cls.day || ""} ${cls.class_time || ""}`.trim() || stu.class_option_id : stu.class_option_id || "-";
+      }
+
+      // Populate batch filter
+      const curBatch = $("batchFilter").value;
+      $("batchFilter").innerHTML = '<option value="">All Batches</option>' +
+        state.batches.map((b) => `<option value="${esc(b.batch_id)}">${esc(b.batch_name || b.batch_id)}</option>`).join("");
+      if (curBatch) $("batchFilter").value = curBatch;
+
+      // Filter to only students that are At Risk or have engagement log entries
+      state.logs = state.logs.filter((log) => {
+        const stu = state.students.find((s) => (s.email || "").toLowerCase() === (log.student_email || "").toLowerCase());
+        return stu?.needs_attention_flag || log.action_taken !== "skipped";
+      });
+
+      showFlash("");
+      renderSummary();
+      renderTable();
+    }
+
+    function bindEvents() {
+      $("refreshBtn").addEventListener("click", loadData);
+      $("searchInput").addEventListener("input", renderTable);
+      $("batchFilter").addEventListener("change", renderTable);
+      $("scenarioFilter").addEventListener("change", renderTable);
+
+      $("tabBar").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-tab]");
+        if (!btn) return;
+        state.activeTab = btn.dataset.tab;
+        $("tabBar").querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === btn));
+        renderTable();
+      });
+
+      document.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-action][data-email]");
+        if (!btn) return;
+        const { action, email, batch, scenario } = btn.dataset;
+        btn.disabled = true;
+        await handleAction(action, email, batch, scenario);
+        btn.disabled = false;
+      });
+    }
+
+    async function boot() {
+      if (!window.FS_CONFIG?.SUPABASE_URL) {
+        window.FSAdminShell?.mount({ active: "atrisk", pageTitle: "At Risk Students", profileName: "Not connected" });
+        showFlash("⚠ Not connected — open via live server with config.js", "error");
+        return;
+      }
+      const auth = await requireAuth(["admin", "superadmin", "principal", "pastor", "subgroup_admin", "regional_secretary"]);
+      if (!auth) return;
+      if (!(["admin", "superadmin", "principal", "pastor", "subgroup_admin"].includes(String(auth.profile?.role || "").toLowerCase()) || isRegionalSecretary(auth.profile?.role))) return;
+      state.profile = auth.profile;
+
+      window.FSAdminShell?.mount({ active: "atrisk", pageTitle: "At Risk Students", role: auth.profile?.role });
+
+      bindEvents();
+      await loadData();
+    }
+
+    boot().catch((e) => showFlash(`Boot failed: ${esc(e?.message || e)}`, "error"));
+  </script>
+</body>
+</html>

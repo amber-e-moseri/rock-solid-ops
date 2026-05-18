@@ -65,17 +65,20 @@
   <script src="../js/config-helper.js"></script>
   <script type="module">
     import { getSessionOrNull, getCurrentProfile, isRoleAllowed, supabase } from "../auth/auth-client.js";
+    import { NotificationBell } from "../ui/notification-bell.js";
 
-    const allowedRoles = new Set(["teacher", "admin", "superadmin", "subgroup_admin", "pastor", "principal"]);
+    const allowedRoles = new Set(["teacher", "admin", "superadmin", "subgroup_admin", "pastor", "principal", "regional_secretary"]);
     const sections = {
       "attendance":   { title: "Attendance",   src: "../staff/TeacherAttendancePortal.html" },
       "my-class":     { title: "My Class",     src: "./sections/my-class.html" },
-      "availability": { title: "Availability", src: "../ui/teacher-availability/index.html" },
+      "roster":       { title: "Class Roster", src: "./roster.html" },
+      "availability": { title: "Availability", src: "./teacher-availability.html" },
     };
 
     const navItems = [
       { key: "attendance", icon: "&#x2705;", label: "Attendance" },
       { key: "my-class", icon: "&#x1F465;", label: "My Class" },
+      { key: "roster", icon: "&#x1F4CB;", label: "Class Roster" },
       { key: "availability", icon: "&#x1F4C5;", label: "Availability" },
     ];
 
@@ -141,6 +144,35 @@
 
       document.getElementById("profileName").textContent = profile.full_name || profile.email || "Teacher";
       document.getElementById("teacherName").textContent = profile.full_name || profile.email || "Teacher";
+
+      const bellContainer = document.createElement("div");
+      bellContainer.style.cssText = "position:relative;display:inline-flex;align-items:center;";
+      const topbar = document.querySelector(".topbar-r") || document.querySelector(".topbar, .header, [class*='topbar'], [class*='header']");
+      if (topbar) topbar.appendChild(bellContainer);
+      if (supabase && profile) {
+        new NotificationBell({ supabase, profile, container: bellContainer });
+      }
+
+      // Show "← Admin" chip in the topbar for non-teacher staff visiting via portal chooser
+      if (role !== "teacher") {
+        const p = window.location.pathname || "";
+        const adminPath = p.includes("/foundation/") ? "/foundation/staff/admin-dashboard.html" : "/staff/admin-dashboard.html";
+        const topbarR = document.querySelector(".topbar-r");
+        if (topbarR) {
+          const chip = document.createElement("a");
+          chip.href = adminPath;
+          chip.title = "Return to Admin Portal";
+          chip.style.cssText = "display:inline-flex;align-items:center;gap:4px;padding:4px 12px;background:#f0ebff;color:#4C2A92;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;border:1px solid #d4c5ff;flex-shrink:0;";
+          chip.textContent = "← Admin";
+          topbarR.insertBefore(chip, topbarR.firstChild);
+        }
+        // Update sidebar footer role badge
+        const sbSub = document.querySelector(".sb-footer .sb-sub");
+        if (sbSub) {
+          const label = role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, " ");
+          sbSub.innerHTML = `<span class="fs-badge fs-badge-info">${label}</span>`;
+        }
+      }
 
       document.getElementById("btnOut").addEventListener("click", async () => {
         await supabase.auth.signOut();

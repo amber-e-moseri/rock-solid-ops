@@ -30,12 +30,21 @@
         { key: "batch", label: "Batch Management", href: "batch-management.html", icon: "BM" },
         { key: "registrations", label: "Admin Review", href: "admin-review.html", icon: "AR" },
         { key: "applicants", label: "Applicant Dir.", href: "applicant-directory.html", icon: "AD" },
+        { key: "waitlist", label: "Waitlist", href: "waitlist.html", icon: "WL" },
+        { key: "classeditor", label: "Class Editor", href: "class-editor.html", icon: "CE" },
         { key: "dashboards", label: "Dashboards", href: "dashboards.html", icon: "DS" }
       ]
     },
     {
       label: "Reports & Exports",
       items: [
+        {
+          key: "reports",
+          label: "Reports",
+          href: "reports.html",
+          icon: "RP",
+          roles: ["principal", "subgroup_admin", "pastor", "admin", "superadmin"],
+        },
         {
           key: "dataexports",
           label: "Data Exports",
@@ -55,6 +64,8 @@
     {
       label: "Teaching",
       items: [
+        { key: "teachers", label: "Teachers", href: "teacher-management.html", icon: "TM" },
+        { key: "atrisk", label: "At Risk Students", href: "at-risk-students.html", icon: "AR", roles: ["principal", "subgroup_admin", "pastor", "admin", "superadmin"] },
         { key: "attendance", label: "Attendance", href: "TeacherAttendancePortal.html", icon: "AT" },
         { key: "schedule", label: "Schedule", href: "teacher-schedule.html", icon: "SC" },
         { key: "progress", label: "Student Progress", href: "StudentProgressView.html", icon: "SP" }
@@ -65,6 +76,13 @@
       items: [
         { key: "notifications", label: "Notifications", href: "notification-center.html", icon: "NT" },
         { key: "email", label: "Email Campaigns", href: "email-campaigns.html", icon: "EM" }
+      ]
+    },
+    {
+      label: "Admin Tools",
+      items: [
+        { key: "adminactivity", label: "Activity Log", href: "admin-activity.html", icon: "AL", roles: ["admin", "superadmin"] },
+        { key: "roleaudit", label: "Role Audit", href: "role-audit.html", icon: "RA", roles: ["admin", "superadmin"] },
       ]
     },
     {
@@ -95,6 +113,8 @@
     "audit",
     "milestones",
     "adminmanagement",
+    "adminactivity",
+    "roleaudit",
   ]);
   const TEACHER_KEYS = new Set(["attendance", "schedule", "progress"]);
 
@@ -166,6 +186,13 @@
     if (p.includes("dashboards")) return "dashboards";
     if (p.includes("data-exports")) return "dataexports";
     if (p.includes("baptism-report")) return "baptismreport";
+    if (p.includes("reports")) return "reports";
+    if (p.includes("teacher-management")) return "teachers";
+    if (p.includes("at-risk-students")) return "atrisk";
+    if (p.includes("admin-activity")) return "adminactivity";
+    if (p.includes("role-audit")) return "roleaudit";
+    if (p.includes("waitlist")) return "waitlist";
+    if (p.includes("class-editor")) return "classeditor";
     return "";
   }
 
@@ -354,6 +381,51 @@
         window.location.href = resolveLoginPath();
       }
     });
+
+    // Notification bell — mounted after shell is in DOM
+    (async function () {
+      try {
+        const [{ NotificationBell }, { supabase: sb, getCurrentProfile }] = await Promise.all([
+          import("../ui/notification-bell.js"),
+          import("../auth/auth-client.js"),
+        ]);
+        const profile = await getCurrentProfile();
+        if (!profile) return;
+        const topbarR = document.querySelector(".fs-topbar-right");
+        if (!topbarR) return;
+        const bellContainer = document.createElement("div");
+        bellContainer.id = "fs-notif-bell";
+        topbarR.insertBefore(bellContainer, topbarR.querySelector(".btn-out") || topbarR.firstChild);
+        new NotificationBell({ supabase: sb, profile, container: bellContainer });
+      } catch (_) {}
+    })();
+
+    // "Switch to Teacher Portal" link — only shown if the admin user has a linked teacher record
+    (async function () {
+      try {
+        const { getLinkedTeacherRecord, getCurrentProfile: getProf } = await import("../auth/auth-client.js");
+        const prof = await getProf();
+        if (!prof?.email) return;
+        const teacherRec = await getLinkedTeacherRecord(prof.email);
+        if (!teacherRec) return;
+        const p = window.location.pathname || "";
+        const teacherPath = p.includes("/foundation/") ? "/foundation/teacher/index.html" : "/teacher/index.html";
+        const sbFooter = document.querySelector("#fs-admin-sb .sb-footer");
+        if (!sbFooter) return;
+        const link = document.createElement("a");
+        link.href = teacherPath;
+        link.className = "sb-link";
+        link.id = "fs-teacher-portal-link";
+        link.title = "Switch to Teacher Portal";
+        link.innerHTML = '<span class="sb-icon">T</span> Teacher Portal';
+        const logoutLink = document.getElementById("fs-admin-logout");
+        if (logoutLink) {
+          sbFooter.insertBefore(link, logoutLink);
+        } else {
+          sbFooter.appendChild(link);
+        }
+      } catch (_) {}
+    })();
   };
 
   Shell.setProfile = function (name, initial) {

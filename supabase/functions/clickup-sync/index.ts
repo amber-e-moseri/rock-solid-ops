@@ -114,10 +114,20 @@ async function ensureAuthorized(req: Request, db: ReturnType<typeof createClient
   if (!authHeader.startsWith("Bearer ")) return { ok: false, reason: "Missing bearer token" };
   const token = authHeader.slice("Bearer ".length).trim();
 
-  // Internal service-to-service call.
   if (token === serviceKey) {
     return { ok: true, actorEmail: "service@system" };
   }
+
+  // Also accept the service role JWT (decoded role claim = "service_role")
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const claims = JSON.parse(atob(parts[1]));
+      if (claims?.role === "service_role") {
+        return { ok: true, actorEmail: "service@system" };
+      }
+    }
+  } catch (_) {}
 
   const { data: userData, error: userErr } = await db.auth.getUser(token);
   if (userErr || !userData?.user) return { ok: false, reason: "Invalid session" };

@@ -103,7 +103,7 @@ ORDER BY s.full_name;</pre>
 <script src="../js/config-helper.js"></script>
 <script src="../js/admin-shell.js"></script>
 <script type="module">
-  import { supabase, requireAuth } from "../auth/auth-client.js";
+  import { supabase, requireAuth, isRegionalSecretary } from "../auth/auth-client.js";
   import { downloadCsv } from "../js/export-utils.js";
 
   const $ = (id) => document.getElementById(id);
@@ -325,8 +325,9 @@ ORDER BY s.full_name;</pre>
   }
 
   async function boot() {
-    const auth = await requireAuth(["teacher","principal","subgroup_admin","pastor","admin","superadmin"]);
+    const auth = await requireAuth(["teacher","principal","subgroup_admin","pastor","admin","superadmin","regional_secretary"]);
     if (!auth) return;
+    if (!(["teacher","principal","subgroup_admin","pastor","admin","superadmin"].includes(String(auth.profile?.role || "").toLowerCase()) || isRegionalSecretary(auth.profile?.role))) return;
     window.FS_USER = {
       role: String(auth.profile?.role || "pending").toLowerCase(),
       class_option_id: String(auth.profile?.class_option_id || ""),

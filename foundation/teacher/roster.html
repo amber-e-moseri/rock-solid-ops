@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid – Class Roster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 14px 16px 48px; }
+
+    .top {
+      position: sticky; top: 8px; z-index: 30;
+      border: 1px solid var(--border); border-radius: 16px; padding: 12px 16px;
+      background: color-mix(in srgb, var(--surface) 88%, transparent);
+      backdrop-filter: blur(8px);
+      display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .top h1 { margin: 0; font-size: 20px; }
+    .top p  { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+
+    .toolbar {
+      display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin: 12px 0;
+    }
+    .field { display: grid; gap: 4px; }
+    .field label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    select, input { border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font: inherit; background: var(--surface-2); color: var(--text); }
+
+    .btn { border: 1px solid var(--border); border-radius: 10px; padding: 9px 14px; font: inherit; font-weight: 700; cursor: pointer; background: var(--surface-2); color: var(--text); }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-sm { padding: 6px 11px; font-size: 12px; }
+    .btn-flag { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+    .btn-flag:hover { background: #fde68a; }
+
+    .state { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--muted); font-size: 13px; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; min-width: 820px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; font-size: 13px; }
+    th { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface-2); }
+    tr:last-child td { border-bottom: none; }
+    tr.row-amber { background: #fffbeb; }
+    tr.row-amber td { border-bottom-color: #fde68a; }
+    tr.row-red { background: #fef2f2; }
+    tr.row-red td { border-bottom-color: #fecaca; }
+
+    .check { display: inline-block; width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid var(--border); background: var(--surface); vertical-align: middle; }
+    .check.on { background: var(--primary); border-color: var(--primary); background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 5l3 4L11 1' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-size: 70%; background-repeat: no-repeat; background-position: center; }
+
+    .bar-track { height: 5px; border-radius: 3px; background: var(--border); min-width: 60px; }
+    .bar-fill  { height: 5px; border-radius: 3px; background: var(--primary); }
+
+    .badge { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+    .badge-warn { background: #fef3c7; color: #92400e; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+
+    .msg { margin: 8px 0; border-radius: 10px; padding: 9px 12px; font-size: 13px; border: 1px solid var(--border); }
+    .msg-ok { color: #166534; background: color-mix(in srgb, #22c55e 10%, white); border-color: color-mix(in srgb, #22c55e 30%, white); }
+    .msg-bad { color: #b42318; background: color-mix(in srgb, #ef4444 10%, white); border-color: color-mix(in srgb, #ef4444 28%, white); }
+
+    @media (max-width: 640px) { .toolbar { flex-direction: column; } }
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <section class="top">
+    <div>
+      <h1>Class Roster</h1>
+      <p id="classLabel">Select a class to view the roster.</p>
+    </div>
+    <button id="logoutBtn" class="btn">Logout</button>
+  </section>
+
+  <div id="flash"></div>
+
+  <div class="toolbar">
+    <div class="field" id="classFieldWrap">
+      <label for="classSelect">Class</label>
+      <select id="classSelect"><option value="">Loading…</option></select>
+    </div>
+    <div class="field">
+      <label for="searchInput">Search</label>
+      <input id="searchInput" type="search" placeholder="Name or email…" style="min-width:200px;" />
+    </div>
+    <div style="align-self:flex-end;">
+      <button id="refreshBtn" class="btn btn-primary btn-sm">Refresh</button>
+    </div>
+    <div id="legend" style="align-self:flex-end;font-size:11px;color:var(--muted);display:flex;gap:12px;padding-bottom:2px;">
+      <span><span class="badge badge-warn">●</span> ≥2 missed</span>
+      <span><span class="badge badge-danger">●</span> ≥3 missed</span>
+    </div>
+  </div>
+
+  <div id="pageState" class="state" style="display:none;"></div>
+
+  <div id="tableWrap" class="table-wrap" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Fellowship</th>
+          <th>Email</th>
+          <th>Attended</th>
+          <th>Missed</th>
+          <th>Born Again</th>
+          <th>Water Baptized</th>
+          <th>Holy Spirit</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="rosterBody"></tbody>
+    </table>
+  </div>
+</main>
+
+<script src="../js/config.js"></script>
+<script src="../js/config-helper.js"></script>
+<script type="module">
+import { supabase, getCurrentProfile } from "../auth/auth-client.js";
+import { logout } from "../auth/logout.js";
+
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const TEACHER_ROLES = new Set(["teacher"]);
+const ADMIN_ROLES   = new Set(["admin","superadmin","pastor","principal","subgroup_admin"]);
+
+let state = {
+  profile: null,
+  isAdmin: false,
+  teacherClassId: null,
+  classes: [],         // [{class_option_id, day, class_time, group_id}]
+  roster: [],          // flat enriched student rows
+  attendance: [],      // all attendance_log rows for selected class
+  milestones: [],      // all student_milestone_status rows for students in class
+  search: "",
+};
+
+function flash(msg, type = "ok") {
+  $(\"flash\").innerHTML = msg
+    ? `<div class="msg msg-${type}">${esc(msg)}</div>`
+    : "";
+  if (msg) setTimeout(() => { $(\"flash\").innerHTML = ""; }, 5000);
+}
+
+function showState(msg) {
+  const el = $(\"pageState\");
+  el.textContent = msg;
+  el.style.display = msg ? "block" : "none";
+}
+
+function hideTable() { $(\"tableWrap\").style.display = "none"; }
+function showTable() { $(\"tableWrap\").style.display = ""; showState(""); }
+
+// ── Auth + access ─────────────────────────────────────────────────────────────
+async function boot() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { window.location.href = "../staff/login.html"; return; }
+
+  const profile = await getCurrentProfile();
+  if (!profile) { window.location.href = "../staff/login.html"; return; }
+
+  const role = String(profile.role || "").toLowerCase();
+  if (!TEACHER_ROLES.has(role) && !ADMIN_ROLES.has(role)) {
+    showState("Access denied. This page is for teachers, pastors, and administrators.");
+    return;
+  }
+
+  state.profile = profile;
+  state.isAdmin = ADMIN_ROLES.has(role);
+
+  $("logoutBtn").addEventListener("click", () => logout("../staff/login.html"));
+  $("refreshBtn").addEventListener("click", () => loadRoster($("classSelect").value));
+  $("searchInput").addEventListener("input", (e) => { state.search = e.target.value; renderRows(state.roster); });
+  $("classSelect").addEventListener("change", (e) => loadRoster(e.target.value));
+
+  await loadClasses();
+}
+
+// ── Load class options ────────────────────────────────────────────────────────
+async function loadClasses() {
+  showState("Loading classes…");
+  hideTable();
+
+  let assignedClassId = null;
+
+  if (!state.isAdmin) {
+    // Resolve teacher's assigned class from teacher_assignments
+    const email = state.profile.email;
+    const uid   = state.profile.user_id;
+    const { data: assignments } = await supabase
+      .from("teacher_assignments")
+      .select("class_option_id")
+      .or(`teacher_email.eq.${email},teacher_id.eq.${uid}`)
+      .limit(10);
+    assignedClassId = assignments?.[0]?.class_option_id || null;
+    if (!assignedClassId) {
+      showState("No class is currently assigned to your teacher account.");
+      return;
+    }
+    state.teacherClassId = assignedClassId;
+  }
+
+  // Load class options (all for admin, or just the teacher's one)
+  let classQuery = supabase
+    .from("class_options")
+    .select("class_option_id,day,class_time,group_id,subgroup_id,batch_id")
+    .order("day")
+    .limit(200);
+  if (!state.isAdmin) classQuery = classQuery.eq("class_option_id", assignedClassId);
+
+  const { data: classes, error } = await classQuery;
+  if (error) { showState("Failed to load classes: " + error.message); return; }
+
+  state.classes = classes || [];
+  if (!state.classes.length) { showState("No class options found."); return; }
+
+  const sel = $("classSelect");
+  sel.innerHTML = state.classes.map((c) => {
+    const label = `${c.class_option_id} · ${c.day || "—"} ${c.class_time || ""}`.trim();
+    return `<option value="${esc(c.class_option_id)}">${esc(label)}</option>`;
+  }).join("");
+
+  // Hide class picker for teachers (they only have one)
+  if (!state.isAdmin) $("classFieldWrap").style.display = "none";
+
+  await loadRoster(state.classes[0].class_option_id);
+}
+
+// ── Load roster for a class ────────────────────────────────────────────────────
+async function loadRoster(classOptionId) {
+  if (!classOptionId) return;
+  showState("Loading roster…");
+  hideTable();
+
+  const cls = state.classes.find((c) => c.class_option_id === classOptionId);
+  $("classLabel").textContent = cls
+    ? `${cls.class_option_id} · ${cls.day || ""} ${cls.class_time || ""}`.trim()
+    : classOptionId;
+
+  // 1. Load applicants for this class
+  const { data: applicants, error: appErr } = await supabase
+    .from("applicants")
+    .select("id,full_name,email,fellowship_code")
+    .eq("class_option_id", classOptionId)
+    .in("registration_status", ["ASSIGNED", "ENROLLED"])
+    .order("full_name")
+    .limit(500);
+  if (appErr) { showState("Failed to load applicants: " + appErr.message); return; }
+
+  const studentIds = (applicants || []).map((a) => a.id).filter(Boolean);
+
+  if (!studentIds.length) {
+    state.roster = [];
+    state.attendance = [];
+    state.milestones = [];
+    showTable();
+    renderRows([]);
+    return;
+  }
+
+  // 2. Load all attendance_log rows for this class
+  const { data: attendanceAll } = await supabase
+    .from("attendance_log")
+    .select("student_id,present,class_date,class_option_id")
+    .eq("class_option_id", classOptionId)
+    .limit(10000);
+  state.attendance = attendanceAll || [];
+
+  // Total sessions = distinct class_dates that have at least one record
+  const allDates = new Set((state.attendance).map((r) => String(r.class_date || "")));
+  const totalSessions = allDates.size;
+
+  // 3. Load milestones for these students
+  const { data: msData } = await supabase
+    .from("student_milestone_status")
+    .select("student_id,milestone_code,completed")
+    .in("student_id", studentIds)
+    .in("milestone_code", ["BORN_AGAIN", "WATER_BAPTIZED", "HOLY_SPIRIT"]);
+  state.milestones = msData || [];
+
+  // Build per-student milestone lookup
+  const msMap = new Map();
+  for (const m of state.milestones) {
+    const key = String(m.student_id);
+    if (!msMap.has(key)) msMap.set(key, {});
+    msMap.get(key)[m.milestone_code] = m.completed;
+  }
+
+  // 4. Build roster rows
+  state.roster = (applicants || []).map((a) => {
+    const sid = String(a.id);
+    const attRows = state.attendance.filter((r) => String(r.student_id) === sid);
+    const attended = attRows.filter((r) => r.present === true).length;
+    const missed   = Math.max(0, totalSessions - attended);
+    const ms = msMap.get(sid) || {};
+    return {
+      id: sid,
+      full_name: a.full_name || "—",
+      email: a.email || "—",
+      fellowship_code: a.fellowship_code || "—",
+      attended,
+      missed,
+      totalSessions,
+      born_again:     !!ms["BORN_AGAIN"],
+      water_baptized: !!ms["WATER_BAPTIZED"],
+      holy_spirit:    !!ms["HOLY_SPIRIT"],
+    };
+  });
+
+  showTable();
+  renderRows(state.roster);
+}
+
+// ── Render table rows ──────────────────────────────────────────────────────────
+function renderRows(all) {
+  const q = (state.search || "").toLowerCase();
+  const rows = q
+    ? all.filter((r) => (r.full_name + r.email + r.fellowship_code).toLowerCase().includes(q))
+    : all;
+
+  if (!rows.length) {
+    $("rosterBody").innerHTML = `<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:20px;">No students found.</td></tr>`;
+    return;
+  }
+
+  $("rosterBody").innerHTML = rows.map((r) => {
+    const rowCls = r.missed >= 3 ? "row-red" : r.missed >= 2 ? "row-amber" : "";
+    const pct = r.totalSessions > 0 ? Math.round((r.attended / r.totalSessions) * 100) : 0;
+    const bar = `<div class="bar-track" style="margin-top:3px;"><div class="bar-fill" style="width:${pct}%;"></div></div>`;
+    const missedBadge = r.missed >= 3
+      ? `<span class="badge badge-danger">${r.missed}</span>`
+      : r.missed >= 2
+        ? `<span class="badge badge-warn">${r.missed}</span>`
+        : r.missed;
+    return `<tr class="${rowCls}">
+      <td style="font-weight:700;">${esc(r.full_name)}</td>
+      <td>${esc(r.fellowship_code)}</td>
+      <td style="color:var(--muted);font-size:12px;">${esc(r.email)}</td>
+      <td>${r.attended}/${r.totalSessions}${bar}</td>
+      <td>${missedBadge}</td>
+      <td><span class="check ${r.born_again ? "on" : ""}"></span></td>
+      <td><span class="check ${r.water_baptized ? "on" : ""}"></span></td>
+      <td><span class="check ${r.holy_spirit ? "on" : ""}"></span></td>
+      <td>
+        <button class="btn btn-flag btn-sm js-flag"
+          data-id="${esc(r.id)}"
+          data-name="${esc(r.full_name)}"
+          data-missed="${r.missed}"
+          data-class="${esc($("classSelect").value)}"
+        >Flag</button>
+      </td>
+    </tr>`;
+  }).join("");
+
+  document.querySelectorAll(".js-flag").forEach((btn) => {
+    btn.addEventListener("click", () => flagStudent(btn));
+  });
+}
+
+// ── Flag action ────────────────────────────────────────────────────────────────
+async function flagStudent(btn) {
+  const studentId  = btn.dataset.id;
+  const studentName = btn.dataset.name;
+  const missed     = Number(btn.dataset.missed);
+  const classId    = btn.dataset.class;
+  const teacherName = state.profile.full_name || state.profile.email || "Teacher";
+
+  btn.disabled = true;
+  btn.textContent = "Flagging…";
+
+  const { data, error } = await supabase.functions.invoke("clickup-sync", {
+    body: {
+      type: "missed_class",
+      payload: {
+        student_id: studentId,
+        student_name: studentName,
+        email: "",
+        class_option_id: classId,
+        missed_count: missed,
+        teacher_name: teacherName,
+        reason: `Manually flagged by teacher: ${teacherName} — ${missed} missed class(es)`,
+        class_date: new Date().toISOString().slice(0, 10),
+      },
+    },
+  });
+
+  if (error) {
+    flash("Failed to create flag: " + (error.message || "Unknown error"), "bad");
+  } else if (data?.ok === false) {
+    flash("ClickUp error: " + (data?.error || "Unknown"), "bad");
+  } else {
+    flash(`Flagged ${studentName} successfully.`, "ok");
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Flag";
+}
+
+boot().catch((err) => showState("Failed to load: " + (err?.message || err)));
+</script>
+</body>
+</html>

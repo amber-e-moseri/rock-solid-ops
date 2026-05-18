@@ -1,7 +1,7 @@
 
 [functions.registration-processor]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/registration-processor/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
@@ -27,6 +27,37 @@ verify_jwt = false
 entrypoint = "./functions/missed-class-detector/index.ts"
 # Schedule is defined in ./functions/missed-class-detector/config.toml
 
+[functions.review-checkin]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/review-checkin/index.ts"
+# Cron schedule is defined in ./functions/review-checkin/config.toml
+
 [functions.email-sender]
 enabled = true
 verify_jwt = false
+
+[functions.moodle-grade-sync]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/moodle-grade-sync/index.ts"
+
+[functions.report-generator]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/report-generator/index.ts"
+
+[functions.student-engagement-monitor]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/student-engagement-monitor/index.ts"
+
+[functions.teacher-portal-api]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/teacher-portal-api/index.ts"
+
+[functions.waitlist-processor]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/waitlist-processor/index.ts"

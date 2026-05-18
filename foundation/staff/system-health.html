@@ -250,48 +250,18 @@
       <ul id="migrationNotes" class="muted" style="margin:0 0 0 18px;"></ul>
     </section>
 
-    <section class="card" id="operationalTraceCard">
+    <section class="card hidden" id="operationalTraceCard">
       <h3 style="margin-top:0;">Operational Trace</h3>
-      <div class="fs-banner fs-banner-warning trace-warn">
-        This MVP trace uses tolerant joins and legacy fallback matching. Older records may produce partial or duplicate matches.
+      <div class="fs-action-bar" style="margin-bottom:12px;">
+        <div class="fs-action-bar-search">
+          <input id="traceLookup" class="fs-input" type="text" placeholder="Email, applicant_id, student_id, or registration_id" />
+        </div>
+        <div class="fs-action-bar-actions">
+          <button id="runTraceBtn" class="fs-btn fs-btn-primary" type="button">Look up</button>
+        </div>
       </div>
-      <div class="trace-toolbar">
-        <div class="trace-field">
-          <label for="traceEmail">Applicant Email</label>
-          <input id="traceEmail" class="fs-input" type="text" placeholder="name@example.com" />
-        </div>
-        <div class="trace-field">
-          <label for="traceApplicantId">Applicant ID</label>
-          <input id="traceApplicantId" class="fs-input" type="text" placeholder="UUID" />
-        </div>
-        <div class="trace-field">
-          <label for="traceStudentId">Student ID</label>
-          <input id="traceStudentId" class="fs-input" type="text" placeholder="FS-..." />
-        </div>
-        <div class="trace-field">
-          <label for="traceRegistrationId">Registration ID</label>
-          <input id="traceRegistrationId" class="fs-input" type="text" placeholder="UUID" />
-        </div>
-        <button id="runTraceBtn" class="fs-btn fs-btn-primary">Run Trace</button>
-      </div>
-      <div id="traceState" class="state">Enter at least one identifier and run trace.</div>
-      <div id="traceResolved" class="muted hidden" style="margin:8px 0 10px;"></div>
-      <div id="traceTableWrap" class="table-wrap hidden">
-        <table>
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Source</th>
-              <th>Event</th>
-              <th>Status</th>
-              <th>IDs</th>
-              <th>Summary</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody id="traceRows"></tbody>
-        </table>
-      </div>
+      <div id="traceState" class="fs-banner fs-banner-info">Enter a lookup value to run trace.</div>
+      <div id="traceTimeline" class="hidden"></div>
     </section>
   </main>
 
@@ -303,12 +273,11 @@
   <script src="../js/toast.js"></script>
   <script src="../js/admin-shell.js"></script>
   <script type="module">
-    import { supabase, getCurrentProfile, getSessionOrNull } from "../auth/auth-client.js";
+    import { supabase, getCurrentProfile, getSessionOrNull, isAdmin } from "../auth/auth-client.js";
     import { initOperationalTrace } from "../js/operational-trace.js";
 
     const adminApi = window.FSAdminApi;
     const adminUi = window.FSAdminUi;
-    const roleAllow = new Set(["admin", "superadmin", "subgroup_admin", "pastor", "principal"]);
     const missingTables = new Set();
 
     const $ = (id) => document.getElementById(id);
@@ -582,7 +551,7 @@
       }
 
       const profile = await getCurrentProfile();
-      if (!profile || !profile.is_active || !roleAllow.has(String(profile.role || ""))) {
+      if (!profile || !profile.is_active || !isAdmin(profile.role)) {
         showBanner("error", "Access denied. Admin privileges are required.");
         return false;
       }
@@ -705,7 +674,7 @@
       }
 
       // 5. Edge function availability checks (non-destructive OPTIONS probe)
-      const edgeFunctions = ["retry-worker", "registration-processor", "moodle-sync", "reminder-processor", "notification-dispatcher", "mailchimp-sync"];
+      const edgeFunctions = ["retry-worker", "registration-processor", "moodle-sync", "notification-batch-processor", "notification-dispatcher", "mailchimp-sync"];
       for (const fn of edgeFunctions) {
         const result = await checkEdgeEndpoint(fn);
         pushCheck(`fn-${fn}`, `Edge Function: ${fn}`, result.state, result.detail);
@@ -872,7 +841,7 @@
         supabase,
         adminApi,
         adminUi,
-        roleAllow,
+        isAdmin,
         getCurrentProfile,
         getSessionOrNull
       });

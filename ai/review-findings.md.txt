@@ -24,7 +24,7 @@ hardening mode targeting pilot launch.
 - teacher-portal-api.ts handles 20+ operations in a single 1,000+ line file
 - registration-processor and phase2-processor share core assignment loop (duplication)
 - retry-worker and moodle-sync have implicit coupling via error code strings
-- sender-worker and scheduled-notification-sender may overlap in responsibility
+- sender-worker and notification-retry-helper may overlap in responsibility
 - Email pipeline has 4 async hops with no trace_id for operational debugging
 - Schema instability: try-multiple-table-names pattern used in several functions
 
@@ -71,7 +71,7 @@ Newly identified (from external engineering review):
 - registration-processor + phase2-processor duplicate the
   assignment pipeline — needs shared extraction
 - auth-client.js + auth-guards.js overlap — needs consolidation
-- sender-worker + scheduled-notification-sender may overlap —
+- sender-worker + notification-retry-helper may overlap —
   needs audit before merge decision
 - React teacher-availability sub-app is a separate tech stack
   with no justification — target for vanilla JS rewrite
@@ -87,17 +87,17 @@ Newly identified (from external engineering review):
 
 ### Session 3 Clarification — Notification Pipeline Topology (May 2026)
 
-The initial review identified "sender-worker + scheduled-notification-sender may overlap"
+The initial review identified "sender-worker + notification-retry-helper may overlap"
 and flagged "email pipeline has 4 async hops with no trace_id". Both are confirmed. The
 actual topology is more nuanced than the function names suggest:
 
 Actual canonical pipeline:
-  scheduled_notifications → reminder-processor → email_queue → email-sender → Resend
+  scheduled_notifications → notification-batch-processor → email_queue → email-sender → Resend
 
 Function role corrections (the naming is actively misleading):
-- reminder-processor      — the REAL batch processor; reads scheduled_notifications,
+- notification-batch-processor      — the REAL batch processor; reads scheduled_notifications,
                             inserts email_queue rows, marks SENT, writes audit_logs
-- scheduled-notification-sender — NOT the batch sender; single-item retry helper only;
+- notification-retry-helper — NOT the batch sender; single-item retry helper only;
                             resets one notification to PENDING on operator request
 - email-sender            — confirmed canonical Resend delivery worker; cron daily
 - sender-worker           — deprecated reconciliation worker; checks email_queue for
@@ -106,18 +106,18 @@ Function role corrections (the naming is actively misleading):
 
 Actions taken:
 - sender-worker: deprecation comment added, confirmed already unscheduled
-- scheduled-notification-sender: clarification comment added
+- notification-retry-helper: clarification comment added
 - ENGINEERING_CONVENTIONS.md: canonical pipeline and function table added (§8)
 - TECH_DEBT_REGISTER.md: debt item #11 added (misleading function naming)
 - NOTIFICATION_PIPELINE.md: created as authoritative pipeline reference
 
 Open debt:
-- Function renaming (reminder-processor → notification-batch-processor, etc.)
+- Function renaming (notification-batch-processor → notification-batch-processor, etc.)
   is deferred to avoid runtime churn; tracked in TECH_DEBT_REGISTER #11
 
 Resolved:
 - trace_id added to scheduled_notifications (NOT NULL, auto-generated) and
-  email_queue (nullable, propagated by reminder-processor); migration
+  email_queue (nullable, propagated by notification-batch-processor); migration
   202605121700_notification_trace_id.sql; indexes added to both tables
 
 ---
@@ -146,3 +146,4 @@ Hardening follow-up:
 - RPC updated to `SECURITY DEFINER` with `search_path = public`.
 - Execute restricted to `authenticated`.
 - Frontend now hides Operational Trace panel when admin verification fails.
+

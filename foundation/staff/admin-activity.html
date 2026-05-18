@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Admin Activity Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
+    .summary-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-raised); }
+    .summary-label { font-size: var(--fs-label); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+    .summary-value { font-size: 26px; font-weight: 800; color: var(--color-text-primary); line-height: 1.1; margin-top: var(--space-1); }
+    .actor-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
+    .actor-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); box-shadow: var(--shadow-raised); }
+    .actor-email { font-weight: 700; font-size: var(--fs-body); word-break: break-all; }
+    .actor-meta { font-size: var(--fs-meta); color: var(--color-text-muted); margin-top: 4px; }
+    .actor-tag { display: inline-block; background: var(--color-primary-soft, #ede9fe); color: var(--color-primary); border-radius: var(--radius-full); padding: 1px 8px; font-size: var(--fs-badge); font-weight: 700; margin-top: 6px; }
+    .status-success { color: var(--color-success-fg); font-weight: 600; }
+    .status-error   { color: var(--color-danger-fg); font-weight: 600; }
+    .status-pending { color: var(--color-warning-fg); font-weight: 600; }
+    .expand-btn { background: none; border: none; cursor: pointer; color: var(--color-primary); font-size: 12px; font-weight: 700; padding: 2px 6px; }
+    .detail-row td { background: var(--color-surface-raised); }
+    .json-block { font-family: monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px; max-height: 280px; overflow-y: auto; margin: 0; }
+    .btn { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 500 var(--fs-meta)/1.4 inherit; background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; white-space: nowrap; }
+    .btn:hover { background: var(--color-surface-raised); }
+    .btn-primary { background: var(--color-primary); color: var(--color-primary-fg); border-color: var(--color-primary); }
+    .msg { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-raised); font-size: var(--fs-body); }
+    .msg.error { border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .section-header { font-size: var(--fs-label); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--color-text-muted); margin: var(--space-4) 0 var(--space-2) 0; }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="fs-page-header">
+      <h1 class="fs-page-title">Admin Activity Log</h1>
+      <div class="fs-page-actions">
+        <button id="exportBtn" class="fs-btn fs-btn-secondary">Export CSV</button>
+        <button id="refreshBtn" class="fs-btn fs-btn-secondary">Refresh</button>
+      </div>
+    </div>
+
+    <section class="fs-metric-grid" id="summaryGrid" style="margin-bottom:var(--space-4)"></section>
+
+    <div id="actorSection" style="display:none">
+      <div class="section-header">Actor Summary (Last 30 Days)</div>
+      <div class="actor-cards" id="actorCards"></div>
+    </div>
+
+    <div class="fs-action-bar" style="margin-bottom:var(--space-3)">
+      <div class="fs-action-bar-search">
+        <input class="fs-input" id="actorInput" type="search" placeholder="Filter by actor email" />
+      </div>
+      <div class="fs-action-bar-filters">
+        <select class="fs-select" id="actionFilter"><option value="">All Actions</option></select>
+        <select class="fs-select" id="entityFilter">
+          <option value="">All Entity Types</option>
+          <option value="applicant">Applicant</option>
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+          <option value="batch">Batch</option>
+          <option value="user">User</option>
+          <option value="system">System</option>
+        </select>
+        <input class="fs-input" id="dateFrom" type="date" title="From date" style="max-width:150px" />
+        <input class="fs-input" id="dateTo"   type="date" title="To date"   style="max-width:150px" />
+        <button id="clearFiltersBtn" class="btn">Clear</button>
+      </div>
+    </div>
+
+    <div id="flashArea" style="margin-bottom:var(--space-2)"></div>
+
+    <div class="fs-table-wrap">
+      <table class="fs-table" id="activityTable">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Time</th>
+            <th>Actor</th>
+            <th>Action</th>
+            <th>Entity Type</th>
+            <th>Entity ID</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div id="loadMore" style="text-align:center;padding:var(--space-3);display:none">
+      <button class="btn" id="loadMoreBtn">Load more</button>
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module">
+    import { supabase, requireAuth } from "../auth/auth-client.js";
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (m) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]));
+    const fmt = (v) => v ? new Date(v).toLocaleString("en-CA", { year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" }) : "-";
+    const fmtDate = (v) => v ? new Date(v).toLocaleDateString("en-CA", { year:"numeric", month:"short", day:"numeric" }) : "-";
+
+    const PAGE_SIZE = 100;
+    const state = {
+      logs: [],
+      filtered: [],
+      profile: null,
+      offset: 0,
+      allLoaded: false,
+    };
+
+    function showFlash(msg, type = "") {
+      $("flashArea").innerHTML = msg ? `<div class="msg ${type}">${esc(msg)}</div>` : "";
+      if (msg && type !== "error") setTimeout(() => { $("flashArea").innerHTML = ""; }, 4000);
+    }
+
+    function getFilters() {
+      return {
+        actor:  ($("actorInput")?.value || "").toLowerCase().trim(),
+        action: $("actionFilter")?.value || "",
+        entity: $("entityFilter")?.value || "",
+        from:   $("dateFrom")?.value || "",
+        to:     $("dateTo")?.value || "",
+      };
+    }
+
+    function applyFilters() {
+      const f = getFilters();
+      state.filtered = state.logs.filter((log) => {
+        if (f.actor  && !(log.actor_email || "").toLowerCase().includes(f.actor)) return false;
+        if (f.action && log.action !== f.action) return false;
+        if (f.entity && (log.entity_type || "").toLowerCase() !== f.entity) return false;
+        if (f.from && log.created_at < f.from) return false;
+        if (f.to   && log.created_at.slice(0,10) > f.to) return false;
+        return true;
+      });
+      renderTable();
+    }
+
+    function renderSummary() {
+      const now   = new Date();
+      const todayS = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const weekS  = new Date(now.getTime() - 7*86400000).toISOString();
+      const monthS = new Date(now.getTime() - 30*86400000).toISOString();
+
+      const today = state.logs.filter((l) => l.created_at >= todayS).length;
+      const week  = state.logs.filter((l) => l.created_at >= weekS).length;
+      const month = state.logs.filter((l) => l.created_at >= monthS).length;
+
+      $("summaryGrid").innerHTML = [
+        ["Today",       today],
+        ["This Week",   week],
+        ["This Month",  month],
+        ["Total Loaded", state.logs.length],
+      ].map(([lbl, val]) => `
+        <article class="summary-card">
+          <div class="summary-label">${esc(lbl)}</div>
+          <div class="summary-value">${val}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderActorCards() {
+      const isSuperadmin = (state.profile?.role || "").toLowerCase() === "superadmin";
+      const actorSection = $("actorSection");
+      if (!isSuperadmin) { actorSection.style.display = "none"; return; }
+
+      const cutoff = new Date(Date.now() - 30*86400000).toISOString();
+      const recent = state.logs.filter((l) => l.created_at >= cutoff);
+      const actorMap = new Map();
+      for (const l of recent) {
+        const key = l.actor_email || "system";
+        const entry = actorMap.get(key) || { count: 0, last: null, actions: {} };
+        entry.count++;
+        if (!entry.last || l.created_at > entry.last) entry.last = l.created_at;
+        entry.actions[l.action] = (entry.actions[l.action] || 0) + 1;
+        actorMap.set(key, entry);
+      }
+
+      if (!actorMap.size) { actorSection.style.display = "none"; return; }
+      actorSection.style.display = "block";
+
+      const sorted = [...actorMap.entries()].sort((a, b) => b[1].count - a[1].count).slice(0, 12);
+      $("actorCards").innerHTML = sorted.map(([email, d]) => {
+        const topAction = Object.entries(d.actions).sort((a,b) => b[1]-a[1])[0]?.[0] || "-";
+        return `<div class="actor-card">
+          <div class="actor-email">${esc(email)}</div>
+          <div class="actor-meta">${d.count} actions · last ${fmtDate(d.last)}</div>
+          <span class="actor-tag">${esc(topAction)}</span>
+        </div>`;
+      }).join("");
+    }
+
+    function statusClass(s) {
+      if (!s) return "";
+      const sl = String(s).toLowerCase();
+      if (sl === "success") return "status-success";
+      if (sl === "error" || sl === "failed") return "status-error";
+      return "status-pending";
+    }
+
+    function renderTable() {
+      const tbody = $("tableBody");
+      const rows  = state.filtered;
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="msg">No activity records match the current filters.</div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map((log, i) => {
+        const detailId = `detail-${i}`;
+        const hasDetail = log.details && Object.keys(log.details).length > 0;
+        return `<tr class="log-row" data-idx="${i}">
+          <td style="width:30px">${hasDetail ? `<button class="expand-btn" data-target="${detailId}" aria-expanded="false">+</button>` : ""}</td>
+          <td style="font-size:12px;white-space:nowrap">${fmt(log.created_at)}</td>
+          <td style="font-size:12px">${esc(log.actor_email || "system")}</td>
+          <td style="font-size:12px;font-weight:600">${esc(log.action || "-")}</td>
+          <td style="font-size:12px">${esc(log.entity_type || "-")}</td>
+          <td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis">${esc(log.entity_id || "-")}</td>
+          <td><span class="${statusClass(log.status)}">${esc(log.status || "-")}</span></td>
+        </tr>
+        ${hasDetail ? `<tr id="${detailId}" class="detail-row" style="display:none">
+          <td colspan="7"><pre class="json-block">${esc(JSON.stringify(log.details, null, 2))}</pre></td>
+        </tr>` : ""}`;
+      }).join("");
+    }
+
+    function populateActionDropdown() {
+      const actions = [...new Set(state.logs.map((l) => l.action).filter(Boolean))].sort();
+      $("actionFilter").innerHTML = '<option value="">All Actions</option>' +
+        actions.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join("");
+    }
+
+    async function loadLogs(append = false) {
+      if (!append) { state.offset = 0; state.allLoaded = false; }
+      showFlash("Loading...");
+
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("id,action,entity_type,entity_id,actor_email,status,details,created_at")
+        .order("created_at", { ascending: false })
+        .range(state.offset, state.offset + PAGE_SIZE - 1);
+
+      if (error) { showFlash(`Load failed: ${error.message}`, "error"); return; }
+      const rows = data || [];
+
+      if (append) {
+        state.logs = [...state.logs, ...rows];
+      } else {
+        state.logs = rows;
+      }
+
+      if (rows.length < PAGE_SIZE) {
+        state.allLoaded = true;
+        $("loadMore").style.display = "none";
+      } else {
+        state.offset += PAGE_SIZE;
+        $("loadMore").style.display = "block";
+      }
+
+      if (!append) populateActionDropdown();
+      renderSummary();
+      renderActorCards();
+      showFlash("");
+      applyFilters();
+    }
+
+    function exportCsv() {
+      const rows = state.filtered;
+      if (!rows.length) return;
+      const cols = ["created_at","actor_email","action","entity_type","entity_id","status"];
+      const lines = [
+        cols.join(","),
+        ...rows.map((r) => cols.map((c) => `"${String(r[c] ?? "").replace(/"/g,'""')}"`).join(",")),
+      ];
+      const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `audit-log-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    function bindEvents() {
+      $("refreshBtn").addEventListener("click", () => loadLogs(false));
+      $("exportBtn").addEventListener("click", exportCsv);
+      $("clearFiltersBtn").addEventListener("click", () => {
+        $("actorInput").value = "";
+        $("actionFilter").value = "";
+        $("entityFilter").value = "";
+        $("dateFrom").value = "";
+        $("dateTo").value = "";
+        applyFilters();
+      });
+      $("loadMoreBtn").addEventListener("click", () => loadLogs(true));
+
+      ["actorInput","actionFilter","entityFilter","dateFrom","dateTo"].forEach((id) => {
+        const el = $(id);
+        el && el.addEventListener("change", applyFilters);
+        if (el?.tagName === "INPUT") el.addEventListener("input", applyFilters);
+      });
+
+      $("tableBody").addEventListener("click", (e) => {
+        const btn = e.target.closest(".expand-btn");
+        if (!btn) return;
+        const targetId = btn.dataset.target;
+        const detailRow = document.getElementById(targetId);
+        if (!detailRow) return;
+        const expanded = detailRow.style.display !== "none";
+        detailRow.style.display = expanded ? "none" : "";
+        btn.textContent = expanded ? "+" : "-";
+        btn.setAttribute("aria-expanded", String(!expanded));
+      });
+    }
+
+    async function boot() {
+      if (!window.FS_CONFIG?.SUPABASE_URL) {
+        window.FSAdminShell?.mount({ active: "adminactivity", pageTitle: "Admin Activity Log", profileName: "Not connected" });
+        showFlash("Not connected — open via live server with config.js", "error");
+        return;
+      }
+      const auth = await requireAuth(["admin", "superadmin"]);
+      if (!auth) return;
+      state.profile = auth.profile;
+
+      window.FSAdminShell?.mount({ active: "adminactivity", pageTitle: "Admin Activity Log", role: auth.profile?.role });
+
+      bindEvents();
+      await loadLogs(false);
+    }
+
+    boot().catch((e) => showFlash(`Boot failed: ${esc(e?.message || e)}`, "error"));
+  </script>
+</body>
+</html>

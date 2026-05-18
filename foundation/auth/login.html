@@ -67,7 +67,7 @@
   <script src="../js/config.js"></script>
   <script src="../js/config-helper.js"></script>
   <script type="module">
-    import { supabase, getCurrentProfile, TEACHER_LANDING_PATH } from "./auth-client.js";
+    import { supabase, getCurrentProfile, TEACHER_LANDING_PATH, ADMIN_LANDING_PATH, isRegionalSecretary, getLinkedTeacherRecord } from "./auth-client.js";
 
     // If a recovery token is in the hash, this is a reset-password link —
     // hand it off immediately before auth-client.js can process it as a login.
@@ -168,7 +168,6 @@
       }
       const role = String(profile.role || "").trim().toLowerCase();
       const isInactive = profile?.is_active === false;
-      const isAdminLike = new Set(["admin", "superadmin", "subgroup_admin", "pastor", "principal"]).has(role);
 
       if (isInactive || role === "pending") {
         await supabase.auth.signOut();
@@ -181,18 +180,50 @@
         return;
       }
 
+      // Pure teacher role → always teacher portal
       if (role === "teacher") {
         window.location.href = appPath(TEACHER_LANDING_PATH);
         return;
       }
 
-      if (isAdminLike) {
+      // Superadmin / admin → always admin portal, no check needed
+      if (role === "superadmin" || role === "admin") {
         window.location.href = safeNext();
+        return;
+      }
+
+      // Other staff roles: check for linked teacher record → portal chooser
+      if (["pastor", "principal", "subgroup_admin", "regional_secretary"].includes(role)) {
+        const teacherRec = await getLinkedTeacherRecord(email);
+        if (teacherRec) {
+          showPortalChooser(role);
+          return;
+        }
+        // No teacher record → go to appropriate staff landing
+        const staffLanding = role === "regional_secretary" ? "staff/dashboards.html" : ADMIN_LANDING_PATH;
+        window.location.href = appPath(staffLanding);
         return;
       }
 
       window.location.href = safeNext();
     });
+
+    function showPortalChooser(role) {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Sign In"; }
+      const overlay = document.getElementById("portalChooserOverlay");
+      if (!overlay) return;
+      overlay.style.display = "flex";
+
+      document.getElementById("goAdmin").addEventListener("click", () => {
+        sessionStorage.setItem("rs_portal_choice", "admin");
+        const staffLanding = role === "regional_secretary" ? "staff/dashboards.html" : ADMIN_LANDING_PATH;
+        window.location.href = appPath(staffLanding);
+      });
+      document.getElementById("goTeacher").addEventListener("click", () => {
+        sessionStorage.setItem("rs_portal_choice", "teacher");
+        window.location.href = appPath(TEACHER_LANDING_PATH);
+      });
+    }
 
     forgotPasswordBtn.addEventListener("click", async (e) => {
       e.preventDefault();
@@ -215,6 +246,18 @@
       msg.textContent = "Check your email for a reset link.";
     });
   </script>
+  <!-- Portal chooser overlay — shown for dual-role staff users -->
+  <div id="portalChooserOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:32px;max-width:360px;width:calc(100% - 32px);box-shadow:0 8px 40px rgba(0,0,0,0.25);text-align:center;">
+      <div style="font-size:32px;margin-bottom:12px;">&#x1F44B;</div>
+      <h2 style="margin:0 0 8px;font-size:20px;font-weight:800;color:#1E1630;">Welcome back!</h2>
+      <p style="margin:0 0 24px;color:#6f6881;font-size:14px;line-height:1.6;">You have access to both portals.<br>Where would you like to go?</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button id="goAdmin" style="padding:12px 20px;background:#4C2A92;color:#fff;border:0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;">Admin Portal</button>
+        <button id="goTeacher" style="padding:12px 20px;background:#fff;color:#4C2A92;border:2px solid #4C2A92;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;">Teacher Portal</button>
+      </div>
+    </div>
+  </div>
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>

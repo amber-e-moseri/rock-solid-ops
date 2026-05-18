@@ -1,4 +1,6 @@
 ﻿// ── Config ────────────────────────────────────────────────────
+import { supabase } from "../auth/auth-client.js"
+
 const SUPABASE_URL = String(window.FS_CONFIG?.SUPABASE_URL || '').trim()
 const SUPABASE_ANON_KEY = String(window.FS_CONFIG?.SUPABASE_ANON_KEY || '').trim()
 const AdminUi = window.FSAdminUi
@@ -17,13 +19,12 @@ const QUERY_ROW_CAP = 5000
 
 // ── Init ──────────────────────────────────────────────────────
 async function init() {
-  const { createClient } = window.supabase
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.error('[FS_CONFIG_ERROR] Missing runtime config: SUPABASE_URL/SUPABASE_ANON_KEY')
     showAccessDenied('Configuration is missing. Please set foundation/js/config.js before using the admin portal.')
     return
   }
-  db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  db = supabase
 
   try {
     const { data: { session } } = await db.auth.getSession()

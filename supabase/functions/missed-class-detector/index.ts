@@ -148,13 +148,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    const classMap = new Map<string, { day: string; group_id: string; subgroup_id: string }>();
+    const classMap = new Map<string, { day: string; class_time: string; group_id: string; subgroup_id: string }>();
     if (classOptionIds.length) {
-      const classRes = await db.from("class_options").select("class_option_id,day,group_id,subgroup_id").in("class_option_id", classOptionIds);
+      const classRes = await db.from("class_options").select("class_option_id,day,class_time,group_id,subgroup_id").in("class_option_id", classOptionIds);
       if (classRes.error) throw classRes.error;
       for (const c of classRes.data || []) {
         classMap.set(String(c.class_option_id), {
           day: String(c.day || ""),
+          class_time: String(c.class_time || ""),
           group_id: String(c.group_id || ""),
           subgroup_id: String(c.subgroup_id || ""),
         });
@@ -234,6 +235,70 @@ Deno.serve(async (req) => {
 
       if (clickupRes?.reused) summary.skipped_duplicate_count += 1;
       if (clickupRes?.clickup_task_id) summary.task_created_count += 1;
+
+      // Send missed-class check-in email when student has missed >= 2 sessions in this batch.
+      const studentEmail = student?.email || "";
+      const batchId = normalizeText(row.batch_id);
+      if (studentEmail && batchId) {
+        const missedCountRes = await db
+          .from("attendance_log")
+          .select("attendance_id", { count: "exact", head: true })
+          .eq("student_id", studentId)
+          .eq("class_option_id", classOptionId)
+          .eq("present", false);
+
+        const totalMissed = missedCountRes.count ?? 0;
+
+        if (totalMissed >= 2) {
+          const dedupeKey = `missed_class_checkin::${studentId}::${batchId}`;
+          const { data: existing } = await db
+            .from("email_queue")
+            .select("id")
+            .eq("recipient_email", studentEmail)
+            .eq("template_key", "missed_class_checkin")
+            .eq("dedupe_key", dedupeKey)
+            .limit(1)
+            .maybeSingle();
+
+          if (!existing) {
+            const nameParts = (student?.full_name || "").trim().split(/\s+/);
+            const firstName = nameParts[0] || student?.full_name || "Friend";
+            const traceId = crypto.randomUUID();
+
+            // Resolve class_time from class_options
+            const classInfo = classMap.get(classOptionId);
+            const classTime = classInfo?.class_time
+              ? `${classInfo.day || ""}s at ${classInfo.class_time}`.trim()
+              : classInfo?.day ? `${classInfo.day}s` : "your scheduled class";
+
+            await db.from("email_queue").insert({
+              recipient_email: studentEmail,
+              recipient_name: student?.full_name || "",
+              template_key: "missed_class_checkin",
+              subject: "We missed you at Foundation School",
+              status: "Pending",
+              dedupe_key: dedupeKey,
+              trace_id: traceId,
+              payload: {
+                trace_id: traceId,
+                first_name: firstName,
+                class_time: classTime,
+                teacher_name: "your Foundation School teacher",
+                missed_count: totalMissed,
+                batch_id: batchId,
+              },
+            });
+
+            await logAudit(db, "MISSED_CLASS_CHECKIN_QUEUED", "SUCCESS", {
+              trace_id: traceId,
+              student_id: studentId,
+              recipient_email: studentEmail,
+              batch_id: batchId,
+              class_option_id: classOptionId,
+            });
+          }
+        }
+      }
     }
 
     if (summary.checked_count > 0 && summary.schedule_derivation_errors === summary.checked_count) {
@@ -297,4 +362,3 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: message }, 200);
   }
 });
-

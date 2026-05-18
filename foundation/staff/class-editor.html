@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Class Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
+    .btn { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 500 var(--fs-meta)/1.4 inherit; background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; white-space: nowrap; }
+    .btn:hover { background: var(--color-surface-raised); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--color-primary); color: var(--color-primary-fg); border-color: var(--color-primary); }
+    .btn-danger  { background: var(--color-danger-bg); color: var(--color-danger-fg); border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); }
+    .btn-sm { padding: 2px 8px; font-size: 11px; }
+    .edit-panel { background: var(--color-surface-raised); border-top: 1px solid var(--color-border); padding: var(--space-4); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3); }
+    @media (max-width: 900px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+    .form-field label { display: block; font-size: 12px; font-weight: 700; color: var(--color-text-muted); margin-bottom: 4px; }
+    .toggle-row { display: flex; align-items: center; gap: 12px; }
+    .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: var(--color-border); border-radius: 22px; cursor: pointer; transition: .2s; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--color-primary); }
+    input:checked + .slider:before { transform: translateX(18px); }
+    .fc-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 6px; background: var(--color-surface); }
+    .fc-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--color-primary); color: var(--color-primary-fg); border-radius: var(--radius-full); padding: 2px 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .fc-chip-add { background: var(--color-surface-raised); color: var(--color-text-primary); border: 1px dashed var(--color-border); }
+    .msg { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-raised); font-size: var(--fs-body); }
+    .msg.error   { border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .msg.success { border-color: color-mix(in srgb,var(--color-success-fg) 30%,transparent); background: var(--color-success-bg); color: var(--color-success-fg); }
+    .new-panel { background: var(--color-surface); border: 1px solid var(--color-primary); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4); }
+    .new-panel h2 { margin: 0 0 var(--space-3); font-size: var(--fs-body); color: var(--color-primary); }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="fs-page-header">
+      <h1 class="fs-page-title">Class Editor</h1>
+      <div class="fs-page-actions">
+        <select class="fs-select" id="groupFilter"><option value="">All Groups</option></select>
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-meta);font-weight:600">
+          <input type="checkbox" id="activeOnly" checked /> Active only
+        </label>
+        <button id="newClassBtn" class="fs-btn fs-btn-primary">+ New Class</button>
+        <button id="refreshBtn" class="fs-btn fs-btn-secondary">Refresh</button>
+      </div>
+    </div>
+
+    <div id="flashArea" style="margin-bottom:var(--space-2)"></div>
+
+    <!-- New class panel -->
+    <div id="newPanel" class="new-panel" style="display:none">
+      <h2>Create New Class</h2>
+      <div class="form-grid" id="newFormGrid">
+        <div class="form-field">
+          <label>Class ID (auto-generated, editable)</label>
+          <input class="fs-input" id="nClassId" type="text" placeholder="CO-..." />
+        </div>
+        <div class="form-field">
+          <label>Teacher</label>
+          <select class="fs-select" id="nTeacher"></select>
+        </div>
+        <div class="form-field">
+          <label>Day</label>
+          <select class="fs-select" id="nDay">
+            <option value="">Select day</option>
+            <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+            <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Time</label>
+          <input class="fs-input" id="nTime" type="time" />
+        </div>
+        <div class="form-field">
+          <label>Initial Capacity</label>
+          <input class="fs-input" id="nCapacity" type="number" min="1" placeholder="25" />
+        </div>
+        <div class="form-field">
+          <label>Batch (creates slot)</label>
+          <select class="fs-select" id="nBatch"></select>
+        </div>
+        <div class="form-field">
+          <label>Label Suffix</label>
+          <input class="fs-input" id="nSuffix" type="text" placeholder="Optional" />
+        </div>
+      </div>
+      <div class="form-field" style="margin-bottom:var(--space-3)">
+        <label>Fellowship Codes</label>
+        <div class="fc-chips" id="nFcChips"></div>
+      </div>
+      <div class="toggle-row" style="margin-bottom:var(--space-3);gap:24px;flex-wrap:wrap">
+        <label class="toggle-row"><label class="toggle"><input type="checkbox" id="nActive" checked /><span class="slider"></span></label><span style="font-size:13px;font-weight:600">Active</span></label>
+        <label class="toggle-row"><label class="toggle"><input type="checkbox" id="nEnrollOpen" checked /><span class="slider"></span></label><span style="font-size:13px;font-weight:600">Enrollment Open</span></label>
+      </div>
+      <div style="display:flex;gap:var(--space-2)">
+        <button id="saveNewBtn" class="btn btn-primary">Create Class</button>
+        <button id="cancelNewBtn" class="btn">Cancel</button>
+      </div>
+      <div id="newMsg" style="margin-top:var(--space-2)"></div>
+    </div>
+
+    <!-- Class options table -->
+    <div class="fs-table-wrap">
+      <table class="fs-table" id="classTable">
+        <thead>
+          <tr>
+            <th>Class ID</th>
+            <th>Teacher</th>
+            <th>Group</th>
+            <th>Fellowship Codes</th>
+            <th>Day</th>
+            <th>Time</th>
+            <th>Active</th>
+            <th>Enroll Open</th>
+            <th>Slots</th>
+            <th id="actionsHeader">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="classTableBody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module">
+    import { supabase, requireAuth, getCurrentProfile } from "../auth/auth-client.js";
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (m) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]));
+
+    const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+    const state = {
+      classes:      [],
+      teachers:     [],
+      fellowships:  [],
+      batches:      [],
+      slots:        {},
+      profile:      null,
+      canEdit:      false,
+      openEditId:   null,
+      newFcCodes:   [],
+      editFcCodes:  {},
+    };
+
+    function showFlash(msg, type = "") {
+      $("flashArea").innerHTML = msg ? `<div class="msg ${type}">${msg}</div>` : "";
+      if (msg && type !== "error") setTimeout(() => { $("flashArea").innerHTML = ""; }, 5000);
+    }
+
+    function filteredClasses() {
+      const group     = $("groupFilter")?.value || "";
+      const activeOnly = $("activeOnly")?.checked;
+      return state.classes.filter((c) => {
+        if (activeOnly && c.deleted_at) return false;
+        if (activeOnly && c.active === false) return false;
+        if (group && c.group_id !== group) return false;
+        return true;
+      });
+    }
+
+    // ── New class ID generator ────────────────────────────────────────────────
+    function generateClassId(teacherId, day, time) {
+      const dayPart  = day ? day.slice(0, 3).toUpperCase() : "DAY";
+      const timePart = time ? time.replace(":", "") : "0000";
+      const tidPart  = teacherId ? String(teacherId).slice(0, 8).toUpperCase() : "XXXX";
+      return `CO-${dayPart}-${timePart}-${tidPart}`;
+    }
+
+    // ── FC chips ──────────────────────────────────────────────────────────────
+    function renderFcChips(containerId, selectedCodes, onChange) {
+      const container = $(containerId);
+      if (!container) return;
+      container.innerHTML = selectedCodes.map((fc) =>
+        `<span class="fc-chip" data-fc="${esc(fc)}">${esc(fc)} ✕</span>`
+      ).join("") +
+      `<select class="fc-chip fc-chip-add" id="${containerId}_add" style="border:none;background:none;font:inherit;font-size:12px;cursor:pointer">
+        <option value="">+ Add</option>
+        ${state.fellowships
+          .filter((f) => !selectedCodes.includes(f.fellowship_code))
+          .map((f) => `<option value="${esc(f.fellowship_code)}">${esc(f.fellowship_code)} – ${esc(f.campus_name || "")}</option>`)
+          .join("")}
+      </select>`;
+
+      container.querySelectorAll(".fc-chip[data-fc]").forEach((chip) => {
+        chip.addEventListener("click", () => {
+          const updated = selectedCodes.filter((c) => c !== chip.dataset.fc);
+          onChange(updated);
+        });
+      });
+      const addSel = document.getElementById(`${containerId}_add`);
+      addSel && addSel.addEventListener("change", (e) => {
+        if (!e.target.value) return;
+        const updated = [...selectedCodes, e.target.value];
+        onChange(updated);
+      });
+    }
+
+    // ── Edit panel ────────────────────────────────────────────────────────────
+    function renderEditPanel(co) {
+      const panelId = `edit-${co.class_option_id}`;
+      const fcKey   = co.class_option_id;
+      if (!state.editFcCodes[fcKey]) state.editFcCodes[fcKey] = [...(co.fellowship_codes || [])];
+
+      const teacherOpts = state.teachers.map((t) =>
+        `<option value="${esc(t.teacher_id)}"${t.full_name === co.teacher_name ? " selected" : ""}>${esc(t.full_name)} (${esc(t.email || "")})</option>`
+      ).join("");
+      const dayOpts = DAYS.map((d) => `<option value="${d}"${d === co.day ? " selected" : ""}>${d}</option>`).join("");
+
+      return `<tr id="${panelId}">
+        <td colspan="10" class="edit-panel">
+          <div class="form-grid">
+            <div class="form-field">
+              <label>Teacher</label>
+              <select class="fs-select" id="et-${esc(co.class_option_id)}">${teacherOpts}</select>
+            </div>
+            <div class="form-field">
+              <label>Day</label>
+              <select class="fs-select" id="ed-${esc(co.class_option_id)}">${dayOpts}</select>
+            </div>
+            <div class="form-field">
+              <label>Time</label>
+              <input class="fs-input" id="etime-${esc(co.class_option_id)}" type="time" value="${esc(co.class_time || "")}" />
+            </div>
+            <div class="form-field">
+              <label>Max Capacity</label>
+              <input class="fs-input" id="ecap-${esc(co.class_option_id)}" type="number" min="1" value="${esc(co.max_capacity ?? "")}" placeholder="Unlimited" />
+            </div>
+            <div class="form-field">
+              <label>Label Suffix</label>
+              <input class="fs-input" id="esuffix-${esc(co.class_option_id)}" type="text" value="${esc(co.label_suffix || "")}" />
+            </div>
+          </div>
+          <div class="form-field" style="margin-bottom:var(--space-3)">
+            <label>Fellowship Codes</label>
+            <div class="fc-chips" id="efc-${esc(co.class_option_id)}"></div>
+          </div>
+          <div class="toggle-row" style="margin-bottom:var(--space-3);gap:24px;flex-wrap:wrap">
+            <label class="toggle-row"><label class="toggle"><input type="checkbox" id="eactive-${esc(co.class_option_id)}"${co.active !== false ? " checked" : ""}/><span class="slider"></span></label><span style="font-size:13px;font-weight:600">Active</span></label>
+            <label class="toggle-row"><label class="toggle"><input type="checkbox" id="eenroll-${esc(co.class_option_id)}"${co.enrollment_open !== false ? " checked" : ""}/><span class="slider"></span></label><span style="font-size:13px;font-weight:600">Enrollment Open</span></label>
+          </div>
+          <div style="display:flex;gap:var(--space-2)">
+            <button class="btn btn-primary" data-save-edit="${esc(co.class_option_id)}" data-old-day="${esc(co.day || "")}" data-old-time="${esc(co.class_time || "")}">Save Changes</button>
+            <button class="btn" data-cancel-edit="${esc(co.class_option_id)}">Cancel</button>
+          </div>
+          <div id="emsg-${esc(co.class_option_id)}" style="margin-top:var(--space-2)"></div>
+        </td>
+      </tr>`;
+    }
+
+    // ── Main table render ─────────────────────────────────────────────────────
+    function renderTable() {
+      const rows   = filteredClasses();
+      const tbody  = $("classTableBody");
+      const canAct = state.canEdit;
+
+      $("actionsHeader").style.display = canAct ? "" : "none";
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="10"><div class="msg">No class options found.</div></td></tr>`;
+        return;
+      }
+
+      let html = "";
+      rows.forEach((co) => {
+        const slotCount = state.slots[co.class_option_id] || 0;
+        const fc        = (co.fellowship_codes || []).join(", ") || "-";
+        html += `<tr id="row-${esc(co.class_option_id)}" style="${co.deleted_at ? "opacity:.5" : ""}">
+          <td style="font-size:12px;font-weight:600">${esc(co.class_option_id)}</td>
+          <td style="font-size:12px">${esc(co.teacher_name || "-")}</td>
+          <td style="font-size:12px">${esc(co.group_id || "-")}</td>
+          <td style="font-size:12px">${esc(fc)}</td>
+          <td style="font-size:12px">${esc(co.day || "-")}</td>
+          <td style="font-size:12px">${esc(co.class_time || "-")}</td>
+          <td style="font-size:12px">${co.active === false ? "No" : "Yes"}</td>
+          <td style="font-size:12px">${co.enrollment_open === false ? "No" : "Yes"}</td>
+          <td style="font-size:12px">${slotCount}</td>
+          ${canAct ? `<td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              <button class="btn btn-sm" data-edit="${esc(co.class_option_id)}">Edit</button>
+              <button class="btn btn-sm" data-dup="${esc(co.class_option_id)}">Duplicate</button>
+              <button class="btn btn-sm btn-danger" data-delete="${esc(co.class_option_id)}">${co.deleted_at ? "Deleted" : "Delete"}</button>
+            </div>
+          </td>` : ""}
+        </tr>`;
+
+        if (state.openEditId === co.class_option_id) {
+          html += renderEditPanel(co);
+        }
+      });
+
+      tbody.innerHTML = html;
+
+      // Wire fc chips for open edit panels
+      rows.forEach((co) => {
+        if (state.openEditId === co.class_option_id) {
+          renderFcChips(`efc-${co.class_option_id}`, state.editFcCodes[co.class_option_id] || [], (updated) => {
+            state.editFcCodes[co.class_option_id] = updated;
+            renderTable();
+          });
+        }
+      });
+    }
+
+    // ── Load data ─────────────────────────────────────────────────────────────
+    async function loadData() {
+      showFlash("Loading...");
+      const [classRes, teacherRes, fcRes, batchRes, slotRes] = await Promise.all([
+        supabase.from("class_options").select("*").is("deleted_at", null).order("class_option_id").limit(500),
+        supabase.from("teachers").select("teacher_id,full_name,email,group_id,subgroup_id").eq("status", "ACTIVE").order("full_name").limit(200),
+        supabase.from("fellowship_map").select("fellowship_code,campus_name,group_id").eq("active", true).order("fellowship_code").limit(200),
+        supabase.from("batches").select("batch_id,batch_name").order("created_at", { ascending: false }).limit(50),
+        supabase.from("class_slots").select("class_option_id,batch_id").limit(2000),
+      ]);
+
+      state.classes     = classRes.data || [];
+      state.teachers    = teacherRes.data || [];
+      state.fellowships = fcRes.data || [];
+      state.batches     = batchRes.data || [];
+
+      // Count slots per class
+      state.slots = {};
+      (slotRes.data || []).forEach((s) => {
+        state.slots[s.class_option_id] = (state.slots[s.class_option_id] || 0) + 1;
+      });
+
+      // Populate group filter
+      const groups = [...new Set(state.classes.map((c) => c.group_id).filter(Boolean))];
+      const curGroup = $("groupFilter").value;
+      $("groupFilter").innerHTML = '<option value="">All Groups</option>' +
+        groups.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join("");
+      if (curGroup) $("groupFilter").value = curGroup;
+
+      // Teacher dropdown for new class
+      $("nTeacher").innerHTML = '<option value="">Select teacher</option>' +
+        state.teachers.map((t) => `<option value="${esc(t.teacher_id)}">${esc(t.full_name)} (${esc(t.email || "")})</option>`).join("");
+      $("nBatch").innerHTML = '<option value="">No batch (create slot later)</option>' +
+        state.batches.map((b) => `<option value="${esc(b.batch_id)}">${esc(b.batch_name || b.batch_id)}</option>`).join("");
+
+      renderFcChips("nFcChips", state.newFcCodes, (updated) => {
+        state.newFcCodes = updated;
+        renderFcChips("nFcChips", state.newFcCodes, arguments.callee);
+      });
+
+      showFlash("");
+      renderTable();
+    }
+
+    // ── Save edit ─────────────────────────────────────────────────────────────
+    async function saveEdit(coId, oldDay, oldTime) {
+      const teacherSel = document.getElementById(`et-${coId}`);
+      const teacher    = state.teachers.find((t) => t.teacher_id === teacherSel?.value);
+      const newDay     = document.getElementById(`ed-${coId}`)?.value;
+      const newTime    = document.getElementById(`etime-${coId}`)?.value;
+      const newCap     = document.getElementById(`ecap-${coId}`)?.value || null;
+      const newSuffix  = document.getElementById(`esuffix-${coId}`)?.value || null;
+      const isActive   = document.getElementById(`eactive-${coId}`)?.checked;
+      const enrollOpen = document.getElementById(`eenroll-${coId}`)?.checked;
+      const newFc      = state.editFcCodes[coId] || [];
+      const now        = new Date().toISOString();
+      const actor      = state.profile?.email || null;
+      const msgEl      = document.getElementById(`emsg-${coId}`);
+
+      const updates = {
+        teacher_name:     teacher?.full_name || null,
+        teacher_id:       teacher?.teacher_id || null,
+        day:              newDay,
+        class_time:       newTime,
+        max_capacity:     newCap ? parseInt(newCap) : null,
+        label_suffix:     newSuffix,
+        active:           isActive,
+        enrollment_open:  enrollOpen,
+        fellowship_codes: newFc,
+        updated_by:       actor,
+        updated_at:       now,
+      };
+
+      const { error } = await supabase.from("class_options").update(updates).eq("class_option_id", coId);
+      if (error) { if (msgEl) msgEl.innerHTML = `<div class="msg error">${esc(error.message)}</div>`; return; }
+
+      // Sync teacher_name to class_slots
+      if (teacher?.full_name) {
+        await supabase.from("class_slots").update({ teacher_name: teacher.full_name }).eq("class_option_id", coId);
+      }
+
+      const timeChanged = newDay !== oldDay || newTime !== oldTime;
+      let notifSent = false;
+
+      if (timeChanged) {
+        const { count: enrolledCount } = await supabase.from("applicants")
+          .select("id", { count: "exact", head: true })
+          .eq("class_option_id", coId).eq("registration_status", "ASSIGNED");
+
+        if ((enrolledCount || 0) > 0) {
+          const doNotify = confirm(`${enrolledCount} student(s) are enrolled in this class. Send them a class time change notification?`);
+          if (doNotify) {
+            const { data: enrolled } = await supabase.from("applicants")
+              .select("id,full_name,email").eq("class_option_id", coId).eq("registration_status", "ASSIGNED");
+            const emailRows = (enrolled || []).map((ap) => ({
+              recipient_email: ap.email,
+              recipient_name:  ap.full_name || "",
+              template_key:    "class_time_changed",
+              subject:         "Update: Your Foundation School class time has changed",
+              status:          "Pending",
+              payload: {
+                first_name:   String(ap.full_name || "Student").split(/\s+/)[0],
+                full_name:    ap.full_name,
+                teacher_name: teacher?.full_name || updates.teacher_name || "",
+                old_day:      oldDay,
+                old_time:     oldTime,
+                new_day:      newDay,
+                new_time:     newTime,
+              },
+            }));
+            if (emailRows.length) await supabase.from("email_queue").insert(emailRows);
+            notifSent = true;
+          }
+        }
+      }
+
+      await supabase.from("audit_logs").insert({
+        actor_email: actor, action: "CLASS_OPTION_UPDATED", entity_type: "class_option",
+        entity_id: coId, status: "SUCCESS",
+        details: { changed_fields: Object.keys(updates), time_changed: timeChanged, notification_sent: notifSent },
+        created_at: now,
+      });
+
+      if (msgEl) msgEl.innerHTML = `<div class="msg success">Saved.</div>`;
+      state.openEditId = null;
+      await loadData();
+    }
+
+    // ── Create new class ──────────────────────────────────────────────────────
+    async function createClass() {
+      const classId   = $("nClassId")?.value.trim();
+      const teacherId = $("nTeacher")?.value;
+      const day       = $("nDay")?.value;
+      const time      = $("nTime")?.value;
+      const capacity  = $("nCapacity")?.value ? parseInt($("nCapacity").value) : null;
+      const batchId   = $("nBatch")?.value || null;
+      const suffix    = $("nSuffix")?.value.trim() || null;
+      const active    = $("nActive")?.checked;
+      const enrollO   = $("nEnrollOpen")?.checked;
+      const fc        = state.newFcCodes;
+      const msgEl     = $("newMsg");
+
+      if (!classId || !teacherId || !day || !time) {
+        msgEl.innerHTML = '<div class="msg error">Class ID, teacher, day, and time are required.</div>';
+        return;
+      }
+
+      const teacher = state.teachers.find((t) => t.teacher_id === teacherId);
+      const now     = new Date().toISOString();
+      const actor   = state.profile?.email || null;
+
+      const { error } = await supabase.from("class_options").insert({
+        class_option_id:  classId,
+        teacher_id:       teacherId,
+        teacher_name:     teacher?.full_name || null,
+        day,
+        class_time:       time,
+        max_capacity:     capacity,
+        label_suffix:     suffix,
+        active,
+        enrollment_open:  enrollO,
+        fellowship_codes: fc,
+        group_id:         teacher?.group_id || null,
+        subgroup_id:      teacher?.subgroup_id || null,
+        created_by:       actor,
+        updated_by:       actor,
+        created_at:       now,
+        updated_at:       now,
+      });
+
+      if (error) { msgEl.innerHTML = `<div class="msg error">${esc(error.message)}</div>`; return; }
+
+      if (batchId) {
+        await supabase.from("class_slots").insert({
+          class_slot_id:    `${classId}-${batchId}`,
+          class_option_id:  classId,
+          batch_id:         batchId,
+          teacher_name:     teacher?.full_name || null,
+          group_id:         teacher?.group_id || null,
+          subgroup_id:      teacher?.subgroup_id || null,
+          status:           "Active",
+          current_enrolment: 0,
+          max_capacity:     capacity,
+          created_by:       actor,
+          updated_by:       actor,
+        });
+      }
+
+      await supabase.from("audit_logs").insert({
+        actor_email: actor, action: "CLASS_OPTION_CREATED", entity_type: "class_option",
+        entity_id: classId, status: "SUCCESS",
+        details: { teacher_name: teacher?.full_name, day, class_time: time, batch_id: batchId },
+        created_at: now,
+      });
+
+      msgEl.innerHTML = '<div class="msg success">Class created!</div>';
+      state.newFcCodes = [];
+      $("newPanel").style.display = "none";
+      await loadData();
+    }
+
+    // ── Event binding ─────────────────────────────────────────────────────────
+    function bindEvents() {
+      $("refreshBtn").addEventListener("click", loadData);
+      $("groupFilter").addEventListener("change", renderTable);
+      $("activeOnly").addEventListener("change", renderTable);
+
+      $("newClassBtn").addEventListener("click", () => {
+        $("newPanel").style.display = $("newPanel").style.display === "none" ? "" : "none";
+      });
+      $("cancelNewBtn").addEventListener("click", () => { $("newPanel").style.display = "none"; });
+      $("saveNewBtn").addEventListener("click", createClass);
+
+      // Auto-generate Class ID
+      [$("nTeacher"), $("nDay"), $("nTime")].forEach((el) => {
+        el && el.addEventListener("change", () => {
+          const t = $("nTeacher")?.value;
+          const d = $("nDay")?.value;
+          const ti = $("nTime")?.value;
+          $("nClassId").value = generateClassId(t, d, ti);
+        });
+      });
+
+      // Table button delegation
+      $("classTableBody").addEventListener("click", async (e) => {
+        const editBtn = e.target.closest("[data-edit]");
+        if (editBtn) {
+          const id = editBtn.dataset.edit;
+          state.openEditId = state.openEditId === id ? null : id;
+          renderTable();
+          return;
+        }
+
+        const cancelBtn = e.target.closest("[data-cancel-edit]");
+        if (cancelBtn) { state.openEditId = null; renderTable(); return; }
+
+        const saveBtn = e.target.closest("[data-save-edit]");
+        if (saveBtn) {
+          await saveEdit(saveBtn.dataset.saveEdit, saveBtn.dataset.oldDay, saveBtn.dataset.oldTime);
+          return;
+        }
+
+        const dupBtn = e.target.closest("[data-dup]");
+        if (dupBtn) {
+          const src = state.classes.find((c) => c.class_option_id === dupBtn.dataset.dup);
+          if (!src) return;
+          const newId = `${src.class_option_id}-COPY`;
+          const { error } = await supabase.from("class_options").insert({
+            ...src, class_option_id: newId, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+            deleted_at: null, created_by: state.profile?.email || null,
+          });
+          showFlash(error ? `Duplicate failed: ${error.message}` : `Duplicated as ${newId}. Click Edit to update details.`, error ? "error" : "success");
+          if (!error) await loadData();
+          return;
+        }
+
+        const delBtn = e.target.closest("[data-delete]");
+        if (delBtn) {
+          const id = delBtn.dataset.delete;
+          const { count } = await supabase.from("applicants").select("id", { count: "exact", head: true })
+            .eq("class_option_id", id).eq("registration_status", "ASSIGNED");
+          if ((count || 0) > 0) {
+            if (!confirm(`${count} student(s) are enrolled in this class. Soft-delete anyway?`)) return;
+          } else {
+            if (!confirm(`Soft-delete class ${id}?`)) return;
+          }
+          const { error } = await supabase.from("class_options")
+            .update({ deleted_at: new Date().toISOString(), active: false }).eq("class_option_id", id);
+          showFlash(error ? `Delete failed: ${error.message}` : `Class ${id} deleted.`, error ? "error" : "success");
+          if (!error) await loadData();
+          return;
+        }
+      });
+    }
+
+    async function boot() {
+      if (!window.FS_CONFIG?.SUPABASE_URL) {
+        window.FSAdminShell?.mount({ active: "classeditor", pageTitle: "Class Editor", profileName: "Not connected" });
+        showFlash("Not connected — open via live server with config.js", "error");
+        return;
+      }
+      const auth = await requireAuth(["admin", "superadmin", "regional_secretary"]);
+      if (!auth) return;
+      state.profile = auth.profile;
+      state.canEdit = ["admin","superadmin"].includes((auth.profile?.role || "").toLowerCase());
+
+      window.FSAdminShell?.mount({ active: "classeditor", pageTitle: "Class Editor", role: auth.profile?.role });
+
+      if (!state.canEdit) {
+        $("newClassBtn").style.display = "none";
+        $("actionsHeader").style.display = "none";
+      }
+
+      bindEvents();
+      await loadData();
+    }
+
+    boot().catch((e) => showFlash(`Boot failed: ${esc(e?.message || e)}`, "error"));
+  </script>
+</body>
+</html>

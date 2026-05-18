@@ -13,7 +13,7 @@ Do not run destructive resets in production unless explicitly approved.
   - `202605121700_notification_trace_id.sql`
   - `202605121900_moodle_enrollment_sync_trace_id.sql`
 - Canonical notification pipeline is active:
-  - `scheduled_notifications` -> `reminder-processor` -> `email_queue` -> `email-sender`
+  - `scheduled_notifications` -> `notification-batch-processor` -> `email_queue` -> `email-sender`
 - `sender-worker` remains unscheduled (deprecated).
 - Test accounts are available:
   - Admin user
@@ -275,11 +275,11 @@ Do not run destructive resets in production unless explicitly approved.
 ## 10) Email Queue Creation
 
 **Purpose**
-- Validate queue row creation from both direct registration and reminder-processor path.
+- Validate queue row creation from both direct registration and notification-batch-processor path.
 
 **Steps**
 1. Trigger direct registration email queue insert.
-2. Trigger `reminder-processor` for due scheduled notification.
+2. Trigger `notification-batch-processor` for due scheduled notification.
 
 **Expected database rows**
 - `email_queue` rows created with `status = Pending`.
@@ -558,3 +558,4 @@ order by created_at asc;
 - Record test run metadata: date/time, environment, tester, commit SHA, migration set.
 - Mark each test case PASS/WARN/FAIL in your run log.
 - Any FAIL in tests 1-13 should block release until resolved.
+

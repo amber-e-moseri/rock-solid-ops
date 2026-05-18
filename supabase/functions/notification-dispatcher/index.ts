@@ -123,8 +123,10 @@ Deno.serve(async (req) => {
 
         for (const rule of typedRules) {
           const dedupeKey = `${event.id}:${rule.id}:${rule.template_key}`;
+          const traceId = String((event.payload as Record<string, unknown> | null)?.trace_id || "").trim() || crypto.randomUUID();
           const payload = {
             ...(event.payload || {}),
+            trace_id: traceId,
             event_type: event.event_type,
             template_key: rule.template_key,
             fellowship_code: event.fellowship_code,
@@ -144,6 +146,7 @@ Deno.serve(async (req) => {
               status: "PENDING",
               attempts: 0,
               payload,
+              trace_id: traceId,
               dedupe_key: dedupeKey,
             });
 
@@ -173,6 +176,7 @@ Deno.serve(async (req) => {
               template_key: rule.template_key,
               recipient_email: recipientEmail,
               dedupe_key: dedupeKey,
+              trace_id: traceId,
             },
           });
         }

@@ -155,8 +155,7 @@
   <script src="../js/toast.js"></script>
   <script src="../js/runtime.js"></script>
   <script type="module">
-    import { supabase, getCurrentProfile } from "../auth/auth-client.js";
-    import { requireAuth } from "../auth/auth-client.js";
+    import { supabase, getCurrentProfile, isAdmin, requireAuth } from "../auth/auth-client.js";
 
     const $ = (id) => document.getElementById(id);
     const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
@@ -172,7 +171,7 @@
       watchers: { label: "ClickUp Watchers", empty: "No ClickUp watcher mappings found." },
     };
     const validRoles = ["pending", "teacher", "principal", "admin", "superadmin", "subgroup_admin", "pastor"];
-    const elevatedRoles = new Set(["admin", "superadmin", "principal", "subgroup_admin", "pastor"]);
+    const isElevatedRole = (role) => isAdmin(role);
     const state = {
       auth: null,
       role: "",
@@ -405,7 +404,7 @@
           return `<tr>
             <td><strong>${esc(r.full_name || "-")}</strong></td>
             <td>${esc(r.email || "-")}</td>
-            <td><span class="fs-badge ${elevatedRoles.has(role) ? "fs-badge-info" : "fs-badge-neutral"}">${esc(role)}</span></td>
+            <td><span class="fs-badge ${isElevatedRole(role) ? "fs-badge-info" : "fs-badge-neutral"}">${esc(role)}</span></td>
             <td><span class="fs-badge ${active ? "fs-badge-success" : "fs-badge-neutral"}">${active ? "Active" : "Inactive"}</span></td>
             <td><div class="row-actions">
               <button class="fs-btn fs-btn-secondary" data-edit-staff="${esc(r.id || r.user_id || "")}">Edit Role</button>
@@ -851,6 +850,5 @@
   </script>
 </body>
 </html>
-
 
 

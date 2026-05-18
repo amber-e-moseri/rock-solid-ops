@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Reports</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
+    .field       { display: grid; gap: var(--space-1); margin-bottom: var(--space-3); }
+    .field label { font-size: var(--fs-label); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-muted); }
+    .radio-group { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .radio-group label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-body); font-weight: 600; cursor: pointer; color: var(--color-text-primary); }
+    .check-group { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+    .check-group label { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-body); cursor: pointer; }
+    .preview-wrap { border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: #fff; }
+    iframe { width: 100%; min-height: 600px; border: 0; display: block; }
+    .hidden { display: none !important; }
+    .archive-actions { display: flex; gap: var(--space-1); }
+    .fs-table th, .fs-table td { padding: var(--space-2) var(--space-3); }
+    .msg { padding: var(--space-3); border-radius: var(--radius-md); font-size: var(--fs-body); border: 1px solid var(--color-border); background: var(--color-surface-raised); }
+    .msg.error   { background: var(--color-danger-bg);  border-color: color-mix(in srgb, var(--color-danger-fg) 30%, transparent);  color: var(--color-danger-fg); }
+    .msg.success { background: var(--color-success-bg); border-color: color-mix(in srgb, var(--color-success-fg) 30%, transparent); color: var(--color-success-fg); }
+    .print-hint { background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--fs-meta); color: #92400e; margin-top: var(--space-2); }
+  </style>
+</head>
+<body>
+  <main class="fs-page fs-wrap-xl">
+    <section class="hero">
+      <h1 class="hero-title">Reports</h1>
+      <p class="hero-sub">Generate, preview, send, and archive weekly / monthly / custom Foundation School reports.</p>
+    </section>
+
+    <!-- ── Generate panel ── -->
+    <section class="card fs-card" style="margin-bottom: var(--space-4);">
+      <div class="fs-card-header"><h2 class="fs-card-title">Generate Report</h2></div>
+      <div id="genMsg"></div>
+
+      <div class="field">
+        <label>Report Type</label>
+        <div class="radio-group" id="reportTypeGroup">
+          <label><input type="radio" name="report_type" value="weekly"  checked /> Weekly</label>
+          <label><input type="radio" name="report_type" value="monthly"          /> Monthly</label>
+          <label><input type="radio" name="report_type" value="custom"           /> Custom Range</label>
+          <label id="pastorDigestLabel" class="hidden"><input type="radio" name="report_type" value="pastor_digest" /> Pastor Digest</label>
+        </div>
+      </div>
+
+      <div id="customDates" class="hidden" style="display:none;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+        <div class="field">
+          <label for="dateFrom">From</label>
+          <input class="fs-input" id="dateFrom" type="date" />
+        </div>
+        <div class="field">
+          <label for="dateTo">To</label>
+          <input class="fs-input" id="dateTo" type="date" />
+        </div>
+      </div>
+
+      <div id="scopeRow">
+        <div class="field">
+          <label>Scope</label>
+          <div class="radio-group" id="scopeGroup">
+            <label><input type="radio" name="scope" value="regional" checked /> Regional (All)</label>
+            <label><input type="radio" name="scope" value="group"             /> By Group</label>
+            <label><input type="radio" name="scope" value="subgroup"          /> By Subgroup</label>
+          </div>
+        </div>
+        <div id="scopeValueRow" class="hidden" style="display:none;margin-top:calc(-1 * var(--space-2));">
+          <div class="field">
+            <label for="scopeValue" id="scopeValueLabel">Group</label>
+            <select class="fs-select" id="scopeValue"><option value="">Loading…</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div id="allPastorsRow" class="hidden">
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-body);cursor:pointer;margin-bottom:var(--space-3);">
+          <input type="checkbox" id="allPastors" /> Send individual digest to all pastors
+        </label>
+      </div>
+
+      <div class="field">
+        <label for="batchSelect">Batch</label>
+        <select class="fs-select" id="batchSelect"><option value="">Loading…</option></select>
+      </div>
+
+      <div class="field" id="recipientsField">
+        <label for="recipients">Recipients (one email per line)</label>
+        <textarea class="fs-input" id="recipients" rows="3" placeholder="Defaults to all admins if left blank"></textarea>
+      </div>
+
+      <div class="check-group" style="margin-bottom: var(--space-3);">
+        <label><input type="checkbox" id="sendEmail" checked /> Send email</label>
+        <label><input type="checkbox" id="saveArchive" checked /> Save to archive</label>
+      </div>
+
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="fs-btn fs-btn-primary" id="generateBtn">Generate Report</button>
+        <button class="fs-btn fs-btn-secondary hidden" id="downloadPdfBtn">Download as PDF</button>
+      </div>
+    </section>
+
+    <!-- ── Preview ── -->
+    <section class="card fs-card hidden" id="previewSection" style="margin-bottom: var(--space-4);">
+      <div class="fs-card-header">
+        <h2 class="fs-card-title">Preview</h2>
+        <button class="fs-btn fs-btn-secondary" id="downloadPdfBtn2">Download as PDF</button>
+      </div>
+      <div class="print-hint">To save as PDF: click Download, then in the print dialog set <strong>Destination → Save as PDF</strong>.</div>
+      <div class="preview-wrap" style="margin-top: var(--space-3);">
+        <iframe id="previewFrame" title="Report Preview"></iframe>
+      </div>
+    </section>
+
+    <!-- ── Archive ── -->
+    <section class="card fs-card">
+      <div class="fs-card-header">
+        <h2 class="fs-card-title">Report Archive</h2>
+        <button class="fs-btn fs-btn-secondary" id="refreshArchiveBtn">Refresh</button>
+      </div>
+      <div id="archiveMsg"></div>
+      <div class="fs-table-wrap" id="archiveTableWrap">
+        <table class="fs-table">
+          <thead>
+            <tr>
+              <th>Type</th><th>Scope</th><th>Date Range</th><th>Batch</th>
+              <th>Generated By</th><th>Recipients</th><th>Created</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="archiveBody"><tr><td colspan="8" style="color:var(--color-text-muted)">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Re-send modal -->
+  <div id="resendOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,10,20,.42);backdrop-filter:blur(3px);z-index:60;place-items:center;padding:var(--space-4);" role="dialog" aria-modal="true">
+    <div style="width:min(480px,96vw);background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4);display:grid;gap:var(--space-3);">
+      <h3 style="margin:0;">Re-send Report</h3>
+      <div class="field">
+        <label for="resendEmail">Recipient Email(s) — one per line</label>
+        <textarea class="fs-input" id="resendEmail" rows="3"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:var(--space-2);">
+        <button class="fs-btn fs-btn-secondary" id="cancelResendBtn">Cancel</button>
+        <button class="fs-btn fs-btn-primary" id="confirmResendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module">
+    import { supabase, getCurrentProfile, requireAuth, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+    const fmt = (v) => v ? new Date(v).toLocaleDateString("en-CA", { year:"numeric", month:"short", day:"numeric" }) : "-";
+
+    const state = { profile: null, batches: [], archive: [], currentHtml: null, resendArchiveId: null };
+
+    function showMsg(areaId, text, type = "error") {
+      $(areaId).innerHTML = text ? `<div class="msg ${type}">${esc(text)}</div>` : "";
+    }
+
+    // ── Boot ──────────────────────────────────────────────────────────────────
+    async function boot() {
+      const allowedRoles = ["superadmin", "admin", "subgroup_admin", "pastor", "principal", "regional_secretary"];
+      const auth = await requireAuth(allowedRoles);
+      if (!auth) return;
+      if (!(isAdmin(auth.profile?.role) || isRegionalSecretary(auth.profile?.role))) return;
+      state.profile = auth.profile;
+
+      window.FSAdminShell?.mount({ active: "", pageTitle: "Reports", role: auth.profile?.role });
+
+      // Pastor digest + scope controls
+      const role = String(auth.profile?.role || "").toLowerCase();
+      if (["superadmin","admin","pastor"].includes(role)) {
+        $("pastorDigestLabel").classList.remove("hidden");
+      }
+      if (role === "pastor") {
+        // Lock scope to group for pastor
+        document.querySelectorAll('#scopeGroup input[value="regional"], #scopeGroup input[value="subgroup"]').forEach((el) => {
+          el.closest("label").style.display = "none";
+        });
+        const groupInput = document.querySelector('#scopeGroup input[value="group"]');
+        if (groupInput) groupInput.checked = true;
+      }
+      if (["superadmin","admin"].includes(role)) {
+        $("allPastorsRow").classList.remove("hidden");
+      }
+
+      // Pre-fill current user email in recipients
+      if (auth.profile?.email) $("recipients").value = auth.profile.email;
+
+      await Promise.all([loadBatches(), loadScopeOptions(), loadArchive()]);
+      wireEvents();
+    }
+
+    async function loadBatches() {
+      const { data } = await supabase.from("batches").select("batch_id,batch_name,active").order("created_at", { ascending: false }).limit(100);
+      state.batches = data || [];
+      $("batchSelect").innerHTML = '<option value="">Auto (active batch)</option>' +
+        state.batches.map((b) => `<option value="${esc(b.batch_id)}">${esc(b.batch_name || b.batch_id)}${b.active ? " ✓" : ""}</option>`).join("");
+    }
+
+    async function loadScopeOptions() {
+      const { data } = await supabase.from("fellowship_map").select("group_id,subgroup_id,campus_name").eq("active", true).limit(500);
+      state.fellowship = data || [];
+    }
+
+    function updateScopeDropdown(scope) {
+      if (scope === "group") {
+        const groups = [...new Set((state.fellowship || []).map((r) => r.group_id).filter(Boolean))].sort();
+        $("scopeValue").innerHTML = '<option value="">All groups</option>' + groups.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join("");
+        $("scopeValueLabel").textContent = "Group";
+      } else if (scope === "subgroup") {
+        const subs = [...new Set((state.fellowship || []).map((r) => r.subgroup_id).filter(Boolean))].sort();
+        $("scopeValue").innerHTML = '<option value="">All subgroups</option>' + subs.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
+        $("scopeValueLabel").textContent = "Subgroup";
+      }
+    }
+
+    async function loadArchive() {
+      const { data, error } = await supabase.from("report_archive").select("*").order("created_at", { ascending: false }).limit(100);
+      if (error) { showMsg("archiveMsg", `Could not load archive: ${error.message}`); return; }
+      state.archive = data || [];
+      renderArchive();
+    }
+
+    function renderArchive() {
+      const rows = state.archive;
+      if (!rows.length) {
+        $("archiveBody").innerHTML = '<tr><td colspan="8" style="color:var(--color-text-muted);">No reports archived yet.</td></tr>';
+        return;
+      }
+      $("archiveBody").innerHTML = rows.map((r) => `<tr>
+        <td>${esc(r.report_type)}</td>
+        <td>${esc(r.scope)}${r.scope_value ? ` / ${esc(r.scope_value)}` : ""}</td>
+        <td>${esc(fmt(r.date_from))} – ${esc(fmt(r.date_to))}</td>
+        <td>${esc(r.batch_id || "—")}</td>
+        <td>${esc(r.generated_by || "—")}</td>
+        <td>${esc(r.recipient_count)}</td>
+        <td>${esc(fmt(r.created_at))}</td>
+        <td><div class="archive-actions">
+          <button class="fs-btn fs-btn-secondary" data-view="${esc(r.id)}">View</button>
+          <button class="fs-btn fs-btn-secondary" data-resend="${esc(r.id)}">Re-send</button>
+        </div></td>
+      </tr>`).join("");
+    }
+
+    function openPdfWindow(html) {
+      const w = window.open("", "_blank");
+      if (!w) { alert("Please allow popups to download the PDF."); return; }
+      w.document.write(html);
+      w.document.write(`<script>window.onload = function(){ setTimeout(function(){ window.print(); }, 400); }<\/script>`);
+      w.document.close();
+    }
+
+    function wireEvents() {
+      // Report type change
+      document.querySelectorAll('input[name="report_type"]').forEach((el) => {
+        el.addEventListener("change", () => {
+          const type = el.value;
+          const isCustom = type === "custom";
+          const isPastorDigest = type === "pastor_digest";
+          $("customDates").style.display = isCustom ? "grid" : "none";
+          $("allPastorsRow").style.display = isPastorDigest && ["superadmin","admin"].includes(String(state.profile?.role || "")) ? "block" : "none";
+          // Hide scope row for pastor digest when role=pastor
+          if (isPastorDigest && String(state.profile?.role || "") === "pastor") {
+            $("scopeRow").style.display = "none";
+          } else {
+            $("scopeRow").style.display = "";
+          }
+        });
+      });
+
+      // Scope change
+      document.querySelectorAll('input[name="scope"]').forEach((el) => {
+        el.addEventListener("change", () => {
+          const scope = el.value;
+          const show = scope !== "regional";
+          $("scopeValueRow").style.display = show ? "block" : "none";
+          if (show) updateScopeDropdown(scope);
+        });
+      });
+
+      // Generate
+      $("generateBtn").addEventListener("click", generateReport);
+
+      // PDF buttons
+      [$("downloadPdfBtn"), $("downloadPdfBtn2")].forEach((btn) => {
+        btn.addEventListener("click", () => { if (state.currentHtml) openPdfWindow(state.currentHtml); });
+      });
+
+      // Archive events
+      $("refreshArchiveBtn").addEventListener("click", loadArchive);
+      document.addEventListener("click", (e) => {
+        const viewBtn   = e.target.closest("[data-view]");
+        const resendBtn = e.target.closest("[data-resend]");
+        if (viewBtn) {
+          const arc = state.archive.find((r) => r.id === viewBtn.getAttribute("data-view"));
+          if (arc) showPreview(arc.body_html);
+        }
+        if (resendBtn) {
+          state.resendArchiveId = resendBtn.getAttribute("data-resend");
+          $("resendEmail").value = state.profile?.email || "";
+          $("resendOverlay").style.display = "grid";
+        }
+      });
+
+      $("cancelResendBtn").addEventListener("click", () => { $("resendOverlay").style.display = "none"; });
+      $("confirmResendBtn").addEventListener("click", confirmResend);
+    }
+
+    async function generateReport() {
+      const btn = $("generateBtn");
+      btn.disabled = true;
+      btn.textContent = "Generating…";
+      showMsg("genMsg", "");
+      $("previewSection").classList.add("hidden");
+
+      const report_type  = document.querySelector('input[name="report_type"]:checked')?.value || "weekly";
+      const scope        = document.querySelector('input[name="scope"]:checked')?.value || "regional";
+      const scope_value  = scope !== "regional" ? ($("scopeValue").value || null) : null;
+      const batch_id     = $("batchSelect").value || null;
+      const send_email   = $("sendEmail").checked;
+      const save_archive = $("saveArchive").checked;
+      const sendToAllPastors = $("allPastors")?.checked || false;
+      const recipientLines = $("recipients").value.split("\n").map((r) => r.trim()).filter(Boolean);
+
+      const payload = {
+        report_type, scope, scope_value, batch_id,
+        send_email, save_archive,
+        recipients: recipientLines,
+        requestor_email: state.profile?.email || null,
+        send_to_all_pastors: sendToAllPastors,
+      };
+
+      if (report_type === "custom") {
+        const df = $("dateFrom").value;
+        const dt = $("dateTo").value;
+        if (!df || !dt) { showMsg("genMsg", "Select both dates for a custom report."); btn.disabled = false; btn.textContent = "Generate Report"; return; }
+        payload.date_from = df;
+        payload.date_to   = dt;
+      }
+
+      const sbUrl = window.FS_CONFIG?.SUPABASE_URL;
+      const sbKey = window.FS_CONFIG?.SUPABASE_ANON_KEY;
+      if (!sbUrl || !sbKey) { showMsg("genMsg", "Not connected — config.js missing."); btn.disabled = false; btn.textContent = "Generate Report"; return; }
+
+      try {
+        const { data, error } = await supabase.functions.invoke("report-generator", { body: payload });
+        if (error) throw error;
+        if (!data?.ok) throw new Error(data?.error || "Unknown error from report-generator");
+
+        if (data.report_html) {
+          showPreview(data.report_html);
+          showMsg("genMsg", `Report generated. Emails queued: ${data.emails_queued ?? 0}.`, "success");
+        } else {
+          showMsg("genMsg", `Pastor digest sent to ${data.emails_queued ?? 0} pastor(s).`, "success");
+        }
+        await loadArchive();
+      } catch (err) {
+        showMsg("genMsg", `Generation failed: ${err?.message || err}`);
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = "Generate Report";
+      }
+    }
+
+    function showPreview(html) {
+      state.currentHtml = html;
+      $("previewSection").classList.remove("hidden");
+      $("downloadPdfBtn").classList.remove("hidden");
+      $("previewFrame").srcdoc = html;
+      $("previewSection").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    async function confirmResend() {
+      const arcId = state.resendArchiveId;
+      const arc   = state.archive.find((r) => r.id === arcId);
+      if (!arc) return;
+      const emails = $("resendEmail").value.split("\n").map((r) => r.trim()).filter(Boolean);
+      if (!emails.length) { alert("Enter at least one email."); return; }
+
+      $("confirmResendBtn").disabled    = true;
+      $("confirmResendBtn").textContent = "Sending…";
+
+      try {
+        const { error } = await supabase.functions.invoke("report-generator", {
+          body: {
+            report_type:     arc.report_type,
+            scope:           arc.scope,
+            scope_value:     arc.scope_value,
+            date_from:       arc.date_from,
+            date_to:         arc.date_to,
+            batch_id:        arc.batch_id,
+            recipients:      emails,
+            send_email:      true,
+            save_archive:    false,
+            requestor_email: state.profile?.email,
+          },
+        });
+        if (error) throw error;
+        showMsg("archiveMsg", `Re-send queued for ${emails.length} recipient(s).`, "success");
+      } catch (err) {
+        showMsg("archiveMsg", `Re-send failed: ${err?.message || err}`);
+      } finally {
+        $("confirmResendBtn").disabled    = false;
+        $("confirmResendBtn").textContent = "Send";
+        $("resendOverlay").style.display  = "none";
+      }
+    }
+
+    boot().catch((err) => showMsg("genMsg", `Failed to initialize: ${err?.message || err}`));
+  </script>
+</body>
+</html>

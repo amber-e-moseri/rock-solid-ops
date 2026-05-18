@@ -81,7 +81,7 @@ Do not add scheduling or business logic to helper or deprecated functions.
 scheduled_notifications (status=PENDING, scheduled_for <= now)
   │
   ▼
-reminder-processor                  ← CANONICAL BATCH PROCESSOR
+notification-batch-processor                  ← CANONICAL BATCH PROCESSOR
   Reads:  scheduled_notifications   (PENDING, due)
   Writes: email_queue               (status=Pending)
   Marks:  scheduled_notifications   (status=SENT)
@@ -102,15 +102,15 @@ email-sender                        ← CANONICAL DELIVERY WORKER
 
 | Function | Role | Status |
 |---|---|---|
-| `scheduled-notification-sender` | Single-item retry helper; resets one notification to PENDING | Active (Retry Center only) |
+| `notification-retry-helper` | Single-item retry helper; resets one notification to PENDING | Active (Retry Center only) |
 | `sender-worker` | Legacy reconciliation; marks notifications SENT/FAILED based on email_queue existence | Deprecated, unscheduled |
 
 **Rules:**
-- `reminder-processor` is the only function allowed to insert `email_queue` rows from `scheduled_notifications`.
-- `scheduled-notification-sender` must never be given a cron schedule.
+- `notification-batch-processor` is the only function allowed to insert `email_queue` rows from `scheduled_notifications`.
+- `notification-retry-helper` must never be given a cron schedule.
 - `sender-worker` must remain unscheduled. Do not add logic to it.
-- Running `sender-worker` or `scheduled-notification-sender` as batch processors alongside
-  `reminder-processor` will cause incorrect status transitions and potential duplicate sends.
+- Running `sender-worker` or `notification-retry-helper` as batch processors alongside
+  `notification-batch-processor` will cause incorrect status transitions and potential duplicate sends.
 
 See `foundation/docs/NOTIFICATION_PIPELINE.md` for full topology and troubleshooting guide.
 
@@ -146,3 +146,4 @@ Trace ID operational rules:
   audit systems for tracing.
 - Operators should pivot by `trace_id` first in Retry Center/System Health, then drill into
   table-specific IDs.
+

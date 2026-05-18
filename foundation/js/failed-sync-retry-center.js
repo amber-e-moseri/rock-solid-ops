@@ -1,6 +1,5 @@
-﻿import { supabase, getCurrentProfile } from "../auth/auth-client.js";
+import { supabase, getCurrentProfile, isAdmin } from "../auth/auth-client.js";
 
-const roleAllow = new Set(["admin", "superadmin", "subgroup_admin", "pastor", "principal"]);
 const adminApi = window.FSAdminApi;
 const adminUi = window.FSAdminUi;
 
@@ -515,7 +514,7 @@ async function ensureAccess() {
   }
 
   const profile = await getCurrentProfile();
-  if (!profile || !roleAllow.has(String(profile.role || ""))) {
+  if (!profile || !isAdmin(profile.role)) {
     showBanner("error", "Access denied for this account.");
     return false;
   }
@@ -545,5 +544,6 @@ async function init() {
 }
 
 init();
+
 
 
