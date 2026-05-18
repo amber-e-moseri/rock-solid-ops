@@ -106,7 +106,7 @@ UNLINKED — no teacher_user_id, portal returns INVALID_TEACHER_MAPPING
 
 ### NOTIFICATION PIPELINE FUNCTIONS
 
-reminder-processor — CANONICAL batch processor
+notification-batch-processor — CANONICAL batch processor
   Reads: scheduled_notifications (PENDING, due)
   Writes: email_queue (Pending)
   Schedule: on-demand / trigger
@@ -117,15 +117,10 @@ email-sender — CANONICAL delivery worker
   Writes: Resend API + delivery status (Sent | Failed)
   Schedule: cron daily 07:00 EST (0 12 * * *)
 
-scheduled-notification-sender — RETRY HELPER ONLY
+notification-retry-helper — RETRY HELPER ONLY
   Not the canonical batch sender
   Resets one scheduled_notification to PENDING on operator request
   Used by Retry Center only
   Must not be given a cron schedule
+# sender-worker deleted 2026-05-18 — reconcile-stuck.sql archived in git history.
 
-sender-worker — DEPRECATED
-  Legacy reconciliation worker, superseded by reminder-processor
-  Checks email_queue for existing rows; marks notifications SENT or FAILED
-  Never inserts email_queue rows, never calls Resend
-  Must remain unscheduled
-  Candidate for removal after audit confirms no active callers

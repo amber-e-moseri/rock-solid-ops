@@ -17,7 +17,7 @@ Last updated: May 2026
                        │
                        ▼  (batch, every run)
          ┌─────────────────────────┐
-         │    reminder-processor   │  ← CANONICAL BATCH PROCESSOR
+         │    notification-batch-processor   │  ← CANONICAL BATCH PROCESSOR
          │                         │
          │  Reads:  scheduled_notifications (PENDING, due)
          │  Writes: email_queue (status=Pending)
@@ -46,9 +46,9 @@ Last updated: May 2026
 
 ## Function Responsibilities
 
-### reminder-processor — CANONICAL BATCH PROCESSOR
+### notification-batch-processor — CANONICAL BATCH PROCESSOR
 
-**File:** `supabase/functions/reminder-processor/index.ts`
+**File:** `supabase/functions/notification-batch-processor/index.ts`
 **Schedule:** Not on a fixed cron; invoked on-demand or by upstream trigger.
 **Status:** Active — canonical.
 
@@ -81,9 +81,9 @@ Responsibility:
 
 ---
 
-### scheduled-notification-sender — RETRY HELPER ONLY
+### notification-retry-helper — RETRY HELPER ONLY
 
-**File:** `supabase/functions/scheduled-notification-sender/index.ts`
+**File:** `supabase/functions/notification-retry-helper/index.ts`
 **Schedule:** None. Must not be given a cron schedule.
 **Status:** Active — Retry Center helper only.
 
@@ -99,25 +99,13 @@ Responsibility:
 
 ---
 
-### sender-worker — DEPRECATED
+### sender-worker — DELETED
 
 **File:** `supabase/functions/sender-worker/index.ts`
-**Schedule:** None (unscheduled). Must remain unscheduled.
-**Status:** Deprecated — do not add logic or schedule.
+**Schedule:** None.
+**Status:** DELETED — removed May 18, 2026. No historical stuck rows remained.
 
-Legacy reconciliation behavior (do not rely on):
-- Reads PENDING `scheduled_notifications` where `scheduled_for <= now()`
-- For `TRACKED_TEMPLATES`: checks if `email_queue` already has a matching row
-  `(recipient_email, template_key)`. Marks notification `SENT` if found, `FAILED` if not.
-- For `UNSUPPORTED_TEMPLATES` and unknown templates: marks `SKIPPED_UNSUPPORTED`
-- Never inserts email_queue rows. Never calls Resend.
-
-**Running this alongside reminder-processor is dangerous:** it will mark notifications
-FAILED before reminder-processor has had a chance to queue them, because
-sender-worker checks for an email_queue row that reminder-processor hasn't created yet.
-
-Retain until: all historical stuck PENDING rows are confirmed resolved or have been
-migrated. Then remove.
+Legacy reconciliation behavior is retired. See git history for one-off reconcile script.
 
 ---
 
@@ -126,8 +114,8 @@ migrated. Then remove.
 ### Notification-level retry (scheduled_notifications)
 
 When a notification is FAILED or stuck PENDING, an operator can trigger a retry via the
-Retry Center. This calls `scheduled-notification-sender` with the notification ID, which
-resets it to `PENDING` with `scheduled_for = now()`. On the next `reminder-processor` run,
+Retry Center. This calls `notification-retry-helper` with the notification ID, which
+resets it to `PENDING` with `scheduled_for = now()`. On the next `notification-batch-processor` run,
 it will be picked up and re-queued to `email_queue`.
 
 ### Email-level retry (email_queue)
@@ -158,8 +146,8 @@ Retry Center. On the next `email-sender` cron run (daily 07:00 EST), it will be 
 ### Notification stuck as PENDING
 
 1. Confirm `scheduled_for <= now()` on the row.
-2. Confirm `reminder-processor` has run (check `audit_logs` for `SCHEDULED_NOTIFICATION_QUEUED`).
-3. If not run: trigger `reminder-processor` manually via the Retry Center or admin API.
+2. Confirm `notification-batch-processor` has run (check `audit_logs` for `SCHEDULED_NOTIFICATION_QUEUED`).
+3. If not run: trigger `notification-batch-processor` manually via the Retry Center or admin API.
 4. If `attempts >= max_attempts`: row will not be picked up — use Retry Center to reset.
 
 ### email_queue row stuck as Pending
@@ -184,9 +172,8 @@ Retry Center.
 | `email-sender` | `0 12 * * *` (daily 07:00 EST) | Resend delivery |
 | `retry-worker` | `*/20 * * * *` (every 20 min) | Moodle enrollment retry sweep |
 | `missed-class-detector` | `15 2 * * *` (daily 02:15) | Attendance gap detection |
-| `reminder-processor` | None (on-demand) | Notification batch queuing |
-| `scheduled-notification-sender` | None (must not schedule) | Retry Center helper |
-| `sender-worker` | None (deprecated) | Do not schedule |
+| `notification-batch-processor` | None (on-demand) | Notification batch queuing |
+| `notification-retry-helper` | None (must not schedule) | Retry Center helper |
 
 ---
 
@@ -194,8 +181,7 @@ Retry Center.
 
 | Pair | Risk |
 |---|---|
-| `sender-worker` + `reminder-processor` | sender-worker marks notifications FAILED before reminder-processor queues them |
-| `scheduled-notification-sender` as cron + `reminder-processor` | duplicate PENDING resets, potential duplicate email_queue rows |
+| `notification-retry-helper` as cron + `notification-batch-processor` | duplicate PENDING resets, potential duplicate email_queue rows |
 
 ---
 
@@ -206,7 +192,7 @@ Both `scheduled_notifications` and `email_queue` carry a `trace_id` UUID column.
 - `scheduled_notifications.trace_id`: NOT NULL, auto-generated (`gen_random_uuid()`) on
   insert. Backfilled for pre-migration rows.
 - `email_queue.trace_id`: nullable, copied from `scheduled_notifications.trace_id` by
-  `reminder-processor` at queue time. Pre-migration rows have `trace_id = NULL`.
+  `notification-batch-processor` at queue time. Pre-migration rows have `trace_id = NULL`.
 - `moodle_enrollment_sync.trace_id`: nullable, populated when enrollment sync rows are
   created from registration flows that have a trace context.
 
@@ -214,7 +200,7 @@ Trace lifecycle (current):
 1. `registration-processor` creates one flow `trace_id` per registration run.
 2. That same `trace_id` is written to immediate `email_queue` notifications and any
    `scheduled_notifications` created by the same flow.
-3. `reminder-processor` propagates `scheduled_notifications.trace_id` into `email_queue`.
+3. `notification-batch-processor` propagates `scheduled_notifications.trace_id` into `email_queue`.
 4. `moodle_enrollment_sync` rows created from assigned registrations carry the same `trace_id`.
 5. Retry Center surfaces `trace_id` for failed notification/sync rows when available.
 
@@ -267,10 +253,8 @@ ORDER BY updated_at ASC;
 
 ## Future Work
 
-- Rename `scheduled-notification-sender` → `notification-retry-helper` to eliminate naming
-  confusion. (See TECH_DEBT_REGISTER §11)
-- Rename `reminder-processor` → `notification-batch-processor` for the same reason.
-- Consider adding a `reminder-processor` cron schedule once the batch behavior is confirmed
+- Rename completed: `reminder-processor` -> `notification-batch-processor`.
+- Consider adding a `notification-batch-processor` cron schedule once the batch behavior is confirmed
   stable in production.
 - Surface `trace_id` in System Health per-applicant trace view when that feature is built.
 
@@ -307,3 +291,15 @@ Phase 2:
 Implementation note (MVP safety hardening):
 - RPC is `SECURITY DEFINER` with `search_path = public`.
 - Execute privilege is limited to `authenticated` only.
+
+---
+
+## Deleted Functions
+
+| Function | Deleted On | Reason |
+|---|---|---|
+| `sender-worker` | May 18, 2026 | Deprecated reconciliation path removed; no stuck PENDING rows |
+| `scheduled-notification-sender` | May 18, 2026 | Renamed to `notification-retry-helper`; old stub removed |
+| `sender-healthcheck` | May 18, 2026 | Non-operational stub retired |
+
+
