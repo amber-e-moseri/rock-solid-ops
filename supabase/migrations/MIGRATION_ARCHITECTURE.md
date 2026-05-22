@@ -33,6 +33,16 @@ Current ordering is deterministic because all migration filenames are zero-padde
   - `supabase/migrations/archive/pre-baseline/`
 - Safety rule: never apply `000_baseline_squash.sql` to an existing database that already ran the original baseline migrations.
 
+## Cleanup Pass (2026-05-22)
+- Pre-baseline historical migrations (`001`-`006`) remain archived under:
+  - `supabase/migrations/archive/pre-baseline/`
+- `000_baseline_squash.sql` remains active for fresh installs only.
+- Duplicate timestamp prefixes were resolved to keep lexical order deterministic:
+  - `202605180001_regional_secretary_role.sql` -> `202605180006_regional_secretary_role.sql`
+  - `202605190960_fellowship_map_nullable_group.sql` -> `202605190961_fellowship_map_nullable_group.sql`
+- Verified no migration contains self-referencing
+  `INSERT INTO supabase_migrations...` statements.
+
 ## Canonical Ownership by Concern
 - **Base schema + seed + baseline RLS + early batch/notification setup**: `000_baseline_squash.sql`
 - **Feature migrations**: `004+` and timestamped files
