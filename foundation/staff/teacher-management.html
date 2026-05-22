@@ -16,23 +16,23 @@
     body { font-family: "Manrope", system-ui, sans-serif; }
     .filters { display: grid; grid-template-columns: 1.2fr repeat(4, minmax(0, 1fr)); gap: 10px; }
     .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-    .tab { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .tab { border: 1px solid var(--border); background: var(--fs-surface); color: var(--text); border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
     .tab.active { background: var(--soft-lavender); color: var(--primary); border-color: color-mix(in srgb, var(--primary), transparent 65%); }
     .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
     table { width: 100%; min-width: 980px; border-collapse: collapse; }
     th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; background: var(--surface-2); }
+    th { color: var(--fs-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; background: var(--surface-2); }
     .chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 800; border: 1px solid var(--border); }
     .chip.pending { background: #fff4db; color: #8a5600; }
     .chip.active { background: var(--success-soft); color: #1f7a4a; }
     .chip.suspended { background: #fff0d9; color: #b45309; }
     .chip.inactive { background: #f1f1f4; color: #565e6c; }
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
-    .state { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--muted); }
+    .state { padding: 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--fs-text-muted); }
     .mobile-cards { display: none; gap: 10px; }
-    .teacher-card { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 12px; }
+    .teacher-card { border: 1px solid var(--border); border-radius: 12px; background: var(--fs-surface); padding: 12px; }
     .teacher-card h3 { margin: 0 0 6px; font-size: 15px; }
-    .teacher-card p { margin: 4px 0; font-size: 12px; color: var(--muted); }
+    .teacher-card p { margin: 4px 0; font-size: 12px; color: var(--fs-text-muted); }
     @media (max-width: 980px) { .filters { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 760px) {
       .filters { grid-template-columns: 1fr; }
@@ -68,9 +68,9 @@
         <input id="searchInput" class="fs-input" placeholder="Search name, email, subgroup" aria-label="Search teachers" />
         <input id="groupFilter" class="fs-input" placeholder="Group" aria-label="Filter by group" />
         <input id="subgroupFilter" class="fs-input" placeholder="Subgroup" aria-label="Filter by subgroup" />
-        <button id="addTeacherBtn" class="btn primary fs-btn fs-btn-primary">Add Teacher</button>
-        <button id="refreshBtn" class="btn fs-btn fs-btn-secondary">Refresh</button>
-        <a href="admin-portal.html" class="btn fs-btn fs-btn-secondary">Back to Admin Portal</a>
+        <button id="addTeacherBtn" class="fs-btn primary fs-btn fs-btn-primary">Add Teacher</button>
+        <button id="refreshBtn" class="fs-btn fs-btn fs-btn-secondary">Refresh</button>
+        <a href="admin-portal.html" class="fs-btn fs-btn fs-btn-secondary">Back to Admin Portal</a>
       </div>
     </section>
 
@@ -104,15 +104,15 @@
   <div id="actionReasonModal" class="tm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="actionReasonTitle">
     <div class="tm-modal" style="max-width:480px;">
       <h2 id="actionReasonTitle">Confirm Action</h2>
-      <p id="actionReasonDesc" style="margin:0;color:var(--color-text-secondary,var(--muted));font-size:14px;"></p>
+      <p id="actionReasonDesc" style="margin:0;color:var(--color-text-secondary,var(--fs-text-muted));font-size:14px;"></p>
       <div class="tm-field tm-field-full" style="margin-top:12px;">
         <label class="tm-label" for="actionReasonInput">Reason <span id="actionReasonRequired" style="color:var(--color-danger-fg,#b53030);">*</span></label>
         <textarea id="actionReasonInput" class="fs-input" rows="3" placeholder="Enter reason…" style="resize:vertical;"></textarea>
         <p id="actionReasonError" class="tm-note" style="color:var(--color-danger-fg,#b53030);min-height:18px;margin-top:4px;"></p>
       </div>
       <div class="tm-modal-actions">
-        <button id="actionReasonCancelBtn" type="button" class="btn fs-btn fs-btn-secondary">Cancel</button>
-        <button id="actionReasonConfirmBtn" type="button" class="btn fs-btn fs-btn-primary">Confirm</button>
+        <button id="actionReasonCancelBtn" type="button" class="fs-btn fs-btn fs-btn-secondary">Cancel</button>
+        <button id="actionReasonConfirmBtn" type="button" class="fs-btn fs-btn fs-btn-primary">Confirm</button>
       </div>
     </div>
   </div>
@@ -133,7 +133,7 @@
           <label class="tm-label" for="addTeacherTempPassword">Temporary Password (Share this with the teacher directly)</label>
           <div class="tm-password-wrap">
             <input id="addTeacherTempPassword" class="fs-input" type="password" minlength="8" required />
-            <button id="toggleTempPasswordBtn" type="button" class="btn fs-btn fs-btn-secondary">Show</button>
+            <button id="toggleTempPasswordBtn" type="button" class="fs-btn fs-btn fs-btn-secondary">Show</button>
           </div>
         </div>
         <div class="tm-field">
@@ -164,8 +164,8 @@
           <p class="tm-note">Status is PENDING — use Activate to enable portal access</p>
         </div>
         <div class="tm-modal-actions tm-field-full">
-          <button id="cancelAddTeacherBtn" type="button" class="btn fs-btn fs-btn-secondary">Cancel</button>
-          <button id="submitAddTeacherBtn" type="submit" class="btn primary fs-btn fs-btn-primary">Create Teacher</button>
+          <button id="cancelAddTeacherBtn" type="button" class="fs-btn fs-btn fs-btn-secondary">Cancel</button>
+          <button id="submitAddTeacherBtn" type="submit" class="fs-btn primary fs-btn fs-btn-primary">Create Teacher</button>
         </div>
       </form>
     </div>
@@ -195,8 +195,8 @@
         </label>
       </div>
       <div class="tm-modal-actions">
-        <button id="cancelLinkAuthBtn" type="button" class="btn fs-btn fs-btn-secondary">Cancel</button>
-        <button id="confirmLinkAuthBtn" type="button" class="btn fs-btn fs-btn-primary">Link Auth User</button>
+        <button id="cancelLinkAuthBtn" type="button" class="fs-btn fs-btn fs-btn-secondary">Cancel</button>
+        <button id="confirmLinkAuthBtn" type="button" class="fs-btn fs-btn fs-btn-primary">Link Auth User</button>
       </div>
     </div>
   </div>
@@ -210,8 +210,8 @@
         <textarea id="unlinkReasonInput" class="fs-input" rows="3" placeholder="Reason for unlink"></textarea>
       </div>
       <div class="tm-modal-actions">
-        <button id="cancelUnlinkAuthBtn" type="button" class="btn fs-btn fs-btn-secondary">Cancel</button>
-        <button id="confirmUnlinkAuthBtn" type="button" class="btn fs-btn fs-btn-danger">Unlink</button>
+        <button id="cancelUnlinkAuthBtn" type="button" class="fs-btn fs-btn fs-btn-secondary">Cancel</button>
+        <button id="confirmUnlinkAuthBtn" type="button" class="fs-btn fs-btn fs-btn-danger">Unlink</button>
       </div>
     </div>
   </div>`r`n  <script src="../js/config.js"></script>
@@ -226,6 +226,7 @@
   <script src="../js/teacher-management.js"></script>
 </body>
 </html>
+
 
 
 

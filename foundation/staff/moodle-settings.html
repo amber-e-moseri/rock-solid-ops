@@ -14,9 +14,9 @@
     .table-wrap { overflow:auto; border:1px solid var(--border); border-radius:12px; }
     table { width:100%; min-width:900px; border-collapse:collapse; }
     th,td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; }
-    th { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    th { font-size:11px; color:var(--fs-text-muted); text-transform:uppercase; letter-spacing:.04em; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .muted { color:var(--muted); }
+    .muted { color:var(--fs-text-muted); }
     @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -88,7 +88,7 @@
     function msg(text, bad = false) {
       const n = $("formMsg");
       n.textContent = text || "";
-      n.style.color = bad ? "var(--danger,#b42318)" : "var(--muted)";
+      n.style.color = bad ? "var(--danger,#b42318)" : "var(--fs-text-muted)";
     }
 
     function fmtDate(v) {
@@ -219,5 +219,6 @@
   </script>
 </body>
 </html>
+
 
 

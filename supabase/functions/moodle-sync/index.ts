@@ -15,7 +15,7 @@ import {
   safeLogAudit,
 } from "../_shared/http.ts";
 
-type SyncStatus = "PENDING" | "PROCESSING" | "SYNCED" | "FAILED" | "RETRYING" | "SKIPPED";
+type SyncStatus = "PENDING" | "PROCESSING" | "SYNCED" | "FAILED" | "RETRYING" | "SKIPPED" | "PERMANENTLY_FAILED";
 type MoodleFailureCode = "MOODLE_WAF_BLOCK" | "MOODLE_REST_DISABLED" | "MOODLE_PERMISSION_DENIED" | "MOODLE_403_UNKNOWN";
 
 function json(body: unknown, status = 200) {
@@ -438,9 +438,9 @@ Deno.serve(async (req) => {
       }
 
       // Check if exceeded max retries
-      if (retryCount > maxRetries) {
+      if (retryCount >= maxRetries) {
         await patchSyncRow(db, id, {
-          sync_status: "FAILED",
+          sync_status: "PERMANENTLY_FAILED",
           error_code: "MAX_RETRIES_EXCEEDED",
           last_error: `Exceeded maximum retry limit (${maxRetries})`,
           error_message: `Exceeded maximum retry limit (${maxRetries})`,
@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
           message: `Exceeded maximum retry limit (${maxRetries})`,
         });
         await logAudit(db, "MOODLE_SYNC_FAILED", id, "FAILED", {
-          reason: "Max retries exceeded",
+          reason: "Max retries exceeded; marked permanently failed",
           retry_count: retryCount,
           ...(traceId ? { trace_id: traceId } : {}),
         });

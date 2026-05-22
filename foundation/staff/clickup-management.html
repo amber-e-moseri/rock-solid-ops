@@ -25,14 +25,14 @@
     .shell { max-width: 1220px; margin: 0 auto; padding: 24px 18px 72px; }
     .header {
       position: sticky; top: 10px; z-index: 30; backdrop-filter: blur(10px);
-      background: color-mix(in srgb, var(--surface) 84%, transparent); border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--fs-surface) 84%, transparent); border: 1px solid var(--border);
       border-radius: var(--r-xl); box-shadow: var(--sh-xs); display: flex; align-items: center; justify-content: space-between;
       gap: 14px; padding: 14px 16px; margin-bottom: 14px;
     }
     .brand { display: flex; align-items: center; gap: 12px; }
     .logo { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(145deg, var(--navy), var(--navy-l)); color: #fff; display: grid; place-items: center; font-weight: 800; }
     .brand h1 { margin: 0; font-size: clamp(16px,2vw,21px); letter-spacing: -.02em; }
-    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .brand p { margin: 2px 0 0; color: var(--fs-text-muted); font-size: 12px; }
     .header-actions { display: flex; gap: 8px; align-items: center; }
     .btn { border: 1px solid transparent; border-radius: 12px; padding: 10px 14px; font-weight: 700; font-size: 13px; cursor: pointer; transition: transform var(--ease), background var(--ease), border-color var(--ease), box-shadow var(--ease); }
     .btn:hover { transform: translateY(-1px); }
@@ -40,22 +40,22 @@
     .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
     .btn-primary { background: var(--navy); color: #fff; box-shadow: var(--sh-xs); }
     .btn-primary:hover { background: var(--navy-l); }
-    .btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .btn-ghost { background: var(--fs-surface); color: var(--text); border-color: var(--border); }
     .btn-danger { background: var(--coral-l); color: var(--coral-d); border-color: color-mix(in srgb, var(--coral-d), transparent 75%); }
     .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
     .tab-btn {
-      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); background: var(--fs-surface); color: var(--text);
       border-radius: 999px; padding: 8px 12px; font-size: 12px; font-weight: 800; cursor: pointer;
     }
     .tab-btn.active { background: var(--navy-ghost); color: var(--navy); border-color: color-mix(in srgb, var(--navy), transparent 72%); }
-    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--sh-xs); overflow: hidden; }
+    .panel { background: var(--fs-surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--sh-xs); overflow: hidden; }
     .toolbar {
       display: grid; grid-template-columns: minmax(230px, 1fr) auto auto; gap: 10px; padding: 12px 14px;
       border-bottom: 1px solid var(--border); background: var(--surface-alt);
     }
     .input, .select, .textarea {
       width: 100%; border: 1px solid var(--border); border-radius: var(--r); padding: 10px 11px;
-      background: var(--surface); color: var(--text); font: inherit;
+      background: var(--fs-surface); color: var(--text); font: inherit;
     }
     .input:focus, .select:focus, .textarea:focus {
       outline: 2px solid color-mix(in srgb, var(--navy), transparent 70%);
@@ -64,7 +64,7 @@
     .table-wrap { overflow: auto; }
     table { width: 100%; border-collapse: collapse; min-width: 1020px; }
     th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    th { color: var(--fs-text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
     tr:hover td { background: color-mix(in srgb, var(--surface-alt), transparent 10%); }
     .chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; }
     .chip-active { background: var(--sage-l); color: var(--sage); }
@@ -72,19 +72,19 @@
     .chip-linked { background: var(--info-bg); color: var(--info); }
     .chip-unlinked { background: var(--amber-l); color: var(--amber-d); }
     .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-    .fs-table-empty { padding: 42px 16px; text-align: center; color: var(--muted); }
+    .fs-table-empty { padding: 42px 16px; text-align: center; color: var(--fs-text-muted); }
     .fs-table-empty .emoji { font-size: 34px; margin-bottom: 8px; }
     .msg { margin: 12px 14px 0; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
     .msg.error { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-bd); }
-    .msg.info { background: var(--surface-alt); color: var(--muted); }
-    .muted { color: var(--muted); font-size: 12px; }
+    .msg.info { background: var(--surface-alt); color: var(--fs-text-muted); }
+    .muted { color: var(--fs-text-muted); font-size: 12px; }
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(10, 10, 20, .42); backdrop-filter: blur(3px);
       display: none; place-items: center; padding: 16px; z-index: 60;
     }
     .modal-overlay.open { display: grid; }
     .modal {
-      width: min(760px, 96vw); max-height: 90dvh; overflow: auto; background: var(--surface);
+      width: min(760px, 96vw); max-height: 90dvh; overflow: auto; background: var(--fs-surface);
       border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--sh-lg);
     }
     .modal-head { padding: 16px 16px 10px; border-bottom: 1px solid var(--border); }
@@ -92,7 +92,7 @@
     .modal-body { padding: 14px 16px; }
     .modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .field { display: grid; gap: 5px; }
-    .field label { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .field label { font-size: 12px; color: var(--fs-text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
     .field.full { grid-column: 1 / -1; }
     .modal-foot { padding: 12px 16px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
     @media (max-width: 980px) { .toolbar { grid-template-columns: 1fr 1fr; } }
@@ -872,6 +872,7 @@
   </script>
 </body>
 </html>
+
 
 
 

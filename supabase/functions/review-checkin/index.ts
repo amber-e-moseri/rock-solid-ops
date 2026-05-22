@@ -135,7 +135,11 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, ...summary });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = err instanceof Error
+      ? err.message
+      : (err as Record<string, unknown>)?.message
+        ? String((err as Record<string, unknown>).message)
+        : String(err);
 
     await safeLogAudit(db, {
       actor_email: "review-checkin@system",

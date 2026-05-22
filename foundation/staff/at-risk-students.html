@@ -205,9 +205,9 @@
           <td style="font-size:12px">${attDays != null ? `${attDays}d ago` : "Never"}</td>
           <td>
             <div class="actions">
-              <button class="btn btn-success" data-action="responded" data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Mark Responded</button>
-              <button class="btn btn-danger"  data-action="withdrawn"  data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Withdraw</button>
-              <button class="btn"             data-action="checkin"    data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}" data-scenario="${esc(log.scenario)}">Send Check-in</button>
+              <button class="fs-btn btn-success" data-action="responded" data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Mark Responded</button>
+              <button class="fs-btn btn-danger"  data-action="withdrawn"  data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Withdraw</button>
+              <button class="fs-btn"             data-action="checkin"    data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}" data-scenario="${esc(log.scenario)}">Send Check-in</button>
             </div>
           </td>
         </tr>`;
@@ -222,9 +222,9 @@
           </div>
           <div style="margin-top:6px;font-size:12px;color:var(--color-text-muted)">${esc(stu?.fellowship_code || "-")} · ${esc(stu?._class_label || "No class")}</div>
           <div class="actions" style="margin-top:8px">
-            <button class="btn btn-success" data-action="responded" data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Responded</button>
-            <button class="btn btn-danger"  data-action="withdrawn"  data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Withdraw</button>
-            <button class="btn"             data-action="checkin"    data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}" data-scenario="${esc(log.scenario)}">Check-in</button>
+            <button class="fs-btn btn-success" data-action="responded" data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Responded</button>
+            <button class="fs-btn btn-danger"  data-action="withdrawn"  data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}">Withdraw</button>
+            <button class="fs-btn"             data-action="checkin"    data-email="${esc(log.student_email)}" data-batch="${esc(log.batch_id || "")}" data-scenario="${esc(log.scenario)}">Check-in</button>
           </div>
         </article>`;
       }).join("");
@@ -387,4 +387,5 @@
   </script>
 </body>
 </html>
+
 

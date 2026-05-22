@@ -1,4 +1,4 @@
-ï»¿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <style>
@@ -34,7 +34,7 @@
     letter-spacing: .04em;
     border: 1px solid var(--border);
     background: var(--surface, #fff);
-    color: var(--muted);
+    color: var(--fs-text-muted);
     transition: all .18s ease;
   }
   .item.sel .roster-status {
@@ -126,13 +126,13 @@
       <div class="card-header"><div class="card-icon">T</div><div><div class="card-title">Find Teacher</div><div class="card-sub">Search by teacher ID, name, or email.</div></div></div>
       <div class="field"><label>Teacher Search</label><input id="teacherQuery" placeholder="Search by teacher ID, name, or email" oninput="onTeacherInput()" autocomplete="off" /></div>
       <div id="teacherList"></div>
-      <div class="btn-row"><div class="spacer"></div><button class="btn primary" id="to2" onclick="toClass()" disabled>Continue</button></div>
+      <div class="fs-btn-row"><div class="spacer"></div><button class="fs-btn primary" id="to2" onclick="toClass()" disabled>Continue</button></div>
     </section>
 
     <section class="card hidden" id="s2">
       <div class="card-header"><div class="card-icon">C</div><div><div class="card-title">Select Class</div><div class="card-sub">Choose your active class assignment.</div></div></div>
       <div id="classList"></div>
-      <div class="btn-row"><button class="btn" onclick="show(1)">Back</button><div class="spacer"></div><button class="btn primary" id="to3" onclick="toAction()" disabled>Continue</button></div>
+      <div class="fs-btn-row"><button class="fs-btn" onclick="show(1)">Back</button><div class="spacer"></div><button class="fs-btn primary" id="to3" onclick="toAction()" disabled>Continue</button></div>
     </section>
 
     <section class="card hidden" id="s3">
@@ -142,37 +142,37 @@
         <div class="action-tile" onclick="chooseAction('progress')"><div class="action-icon">P</div><div class="action-title">View Student Progress</div><div class="action-sub">Open StudentProgressView.</div></div>
       </div>
       <div id="actionMsg" class="muted" style="margin-top:12px"></div>
-      <div class="btn-row"><button class="btn" onclick="show(2)">Back</button></div>
+      <div class="fs-btn-row"><button class="fs-btn" onclick="show(2)">Back</button></div>
     </section>
 
     <section class="card hidden" id="s4">
       <div class="card-header"><div class="card-icon">S</div><div><div class="card-title">Select Class</div><div class="card-sub">Select which class you are taking attendance for today.</div></div></div>
       <div class="row" style="margin-top:0"><div style="flex:2;min-width:280px"><label>Class</label><div id="sessionSel"></div></div><div style="flex:1;min-width:220px"><label>Class Date</label><input type="date" id="classDate" /></div></div>
       <div id="already"></div>
-      <div class="btn-row"><button class="btn" onclick="show(3)">Back</button><div class="spacer"></div><button class="btn primary" onclick="loadRoster()">Load Roster</button></div>
+      <div class="fs-btn-row"><button class="fs-btn" onclick="show(3)">Back</button><div class="spacer"></div><button class="fs-btn primary" onclick="loadRoster()">Load Roster</button></div>
     </section>
 
     <section class="card hidden" id="s5">
       <div class="card-header"><div class="card-icon">M</div><div><div class="card-title">Mark Attendance</div><div class="card-sub">Tap a person to toggle present or absent.</div></div></div>
       <div id="attendance-context" class="context-bar hidden"></div>
-      <div class="toolbar"><button class="btn success" onclick="markAllPresent()">? All Present</button><button class="btn danger" onclick="markAllAbsent()">? All Absent</button><input id="rosterSearch" placeholder="Search roster" oninput="renderRoster()" autocomplete="off" /><button class="btn" onclick="openAdd()">Add Existing Person</button></div>
+      <div class="toolbar"><button class="fs-btn success" onclick="markAllPresent()">? All Present</button><button class="fs-btn danger" onclick="markAllAbsent()">? All Absent</button><input id="rosterSearch" placeholder="Search roster" oninput="renderRoster()" autocomplete="off" /><button class="fs-btn" onclick="openAdd()">Add Existing Person</button></div>
       <div id="roster"></div>
       <div class="stats" id="roster-counts"><div class="stat"><div class="stat-value" id="count-present" style="color:var(--success)">0</div><div class="stat-label">Present</div></div><div class="stat"><div class="stat-value" id="count-absent" style="color:var(--danger)">0</div><div class="stat-label">Absent</div></div><div class="stat"><div class="stat-value" id="count-total" style="color:var(--primary)">0</div><div class="stat-label">Total</div></div></div>
-      <div class="btn-row fab-row"><button class="btn" onclick="show(4)">Back</button><div class="spacer"></div><button class="btn primary" onclick="review()">Review -></button></div>
+      <div class="fs-btn-row fab-row"><button class="fs-btn" onclick="show(4)">Back</button><div class="spacer"></div><button class="fs-btn primary" onclick="review()">Review -></button></div>
     </section>
 
     <section class="card hidden" id="s6">
       <div class="card-header"><div class="card-icon">R</div><div><div class="card-title">Review & Submit</div><div class="card-sub">Confirm the attendance summary before submitting.</div></div></div>
       <div id="reviewBox"></div>
       <div id="submitMsg"></div>
-      <div class="btn-row fab-row"><button class="btn" onclick="show(5)">Back</button><div class="spacer"></div><button class="btn primary" id="submitBtn" onclick="submitTeacherAttendance()">Submit</button></div>
+      <div class="fs-btn-row fab-row"><button class="fs-btn" onclick="show(5)">Back</button><div class="spacer"></div><button class="fs-btn primary" id="submitBtn" onclick="submitTeacherAttendance()">Submit</button></div>
     </section>
 
     <section class="card hidden" id="s8">
       <div class="card-header"><div class="card-icon">O</div><div><div class="card-title">Session Outcomes</div><div class="card-sub">Record configured milestones for present participants.</div></div></div>
       <div id="outcomesBox"></div>
       <div id="outcomeMsg"></div>
-      <div class="btn-row"><button class="btn" onclick="show(6)">Back</button><div class="spacer"></div><button class="btn" onclick="submitSessionOutcomes(false)">Skip / Flag Follow-up</button><button class="btn primary" onclick="submitSessionOutcomes(true)">Submit Outcomes</button></div>
+      <div class="fs-btn-row"><button class="fs-btn" onclick="show(6)">Back</button><div class="spacer"></div><button class="fs-btn" onclick="submitSessionOutcomes(false)">Skip / Flag Follow-up</button><button class="fs-btn primary" onclick="submitSessionOutcomes(true)">Submit Outcomes</button></div>
     </section>
 
     <div id="addBackdrop" class="modal-backdrop hidden" onclick="closeAdd()"></div>
@@ -185,9 +185,9 @@
         <div class="field"><label>Email</label><input id="enrollEmail" placeholder="name@example.com" /></div>
         <div class="field"><label>Phone (optional)</label><input id="enrollPhone" placeholder="Phone" /></div>
         <div class="field"><label>Fellowship</label><select id="enrollFellowship"><option value="">Select fellowship</option></select></div>
-        <div class="btn-row"><button class="btn success" onclick="enrollAndAdd()">Enroll & Add Present</button></div>
+        <div class="fs-btn-row"><button class="fs-btn success" onclick="enrollAndAdd()">Enroll & Add Present</button></div>
       </div>
-      <div class="btn-row"><div class="spacer"></div><button class="btn" onclick="closeAdd()">Close</button></div>
+      <div class="fs-btn-row"><div class="spacer"></div><button class="fs-btn" onclick="closeAdd()">Close</button></div>
     </section>
   </main>
 
@@ -408,7 +408,7 @@
     function renderRoster(){
       const q = (document.getElementById('rosterSearch').value || '').toLowerCase();
       const rows = state.roster.filter(r => !q || String(r.fullName || '').toLowerCase().includes(q) || String(r.email || '').toLowerCase().includes(q));
-      document.getElementById('roster').innerHTML = rows.map(r => `<div class="item ${state.attendance[r.id] ? 'sel' : ''}" onclick="toggle('${esc(r.id)}')"><div class="roster-item"><div class="roster-main"><div class="item-name">${esc(r.fullName)} <span class="item-meta">(${esc(r.personType)})</span></div><div class="item-meta">${esc(r.email || '')}${r.phone ? ' â€¢ ' + esc(r.phone) : ''} â€¢ ${esc(r.status || '')}</div></div><div class="roster-status">${state.attendance[r.id] ? 'Present' : 'Absent'}</div></div></div>`).join('') || '<div class="muted">No roster records found.</div>';
+      document.getElementById('roster').innerHTML = rows.map(r => `<div class="item ${state.attendance[r.id] ? 'sel' : ''}" onclick="toggle('${esc(r.id)}')"><div class="roster-item"><div class="roster-main"><div class="item-name">${esc(r.fullName)} <span class="item-meta">(${esc(r.personType)})</span></div><div class="item-meta">${esc(r.email || '')}${r.phone ? ' • ' + esc(r.phone) : ''} • ${esc(r.status || '')}</div></div><div class="roster-status">${state.attendance[r.id] ? 'Present' : 'Absent'}</div></div></div>`).join('') || '<div class="muted">No roster records found.</div>';
       updateCounts();
     }
 
@@ -548,7 +548,7 @@
             pickClass(state.classes[0].classOptionId);
             chooseAction('attendance');
           } else if (state.classes && state.classes.length > 1) {
-            // Multiple classes â€” stop at class selection, let teacher choose
+            // Multiple classes — stop at class selection, let teacher choose
             show(2);
           }
           return;
@@ -603,6 +603,7 @@
   </script>
 </body>
 </html>
+
 
 
 

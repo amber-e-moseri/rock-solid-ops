@@ -29,12 +29,8 @@ interface EmailTemplate {
 interface RunResult {
   sent: number
   failed: number
+  rateLimited: number
   errors: string[]
-}
-
-function isMissingRelationError(error: unknown): boolean {
-  const msg = String((error as { message?: string } | null)?.message || "").toLowerCase()
-  return String((error as { code?: string } | null)?.code || "") === "42P01" || msg.includes("does not exist")
 }
 
 // ── Entry point ──────────────────────────────────────────────
@@ -42,7 +38,7 @@ function isMissingRelationError(error: unknown): boolean {
 // Also accepts manual POST for operational use.
 
 Deno.serve(async (): Promise<Response> => {
-  const result: RunResult = { sent: 0, failed: 0, errors: [] }
+  const result: RunResult = { sent: 0, failed: 0, rateLimited: 0, errors: [] }
 
   try {
     // Read sender identity from config table.
@@ -76,6 +72,8 @@ Deno.serve(async (): Promise<Response> => {
 
     const templateMap = new Map<string, EmailTemplate>()
     if (templateKeys.length) {
+      // canonical template source:
+      // notification_templates only
       const { data: notificationTemplates } = await supabase
         .from('notification_templates')
         .select('template_key, subject, body_html, active')
@@ -85,25 +83,40 @@ Deno.serve(async (): Promise<Response> => {
       for (const t of notificationTemplates ?? []) {
         templateMap.set(t.template_key, t)
       }
-
-      const missingTemplateKeys = templateKeys.filter((k) => !templateMap.has(k))
-      if (missingTemplateKeys.length) {
-        const emailTemplateQuery = await supabase
-          .from('email_templates')
-          .select('template_key, subject, body_html, active')
-          .in('template_key', missingTemplateKeys)
-          .eq('active', true)
-        if (emailTemplateQuery.error && !isMissingRelationError(emailTemplateQuery.error)) throw emailTemplateQuery.error
-
-        for (const t of emailTemplateQuery.data ?? []) {
-          templateMap.set(t.template_key, t)
-        }
-      }
     }
 
     // Process each row.
     for (const row of queue as EmailQueueRow[]) {
       try {
+        const { count: sentInLast24Hours, error: rateErr } = await supabase
+          .from('email_queue')
+          .select('id', { count: 'exact', head: true })
+          .eq('recipient_email', row.recipient_email)
+          .eq('status', 'Sent')
+          .gt('sent_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+
+        if (rateErr) throw rateErr
+
+        if ((sentInLast24Hours ?? 0) >= 3) {
+          await supabase
+            .from('email_queue')
+            .update({
+              status: 'Failed',
+              sent_at: null,
+              error_message: 'EMAIL_RATE_LIMITED: max 3 sent emails per 24 hours per recipient',
+            })
+            .eq('id', row.id)
+
+          await logSync('EMAIL_RATE_LIMITED', 'Skipped send due to per-recipient 24h limit', {
+            queue_id: row.id,
+            recipient_email: row.recipient_email,
+            sent_last_24h: sentInLast24Hours ?? 0,
+          })
+
+          result.rateLimited++
+          continue
+        }
+
         const { subject, bodyHtml } = resolveContent(row, templateMap)
 
         // Step 5: Send via Resend.

@@ -1051,3 +1051,20 @@ UPDATE public.config
 SET value      = 'info@lwcanada.org',
     updated_at = now()
 WHERE key = 'REPLY_TO';
+
+INSERT INTO public.config (key, value, updated_at)
+VALUES ('REPLY_TO', 'info@lwcanada.org', now())
+ON CONFLICT (key) DO UPDATE
+SET value = EXCLUDED.value,
+    updated_at = now();
+
+-- direct_message subject must come from payload
+UPDATE public.notification_templates
+SET subject = '{{subject}}',
+    updated_at = now()
+WHERE template_key = 'direct_message';
+
+UPDATE public.email_templates
+SET subject = '{{subject}}',
+    updated_at = now()
+WHERE template_key = 'direct_message';

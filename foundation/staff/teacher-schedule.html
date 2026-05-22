@@ -22,8 +22,8 @@
 
     /* Page headings */
     .title  { font-size: 26px; font-weight: 800; margin: 6px 0 2px; color: var(--color-primary); }
-    .sub    { font-size: 13px; color: var(--muted); }
-    label   { font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px; }
+    .sub    { font-size: 13px; color: var(--fs-text-muted); }
+    label   { font-size: 12px; font-weight: 600; color: var(--fs-text-muted); display: block; margin-bottom: 4px; }
     strong  { color: var(--color-primary); }
 
     /* Active campus selector badge counter */
@@ -33,9 +33,9 @@
     /* Weekly availability grid */
     .days { display: grid; grid-template-columns: 80px repeat(7,1fr); background: var(--color-bg); border-bottom: 1px solid var(--border); }
     .days div { padding: 7px; text-align: center; font-size: 11px; font-weight: 700; border-left: 1px solid var(--border); color: var(--color-primary); }
-    .days div:first-child { text-align: left; border-left: 0; color: var(--muted); }
+    .days div:first-child { text-align: left; border-left: 0; color: var(--fs-text-muted); }
     .slot { display: grid; grid-template-columns: 80px repeat(7,1fr); border-bottom: 1px solid var(--border); }
-    .time { padding: 8px; background: var(--color-bg); font-size: 11px; color: var(--muted); font-weight: 600; }
+    .time { padding: 8px; background: var(--color-bg); font-size: 11px; color: var(--fs-text-muted); font-weight: 600; }
     .cell {
       min-height: 38px;
       border-left: 1px solid var(--border);
@@ -618,6 +618,7 @@ window.addEventListener("load", () => {
   </script>
 </body>
 </html>
+
 
 
 

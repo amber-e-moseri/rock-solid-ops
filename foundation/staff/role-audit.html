@@ -195,8 +195,8 @@
         const actBtns = showAct ? `
           <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
             ${inactive
-              ? `<button class="btn btn-success" data-action="activate" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Activate</button>`
-              : `<button class="btn btn-danger"  data-action="deactivate" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Deactivate</button>`}
+              ? `<button class="fs-btn btn-success" data-action="activate" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Activate</button>`
+              : `<button class="fs-btn btn-danger"  data-action="deactivate" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Deactivate</button>`}
           </div>` : "";
 
         return `<tr class="${inactive?"inactive-row":""}">
@@ -228,8 +228,8 @@
               ${ALL_ROLES.map((r) => `<option value="${r}"${r===p.role?" selected":""}>${r}</option>`).join("")}
             </select>
             ${inactive
-              ? `<button class="btn btn-success" data-action="activate"   data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Activate</button>`
-              : `<button class="btn btn-danger"  data-action="deactivate" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Deactivate</button>`}
+              ? `<button class="fs-btn btn-success" data-action="activate"   data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Activate</button>`
+              : `<button class="fs-btn btn-danger"  data-action="deactivate" data-uid="${esc(p.id)}" data-email="${esc(p.email)}">Deactivate</button>`}
           </div>` : ""}
         </article>`;
       }).join("");
@@ -356,4 +356,5 @@
   </script>
 </body>
 </html>
+
 

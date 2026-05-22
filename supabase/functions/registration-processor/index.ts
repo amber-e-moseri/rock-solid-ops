@@ -210,11 +210,47 @@ Deno.serve(async (req) => {
     const existingCount = count || 0;
     const duplicateCount = existingCount + 1;
     const isDuplicate = existingCount > 0;
+
+    let existingSameBatchApplicant: Record<string, unknown> | null = null;
+    if (batch_id) {
+      const { data: sameBatchApplicant, error: sameBatchError } = await db
+        .from("applicants")
+        .select("id, registration_status, status, batch_id, email, duplicate_count")
+        .eq("email", email)
+        .eq("batch_id", batch_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (sameBatchError) {
+        console.error("REGISTRATION_PROCESSOR_SAME_BATCH_DUPLICATE_CHECK_ERROR", sameBatchError);
+      } else {
+        existingSameBatchApplicant = sameBatchApplicant as Record<string, unknown> | null;
+      }
+    }
+
+    const sameBatchStatus = String(
+      existingSameBatchApplicant?.registration_status ||
+      existingSameBatchApplicant?.status ||
+      "",
+    ).toUpperCase();
+    const forceDuplicateByBatch = Boolean(existingSameBatchApplicant && sameBatchStatus.length > 0);
+    const duplicateGuardExistingId = String(existingSameBatchApplicant?.id || "").trim();
+    const duplicateGuardReason =
+      forceDuplicateByBatch && sameBatchStatus === "DUPLICATE"
+        ? "existing_duplicate_in_same_batch"
+        : forceDuplicateByBatch
+        ? "existing_registration_in_same_batch"
+        : "";
+
     console.log("DUPLICATE_CHECK", {
       email,
       existingCount,
       duplicateCount,
       isDuplicate,
+      batchId: batch_id,
+      sameBatchExistingId: duplicateGuardExistingId || null,
+      sameBatchStatus: sameBatchStatus || null,
+      duplicateGuardReason: duplicateGuardReason || null,
     });
 
     const normalizeBool = (v: unknown) =>
@@ -231,7 +267,7 @@ Deno.serve(async (req) => {
       isDuplicate,
       duplicateCount,
     });
-    const registrationStatus = String(assignment.status || "PENDING") as
+    let registrationStatus = String(assignment.status || "PENDING") as
       | "PENDING"
       | "ASSIGNED"
       | "WAITLISTED"
@@ -239,7 +275,7 @@ Deno.serve(async (req) => {
       | "REVIEW"
       | "INACTIVE"
       | "COMPLETED";
-    const availabilityStatus = String(assignment.availabilityStatus || "MANUAL_REVIEW_REQUIRED") as
+    let availabilityStatus = String(assignment.availabilityStatus || "MANUAL_REVIEW_REQUIRED") as
       | "CLASS_ASSIGNED"
       | "NO_MATCHING_TIME"
       | "CLASS_FULL"
@@ -249,9 +285,17 @@ Deno.serve(async (req) => {
     const assignedAt = assignment.assignedAt ?? null;
     const waitlistedAt = assignment.waitlistedAt ?? null;
     const reviewedAt = assignment.reviewedAt ?? null;
-    const reviewNotes = assignment.reviewNotes ?? null;
+    let reviewNotes = assignment.reviewNotes ?? null;
     const legacyStatus = String(assignment.legacyStatus || "Pending");
     batch_id = assignment.batchId ?? batch_id;
+
+    if (forceDuplicateByBatch) {
+      registrationStatus = "DUPLICATE";
+      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+      reviewNotes = duplicateGuardReason === "existing_duplicate_in_same_batch"
+        ? "Duplicate registration rejected: email already has DUPLICATE status in this batch."
+        : "Duplicate registration rejected: email already registered in this batch.";
+    }
     let group_id: string | null = null;
     let subgroup_id: string | null = null;
     if (fellowship_code && fellowship_code.toUpperCase() !== "REGIONAL") {
@@ -300,37 +344,49 @@ Deno.serve(async (req) => {
 
     let applicant: Record<string, unknown> | null = null;
     let applicantError: unknown = null;
+    if (forceDuplicateByBatch && duplicateGuardExistingId) {
+      const { data: existingApplicant, error: existingApplicantError } = await db
+        .from("applicants")
+        .select("*")
+        .eq("id", duplicateGuardExistingId)
+        .maybeSingle();
+      if (existingApplicantError) {
+        applicantError = existingApplicantError;
+      } else {
+        applicant = existingApplicant as Record<string, unknown> | null;
+      }
+    } else {
+      ({
+        data: applicant,
+        error: applicantError,
+      } = await db
+        .from("applicants")
+        .insert(applicantInsertWithDuplicateFlags)
+        .select("*")
+        .single());
 
-    ({
-      data: applicant,
-      error: applicantError,
-    } = await db
-      .from("applicants")
-      .insert(applicantInsertWithDuplicateFlags)
-      .select("*")
-      .single());
+      if (applicantError) {
+        const msg = JSON.stringify(applicantError);
+        const duplicateFlagColumnsMissing =
+          msg.includes("duplicate_count") ||
+          msg.includes("needs_admin_review") ||
+          msg.includes("admin_note");
 
-    if (applicantError) {
-      const msg = JSON.stringify(applicantError);
-      const duplicateFlagColumnsMissing =
-        msg.includes("duplicate_count") ||
-        msg.includes("needs_admin_review") ||
-        msg.includes("admin_note");
+        if (duplicateFlagColumnsMissing) {
+          console.error(
+            "REGISTRATION_PROCESSOR_SCHEMA_MIGRATION_NEEDED",
+            "Add duplicate_count, needs_admin_review, admin_note columns to applicants.",
+          );
 
-      if (duplicateFlagColumnsMissing) {
-        console.error(
-          "REGISTRATION_PROCESSOR_SCHEMA_MIGRATION_NEEDED",
-          "Add duplicate_count, needs_admin_review, admin_note columns to applicants.",
-        );
-
-        ({
-          data: applicant,
-          error: applicantError,
-        } = await db
-          .from("applicants")
-          .insert(applicantInsertBase)
-          .select("*")
-          .single());
+          ({
+            data: applicant,
+            error: applicantError,
+          } = await db
+            .from("applicants")
+            .insert(applicantInsertBase)
+            .select("*")
+            .single());
+        }
       }
     }
 

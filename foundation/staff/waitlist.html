@@ -102,7 +102,7 @@
       <div style="display:flex;gap:var(--space-2);align-items:center;margin-bottom:var(--space-3);flex-wrap:wrap">
         <span style="font-size:var(--fs-meta);font-weight:600">Set All Capacity:</span>
         <input class="fs-input" id="bulkCapInput" type="number" min="1" placeholder="e.g. 25" style="width:90px" />
-        <button id="bulkCapBtn" class="btn">Apply to All Visible</button>
+        <button id="bulkCapBtn" class="fs-btn">Apply to All Visible</button>
       </div>
       <div class="fs-table-wrap">
         <table class="fs-table" id="capTable">
@@ -142,8 +142,8 @@
           </div>
         </div>
         <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
-          <button id="forceEnrollBtn" class="btn btn-success">Force Enroll</button>
-          <button id="forceWaitlistBtn" class="btn">Force to Waitlist</button>
+          <button id="forceEnrollBtn" class="fs-btn btn-success">Force Enroll</button>
+          <button id="forceWaitlistBtn" class="fs-btn">Force to Waitlist</button>
         </div>
         <div id="ovMsg" style="margin-top:var(--space-2)"></div>
       </div>
@@ -271,7 +271,7 @@
         const rowId = `qrow-${slot.class_slot_id}`;
 
         return `<tr id="${rowId}">
-          <td><button class="btn btn-sm" data-expand="${slot.class_slot_id}">▶ Queue</button></td>
+          <td><button class="fs-btn btn-sm" data-expand="${slot.class_slot_id}">▶ Queue</button></td>
           <td style="font-size:12px;font-weight:600">${esc(slot.class_option_id)}</td>
           <td style="font-size:12px">${esc(co.teacher_name || "-")}</td>
           <td style="font-size:12px">${esc((co.day || "") + " " + (co.class_time || "")).trim() || "-"}</td>
@@ -283,8 +283,8 @@
           <td>${slot.max_capacity ? fillBarHtml(pct) : "-"}</td>
           <td>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              <button class="btn btn-sm btn-success" data-promote-one="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${typeof avail === "number" && avail <= 0 ? "disabled" : ""}>Promote Next</button>
-              <button class="btn btn-sm btn-primary" data-promote-all="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${wl === 0 ? "disabled" : ""}>Promote All</button>
+              <button class="fs-btn btn-sm btn-success" data-promote-one="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${typeof avail === "number" && avail <= 0 ? "disabled" : ""}>Promote Next</button>
+              <button class="fs-btn btn-sm btn-primary" data-promote-all="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${wl === 0 ? "disabled" : ""}>Promote All</button>
               <input class="cap-input" data-cap-slot="${esc(slot.class_slot_id)}" value="${slot.max_capacity ?? ""}" placeholder="∞" title="Edit capacity" />
             </div>
           </td>
@@ -339,11 +339,11 @@
             <td style="font-weight:${days>7?"700":"400"}">${days}d</td>
             <td>
               <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center">
-                <button class="btn btn-sm btn-success" data-q-promote="${esc(r.id)}" data-q-slot="${esc(slotId)}">Promote</button>
-                <button class="btn btn-sm" data-q-top="${esc(r.id)}" data-q-slot="${esc(slotId)}">Move to Top</button>
-                <button class="btn btn-sm btn-danger" data-q-remove="${esc(r.id)}" data-q-slot="${esc(slotId)}">Remove</button>
+                <button class="fs-btn btn-sm btn-success" data-q-promote="${esc(r.id)}" data-q-slot="${esc(slotId)}">Promote</button>
+                <button class="fs-btn btn-sm" data-q-top="${esc(r.id)}" data-q-slot="${esc(slotId)}">Move to Top</button>
+                <button class="fs-btn btn-sm btn-danger" data-q-remove="${esc(r.id)}" data-q-slot="${esc(slotId)}">Remove</button>
                 <select class="status-select" data-q-reassign="${esc(r.id)}" data-q-slot="${esc(slotId)}">${reassignOpts}</select>
-                <button class="btn btn-sm" data-q-doReassign="${esc(r.id)}" data-q-slot="${esc(slotId)}">Move</button>
+                <button class="fs-btn btn-sm" data-q-doReassign="${esc(r.id)}" data-q-slot="${esc(slotId)}">Move</button>
               </div>
             </td>
           </tr>`;
@@ -382,7 +382,7 @@
             <option value="Closed"${slot.status==="Closed"?" selected":""}>Closed</option>
             <option value="Cancelled"${slot.status==="Cancelled"?" selected":""}>Cancelled</option>
           </select></td>
-          <td><button class="btn btn-sm btn-primary" data-save-cap="${esc(slot.class_slot_id)}" data-co="${esc(slot.class_option_id)}" data-batch="${esc(slot.batch_id)}" data-old="${slot.max_capacity ?? ""}">Save</button></td>
+          <td><button class="fs-btn btn-sm btn-primary" data-save-cap="${esc(slot.class_slot_id)}" data-co="${esc(slot.class_option_id)}" data-batch="${esc(slot.batch_id)}" data-old="${slot.max_capacity ?? ""}">Save</button></td>
         </tr>`;
       }).join("");
     }
@@ -830,4 +830,5 @@
   </script>
 </body>
 </html>
+
 

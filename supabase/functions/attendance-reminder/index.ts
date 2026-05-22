@@ -214,6 +214,11 @@ Deno.serve(async (req) => {
       skipped_duplicates: skippedDuplicates,
     });
   } catch (error) {
-    return json({ ok: false, error: error instanceof Error ? error.message : String(error) }, 500);
+    const msg = error instanceof Error
+      ? error.message
+      : (error as Record<string, unknown>)?.message
+        ? String((error as Record<string, unknown>).message)
+        : JSON.stringify(error);
+    return json({ ok: false, error: msg }, 500);
   }
 });

@@ -15,20 +15,20 @@
     .wrap { max-width: 980px; margin: 0 auto; padding: 14px; }
     .top {
       position: sticky; top: 8px; z-index: 30; border: 1px solid var(--line); border-radius: 16px; padding: 12px;
-      background: color-mix(in srgb, var(--surface) 84%, transparent); backdrop-filter: blur(8px);
+      background: color-mix(in srgb, var(--fs-surface) 84%, transparent); backdrop-filter: blur(8px);
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
     .top h1 { margin: 0; font-size: 22px; }
-    .top p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .top p { margin: 4px 0 0; color: var(--fs-text-muted); font-size: 12px; }
     .icon-btn, .btn, select, input, textarea {
       border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--text); font: inherit;
     }
     .icon-btn { width: 42px; height: 42px; cursor: pointer; font-size: 18px; }
     .btn { padding: 10px 14px; font-weight: 700; cursor: pointer; }
     .btn.primary { background: var(--primary); color: #fff; border-color: color-mix(in srgb, var(--primary) 80%, black); }
-    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-top: 10px; box-shadow: var(--shadow-soft); }
+    .card { background: var(--fs-surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-top: 10px; box-shadow: var(--shadow-soft); }
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-    label { display: block; margin-bottom: 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+    label { display: block; margin-bottom: 4px; font-size: 11px; color: var(--fs-text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
     input, select, textarea { width: 100%; padding: 10px; }
     .roster { display: grid; gap: 8px; }
     .student {
@@ -37,23 +37,23 @@
     }
     .student-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
     .name { font-weight: 800; }
-    .meta { font-size: 12px; color: var(--muted); }
+    .meta { font-size: 12px; color: var(--fs-text-muted); }
     .present-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
     .chips { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip {
-      border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--soft-lavender) 75%, var(--surface));
+      border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--soft-lavender) 75%, var(--fs-surface));
       color: var(--primary); font-size: 11px; font-weight: 700; padding: 6px 10px; cursor: pointer;
     }
     .chip.on { background: var(--primary); color: #fff; border-color: var(--primary); }
     .sticky-save {
       position: sticky; bottom: 10px; z-index: 35; margin-top: 10px;
-      border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(8px);
+      border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: color-mix(in srgb, var(--fs-surface) 90%, transparent); backdrop-filter: blur(8px);
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
     .msg { margin-top: 8px; border-radius: 10px; padding: 9px 10px; font-size: 12px; border: 1px solid var(--line); }
-    .ok { color: #166534; background: color-mix(in srgb, #22c55e 12%, var(--surface)); border-color: color-mix(in srgb, #22c55e 35%, var(--surface)); }
-    .bad { color: #b42318; background: color-mix(in srgb, #ef4444 12%, var(--surface)); border-color: color-mix(in srgb, #ef4444 34%, var(--surface)); }
-    .warn { color: #b45309; background: color-mix(in srgb, #f59e0b 14%, var(--surface)); border-color: color-mix(in srgb, #f59e0b 35%, var(--surface)); }
+    .ok { color: #166534; background: color-mix(in srgb, #22c55e 12%, var(--fs-surface)); border-color: color-mix(in srgb, #22c55e 35%, var(--fs-surface)); }
+    .bad { color: #b42318; background: color-mix(in srgb, #ef4444 12%, var(--fs-surface)); border-color: color-mix(in srgb, #ef4444 34%, var(--fs-surface)); }
+    .warn { color: #b45309; background: color-mix(in srgb, #f59e0b 14%, var(--fs-surface)); border-color: color-mix(in srgb, #f59e0b 35%, var(--fs-surface)); }
     .fs-modal-overlay {
       position: fixed; inset: 0; background: rgba(14, 10, 28, 0.42);
       display: none; align-items: center; justify-content: center; z-index: 120;
@@ -62,7 +62,7 @@
     .fs-modal-overlay.open { display: flex; }
     .fs-modal {
       width: min(520px, 96vw);
-      background: var(--surface);
+      background: var(--fs-surface);
       border: 1px solid var(--line);
       border-radius: 14px;
       box-shadow: var(--shadow-soft);
@@ -83,7 +83,7 @@
       </div>
       <div style="display:flex;gap:8px">
         
-        <button id="logoutBtn" class="btn">Logout</button>
+        <button id="logoutBtn" class="fs-btn">Logout</button>
       </div>
     </section>
 
@@ -115,8 +115,8 @@
       </div>
       <div id="roster" class="roster" style="margin-top:8px"></div>
       <div class="sticky-save">
-        <div id="saveMeta" style="font-size:12px;color:var(--muted)">No changes yet.</div>
-        <button id="saveBtn" class="btn primary">Save Attendance</button>
+        <div id="saveMeta" style="font-size:12px;color:var(--fs-text-muted)">No changes yet.</div>
+        <button id="saveBtn" class="fs-btn primary">Save Attendance</button>
       </div>
     </section>
   </main>
@@ -132,7 +132,7 @@
         <label for="firstActualStartDate">Actual start date</label>
         <input id="firstActualStartDate" type="date" />
       </div>
-      <button id="confirmFirstSessionBtn" class="btn primary fs-btn fs-btn-primary">Confirm and Continue</button>
+      <button id="confirmFirstSessionBtn" class="fs-btn primary fs-btn fs-btn-primary">Confirm and Continue</button>
     </div>
   </div>
 
@@ -258,7 +258,7 @@ function renderRoster() {
   $("roster").innerHTML = rows.map((s) => {
     const chips = MILESTONES.map((m) => {
       const on = s.milestones.has(m) || s.milestones.has(milestoneIdFor(m));
-      return `<button type="button" class="chip ${on ? "on" : ""}" data-student="${esc(s.id)}" data-milestone="${esc(m)}">${esc(m)}</button>`;
+      return `<button type="button" class="fs-badge ${on ? "on" : ""}" data-student="${esc(s.id)}" data-milestone="${esc(m)}">${esc(m)}</button>`;
     }).join("");
     return `<article class="student">
       <div class="student-head">
@@ -266,8 +266,8 @@ function renderRoster() {
         <label class="present-toggle"><input type="checkbox" data-present="${esc(s.id)}" ${s.present ? "checked" : ""} /> Present</label>
       </div>
       <textarea data-notes="${esc(s.id)}" placeholder="Notes...">${esc(s.notes)}</textarea>
-      <div class="chips">${chips}</div>
-      <div style="margin-top:8px"><button type="button" class="btn" data-profile="${esc(s.id)}" style="font-size:11px;padding:5px 10px">View Profile</button></div>
+      <div class="fs-badges">${chips}</div>
+      <div style="margin-top:8px"><button type="button" class="fs-btn" data-profile="${esc(s.id)}" style="font-size:11px;padding:5px 10px">View Profile</button></div>
     </article>`;
   }).join("") || `<div class="msg warn">No students found for this class.</div>`;
   $("saveMeta").textContent = `${rows.length} students in current roster.`;
@@ -451,4 +451,5 @@ boot().catch((e) => flash(`Failed to load attendance module: ${e.message || e}`,
 </script>
 </body>
 </html>
+
 

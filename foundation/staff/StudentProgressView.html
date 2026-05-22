@@ -69,7 +69,7 @@
 
   /* Student cell content */
   .student-name { font-weight: 700; font-size: .88rem; color: var(--ink, var(--text)); white-space: nowrap; }
-  .student-id   { font-size: .72rem; color: var(--muted); margin-top: 1px; font-weight: 500; }
+  .student-id   { font-size: .72rem; color: var(--fs-text-muted); margin-top: 1px; font-weight: 500; }
   .faith-badges {
     margin-top: 6px;
     display: flex;
@@ -110,7 +110,7 @@
   .grid-note {
     margin-top: 8px;
     font-size: 12px;
-    color: var(--muted);
+    color: var(--fs-text-muted);
   }
   .stats-inline {
     display: flex;
@@ -118,7 +118,7 @@
     align-items: center;
     gap: 0;
     font-size: 12px;
-    color: var(--color-text-secondary, var(--muted));
+    color: var(--color-text-secondary, var(--fs-text-muted));
   }
   .stats-inline .sep {
     padding: 0 8px;
@@ -161,7 +161,7 @@
 
       <div class="setup-field" style="flex:0">
         <label>&nbsp;</label>
-        <button class="btn primary" id="loadBtn" onclick="loadGrid()" disabled>Load Students</button>
+        <button class="fs-btn primary" id="loadBtn" onclick="loadGrid()" disabled>Load Students</button>
       </div>
     </div>
     <div id="setup-error"></div>
@@ -180,7 +180,7 @@
         <input id="studentSearch" placeholder="Filter students..." oninput="filterTable()" autocomplete="off" />
       </div>
       <div style="display:flex;gap:6px;margin-left:auto">
-        <button class="btn" onclick="exportCSV()">Export CSV</button>
+        <button class="fs-btn" onclick="exportCSV()">Export CSV</button>
       </div>
     </div>
     <div id="grid-note" class="grid-note" style="display:none"></div>
@@ -584,6 +584,7 @@
   </script>
 </body>
 </html>
+
 
 
 

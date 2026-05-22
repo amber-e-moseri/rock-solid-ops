@@ -30,7 +30,7 @@
       border-radius: 50%; animation: spin 0.75s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #loading-screen p { color: var(--muted); font-size: 15px; }
+    #loading-screen p { color: var(--fs-text-muted); font-size: 15px; }
 
     #access-denied {
       display: none; position: fixed; inset: 0; background: var(--cream);
@@ -41,7 +41,7 @@
       text-align: center; box-shadow: 0 8px 32px rgba(76,42,146,0.12);
     }
     .denied-card h2 { color: var(--danger); font-size: 20px; margin-bottom: 12px; }
-    .denied-card p  { color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+    .denied-card p  { color: var(--fs-text-muted); margin-bottom: 24px; line-height: 1.6; }
 
     /* -- Portal shell -- */
     #portal { display: none; min-height: 100vh; }
@@ -120,7 +120,7 @@
     .table-wrap { overflow-x: auto; margin-top: 4px; }
     table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
     thead tr { background: #f8f6ff; }
-    th { padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+    th { padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 700; color: var(--fs-text-muted); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
     td { padding: 11px 14px; border-top: 1px solid var(--border); vertical-align: middle; }
     tr:hover td { background: #faf9ff; }
     td.nowrap { white-space: nowrap; }
@@ -134,7 +134,7 @@
     }
     .table-mobile-title { font-size: 14px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
     .table-mobile-meta { display: grid; gap: 4px; margin-bottom: 8px; }
-    .table-mobile-meta .meta-row { font-size: 12px; color: var(--muted); }
+    .table-mobile-meta .meta-row { font-size: 12px; color: var(--fs-text-muted); }
     .table-mobile-actions { margin-top: 8px; }
 
     /* -- Buttons -- */
@@ -173,8 +173,8 @@
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
     /* -- States -- */
-    .empty-state { color: var(--muted); padding: 24px 0; text-align: center; font-size: 14px; }
-    .loading-state { color: var(--muted); padding: 24px 0; text-align: center; }
+    .empty-state { color: var(--fs-text-muted); padding: 24px 0; text-align: center; font-size: 14px; }
+    .loading-state { color: var(--fs-text-muted); padding: 24px 0; text-align: center; }
     .error-state {
       background: var(--danger-bg); border: 1px solid var(--danger-bd); color: var(--danger);
       border-radius: 8px; padding: 14px 18px; font-size: 13px; line-height: 1.6;
@@ -186,10 +186,10 @@
     .dash-card { background: #f8f6ff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
     .dash-card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
     .dash-subgroup { font-weight: 700; color: var(--navy); font-size: 15px; }
-    .dash-group { font-size: 12px; color: var(--muted); }
+    .dash-group { font-size: 12px; color: var(--fs-text-muted); }
     .dash-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .metric-val { display: block; font-size: 22px; font-weight: 800; color: var(--navy); line-height: 1; }
-    .metric-label { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .metric-label { display: block; font-size: 11px; color: var(--fs-text-muted); margin-top: 3px; }
 
     /* -- Attention flag -- */
     .flag-on { color: #d97706; font-weight: 700; }
@@ -207,7 +207,7 @@
     }
     .modal-head { padding: 22px 24px 18px; border-bottom: 1px solid var(--border); }
     .modal-head h3 { font-size: 17px; font-weight: 700; color: var(--text); }
-    .modal-head p  { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+    .modal-head p  { font-size: 13.5px; color: var(--fs-text-muted); margin-top: 4px; }
     .modal-body { padding: 22px 24px; }
     label.modal-label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 7px; }
     .required { color: var(--danger); }
@@ -287,7 +287,7 @@
     <div class="denied-card">
       <h2>Access Denied</h2>
       <p id="denied-msg">No admin profile is associated with this account. Please contact your administrator.</p>
-      <button class="btn fs-btn fs-btn-secondary-primary" onclick="logout()">Sign Out</button>
+      <button class="fs-btn fs-btn fs-btn-secondary-primary" onclick="logout()">Sign Out</button>
     </div>
   </div>
 
@@ -309,8 +309,8 @@
         <div class="modal-error" id="modal-err"></div>
       </div>
       <div class="modal-foot">
-        <button class="btn fs-btn fs-btn-secondary-outline" onclick="closeModal()">Cancel</button>
-        <button class="btn fs-btn fs-btn-secondary-danger" id="modal-submit" onclick="confirmSuspend()">Confirm Suspension</button>
+        <button class="fs-btn fs-btn fs-btn-secondary-outline" onclick="closeModal()">Cancel</button>
+        <button class="fs-btn fs-btn fs-btn-secondary-danger" id="modal-submit" onclick="confirmSuspend()">Confirm Suspension</button>
       </div>
     </div>
   </div>
@@ -362,8 +362,8 @@
         <div class="modal-error" id="bm-err"></div>
       </div>
       <div class="modal-foot">
-        <button class="btn fs-btn fs-btn-secondary-outline" onclick="closeBatchModal()">Cancel</button>
-        <button class="btn fs-btn fs-btn-secondary-primary" id="bm-submit" onclick="saveBatch()">Save Batch</button>
+        <button class="fs-btn fs-btn fs-btn-secondary-outline" onclick="closeBatchModal()">Cancel</button>
+        <button class="fs-btn fs-btn fs-btn-secondary-primary" id="bm-submit" onclick="saveBatch()">Save Batch</button>
       </div>
     </div>
   </div>
@@ -373,10 +373,10 @@
     <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
       <div class="modal-head">
         <h3>Moodle Course Mapping</h3>
-        <p id="mm-batch-label" style="color:var(--muted);font-size:13px;margin-top:4px;"></p>
+        <p id="mm-batch-label" style="color:var(--fs-text-muted);font-size:13px;margin-top:4px;"></p>
       </div>
       <div class="modal-body">
-        <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.5;">
+        <p style="color:var(--fs-text-muted);font-size:13px;margin-bottom:16px;line-height:1.5;">
           Set the Moodle course each group uses for this batch.
           Subgroups (e.g. CSGA, CSGB) inherit their parent group's course automatically.
         </p>
@@ -440,8 +440,8 @@
         <div class="modal-error" id="mm-err"></div>
       </div>
       <div class="modal-foot">
-        <button class="btn fs-btn fs-btn-secondary-outline" onclick="closeMoodleModal()">Cancel</button>
-        <button class="btn fs-btn fs-btn-secondary-primary" id="mm-submit" onclick="saveMoodleMappings()">Save Mappings</button>
+        <button class="fs-btn fs-btn fs-btn-secondary-outline" onclick="closeMoodleModal()">Cancel</button>
+        <button class="fs-btn fs-btn fs-btn-secondary-primary" id="mm-submit" onclick="saveMoodleMappings()">Save Mappings</button>
       </div>
     </div>
   </div>
@@ -456,6 +456,7 @@
   <script src="../ui/premium-shell.js"></script>
 </body>
 </html>
+
 
 
 

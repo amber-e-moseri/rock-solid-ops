@@ -117,8 +117,8 @@
         <label class="toggle-row"><label class="toggle"><input type="checkbox" id="nEnrollOpen" checked /><span class="slider"></span></label><span style="font-size:13px;font-weight:600">Enrollment Open</span></label>
       </div>
       <div style="display:flex;gap:var(--space-2)">
-        <button id="saveNewBtn" class="btn btn-primary">Create Class</button>
-        <button id="cancelNewBtn" class="btn">Cancel</button>
+        <button id="saveNewBtn" class="fs-btn btn-primary">Create Class</button>
+        <button id="cancelNewBtn" class="fs-btn">Cancel</button>
       </div>
       <div id="newMsg" style="margin-top:var(--space-2)"></div>
     </div>
@@ -260,7 +260,7 @@
         ? `<div class="msg" style="margin-bottom:var(--space-3)">Shared class — ${(co.fellowship_codes || []).length} fellowships on one roster</div>`
         : "";
       const splitBtn = (state.canSuperadmin && (co.fellowship_codes || []).length > 1)
-        ? `<button class="btn btn-danger" data-split-class="${esc(co.class_option_id)}">Split into Separate Classes</button>`
+        ? `<button class="fs-btn btn-danger" data-split-class="${esc(co.class_option_id)}">Split into Separate Classes</button>`
         : "";
 
       return `<tr id="${panelId}">
@@ -302,9 +302,9 @@
             <label class="toggle-row"><label class="toggle"><input type="checkbox" id="eenroll-${esc(co.class_option_id)}"${co.enrollment_open !== false ? " checked" : ""}/><span class="slider"></span></label><span style="font-size:13px;font-weight:600">Enrollment Open</span></label>
           </div>
           <div style="display:flex;gap:var(--space-2)">
-            <button class="btn btn-primary" data-save-edit="${esc(co.class_option_id)}" data-old-day="${esc(co.day || "")}" data-old-time="${esc(co.class_time || "")}">Save Changes</button>
+            <button class="fs-btn btn-primary" data-save-edit="${esc(co.class_option_id)}" data-old-day="${esc(co.day || "")}" data-old-time="${esc(co.class_time || "")}">Save Changes</button>
             ${splitBtn}
-            <button class="btn" data-cancel-edit="${esc(co.class_option_id)}">Cancel</button>
+            <button class="fs-btn" data-cancel-edit="${esc(co.class_option_id)}">Cancel</button>
           </div>
           <div id="emsg-${esc(co.class_option_id)}" style="margin-top:var(--space-2)"></div>
         </td>
@@ -341,9 +341,9 @@
           <td style="font-size:12px">${slotCount}</td>
           ${canAct ? `<td>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              <button class="btn btn-sm" data-edit="${esc(co.class_option_id)}">Edit</button>
-              <button class="btn btn-sm" data-dup="${esc(co.class_option_id)}">Duplicate</button>
-              <button class="btn btn-sm btn-danger" data-delete="${esc(co.class_option_id)}">${co.deleted_at ? "Deleted" : "Delete"}</button>
+              <button class="fs-btn btn-sm" data-edit="${esc(co.class_option_id)}">Edit</button>
+              <button class="fs-btn btn-sm" data-dup="${esc(co.class_option_id)}">Duplicate</button>
+              <button class="fs-btn btn-sm btn-danger" data-delete="${esc(co.class_option_id)}">${co.deleted_at ? "Deleted" : "Delete"}</button>
             </div>
           </td>` : ""}
         </tr>`;
@@ -840,4 +840,5 @@
   </script>
 </body>
 </html>
+
 
