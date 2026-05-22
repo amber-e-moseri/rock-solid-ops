@@ -78,7 +78,7 @@
   <script src="../js/config-helper.js"></script>
   <script src="../js/admin-shell.js?v=20260518"></script>
   <script type="module">
-    import { supabase, getCurrentProfile, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
+    import { supabase, getCurrentProfile, isSuperadmin } from "../auth/auth-client.js";
 
     const state = { rows: [], filtered: [], missingTables: [] };
     const $ = (id) => document.getElementById(id);
@@ -122,7 +122,7 @@
         return null;
       }
       const profile = await getCurrentProfile();
-      if (!profile || !(isAdmin(profile.role) || isRegionalSecretary(profile.role))) {
+      if (!profile || !isSuperadmin(profile.role)) {
         setState("Access denied for this account.");
         return null;
       }

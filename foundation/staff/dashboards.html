@@ -45,6 +45,7 @@
     }
     .kpi-card.kpi-warn .kpi-value  { color: #c07400; }
     .kpi-card.kpi-danger .kpi-value { color: #b53030; }
+    #failedSyncKpiCard.is-clickable { cursor: pointer; }
 
     /* Two-column chart row */
     .chart-row {
@@ -257,6 +258,7 @@
     import { supabase, getCurrentProfile, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
 
     const $ = (id) => document.getElementById(id);
+    const appRoute = (relativePath) => (window.location.pathname.includes("/foundation/") ? `/foundation/${relativePath}` : `/${relativePath}`);
 
     const PURPLE      = "#4C2A92";
     const PURPLE_SOFT = "rgba(76,42,146,0.12)";
@@ -707,6 +709,15 @@
       _scope = await resolveScope();
       if (!_scope) return;
       applyRegionalView(_scope.profile.role);
+
+      const failedSyncKpiCard = $("failedSyncKpiCard");
+      if (failedSyncKpiCard && !isRegionalSecretary(_scope.profile.role)) {
+        failedSyncKpiCard.classList.add("is-clickable");
+        failedSyncKpiCard.title = "Open Failed Sync Retry Center";
+        failedSyncKpiCard.addEventListener("click", () => {
+          window.location.href = appRoute("staff/failed-sync-retry-center.html");
+        });
+      }
 
       window.FSAdminShell?.mount({
         active: "dashboard",

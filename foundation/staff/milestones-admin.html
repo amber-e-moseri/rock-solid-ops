@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -138,6 +138,7 @@ const state = {
   isSuperadmin: false,
   editingDefCode: null
 };
+let rowEventsBound = false;
 
 function setTheme() {
   document.documentElement.setAttribute("data-theme", "light");
@@ -152,8 +153,8 @@ function getDefByCode(code) {
   return state.milestoneDefs.find((m) => String(m.code) === String(code));
 }
 
-function statusesForApplicant(applicantId) {
-  return state.milestoneStatus.filter((m) => String(m.applicant_id || m.student_id || "") === String(applicantId));
+function statusesForApplicant(targetId) {
+  return state.milestoneStatus.filter((m) => String(m.applicant_id || m.student_id || "") === String(targetId));
 }
 
 function isCompleted(ms) {
@@ -222,12 +223,12 @@ function renderRows() {
       <td>${esc(a.class_option_id || "-")}</td>
       <td><span class="fs-badge ${done.size ? "fs-badge-success" : "fs-badge-warning"}">${done.size ? "Active Progress" : "No Milestones Yet"}</span></td>
       <td><div class="fs-badges">${chips}</div></td>
-      <td><button class="fs-btn fs-btn-secondary fs-btn-sm" data-open="${esc(a.id)}">Open Timeline</button></td>
+      <td><button type="button" class="fs-btn fs-btn-secondary fs-btn-sm" data-open="${esc(a.id)}">Open Timeline</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="6" class="muted">No students match the selected filters.</td></tr>`;
 
   document.querySelectorAll("[data-code]").forEach((btn) => btn.addEventListener("click", () => toggleMilestone(btn.dataset.app, btn.dataset.code)));
-  document.querySelectorAll("[data-open]").forEach((btn) => btn.addEventListener("click", () => openTimeline(btn.dataset.open)));
+  bindRowEvents();
 }
 
 async function toggleMilestone(applicantId, milestoneCode) {
@@ -272,11 +273,25 @@ async function toggleMilestone(applicantId, milestoneCode) {
   flash("Milestone status updated.");
 }
 
+
+function bindRowEvents() {
+  if (rowEventsBound) return;
+  rowEventsBound = true;
+  rows.addEventListener("click", (e) => {
+    const openBtn = e.target.closest("[data-open]");
+    if (!openBtn) return;
+    const applicantId = String(openBtn.getAttribute("data-open") || "").trim();
+    if (!applicantId) return;
+    openTimeline(applicantId);
+  });
+}
 function openTimeline(applicantId) {
-  state.selectedApplicantId = applicantId;
-  const app = state.applicants.find((a) => String(a.id) === String(applicantId));
-  const ms = statusesForApplicant(applicantId).sort((a,b) => new Date(b.updated_at || b.completed_at || 0) - new Date(a.updated_at || a.completed_at || 0));
-  const aud = state.audits.filter((a) => String(a.details?.applicant_id || "") === String(applicantId)).slice(0, 30);
+  const targetId = String(applicantId || "").trim();
+  if (!targetId) return;
+  state.selectedApplicantId = targetId;
+  const app = state.applicants.find((a) => String(a.id) === targetId);
+  const ms = statusesForApplicant(targetId).sort((a,b) => new Date(b.updated_at || b.completed_at || 0) - new Date(a.updated_at || a.completed_at || 0));
+  const aud = state.audits.filter((a) => String(a.details?.applicant_id || "") === targetId).slice(0, 30);
 
   const merged = [
     ...ms.map((m) => ({
@@ -288,7 +303,7 @@ function openTimeline(applicantId) {
   ].sort((a,b) => new Date(b.at || 0) - new Date(a.at || 0));
 
   $("timeline").innerHTML = `<div class="event"><strong>${esc(app?.full_name || "Student")}</strong><span class="muted">${esc(app?.email || "-")}</span></div>` +
-    (merged.map((e) => `<div class="event"><span>${esc(e.label)} � ${esc(e.state)}</span><span class="muted">${esc(fmt(e.at))}</span></div>`).join("") || `<div class="event"><span class="muted">No milestone or audit history found yet.</span></div>`);
+    (merged.map((e) => `<div class="event"><span>${esc(e.label)} · ${esc(e.state)}</span><span class="muted">${esc(fmt(e.at))}</span></div>`).join("") || `<div class="event"><span class="muted">No milestone or audit history found yet.</span></div>`);
 
   $("timeline").closest("section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -458,6 +473,8 @@ boot().catch((e) => flash(`Failed to load milestones admin: ${e.message || e}`, 
   </script>
 </body>
 </html>
+
+
 
 
 

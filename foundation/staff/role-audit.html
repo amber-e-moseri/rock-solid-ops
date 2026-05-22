@@ -341,7 +341,7 @@
         showFlash("Not connected — open via live server with config.js", "error");
         return;
       }
-      const auth = await requireAuth(["admin", "superadmin"]);
+      const auth = await requireAuth(["superadmin"]);
       if (!auth) return;
       state.profile     = auth.profile;
       state.isSuperadmin = (auth.profile?.role || "").toLowerCase() === "superadmin";

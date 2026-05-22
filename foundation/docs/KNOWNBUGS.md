@@ -7,6 +7,11 @@
 ### Multi-Campus Labeling Bug
 - Calendar header sometimes shows only the last selected campus.
 
+## Teacher Portal
+### Invalid `teacher_assignments` Table Query
+- `foundation/teacher/roster.html` still queries `teacher_assignments`, which does not exist in the canonical schema.
+- Impact: roster load can fail for teachers/admin viewers until query is switched to `class_options`/teacher-portal-api assignment lookup.
+
 ## Mobile UI Issues
 ### Grid Overflow
 - Large tables overflow badly on mobile.

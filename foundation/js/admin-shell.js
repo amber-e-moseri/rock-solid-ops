@@ -84,18 +84,18 @@
       label: "Admin Tools",
       items: [
         { key: "adminactivity", label: "Activity Log", href: "admin-activity.html", icon: "AL", roles: ["admin", "superadmin"] },
-        { key: "roleaudit", label: "Role Audit", href: "role-audit.html", icon: "RA", roles: ["admin", "superadmin"] },
+        { key: "roleaudit", label: "Role Audit", href: "role-audit.html", icon: "RA", roles: ["superadmin"] },
       ]
     },
     {
       label: "System",
       items: [
         { key: "fellowships", label: "Fellowships", href: "fellowship-management.html", icon: "FG", roles: OPERATIONAL_ROLES },
-        { key: "adminmanagement", label: "Admin Management", href: "admin-management.html", icon: "AM", roles: SYSTEM_ADMIN_ROLES },
+        { key: "clickupmanagement", label: "ClickUp Management", href: "clickup-management.html", icon: "AM", roles: SYSTEM_ADMIN_ROLES },
         { key: "failedsyncs", label: "Failed Syncs", href: "failed-sync-retry-center.html", icon: "FS", roles: SYSTEM_ADMIN_ROLES },
         { key: "health", label: "System Health", href: "system-health.html", icon: "SH", roles: SYSTEM_ADMIN_ROLES },
         { key: "moodlesettings", label: "Moodle Settings", href: "moodle-settings.html", icon: "MD", roles: SYSTEM_ADMIN_ROLES },
-        { key: "audit", label: "Audit Log", href: "audit-log.html", icon: "LG", roles: SYSTEM_ADMIN_ROLES },
+        { key: "audit", label: "Audit Log", href: "audit-log.html", icon: "LG", roles: ["superadmin"] },
         { key: "milestones", label: "Milestones", href: "milestones-admin.html", icon: "MS", roles: OPERATIONAL_ROLES }
       ]
     }
@@ -115,7 +115,7 @@
     "moodlesettings",
     "audit",
     "milestones",
-    "adminmanagement",
+    "clickupmanagement",
     "adminactivity",
     "roleaudit",
   ]);
@@ -186,7 +186,8 @@
     if (p.includes("moodle-settings")) return "moodlesettings";
     if (p.includes("audit-log")) return "audit";
     if (p.includes("milestones-admin")) return "milestones";
-    if (p.includes("admin-management")) return "adminmanagement";
+    if (p.includes("clickup-management")) return "clickupmanagement";
+    if (p.includes("admin-management")) return "clickupmanagement";
     if (p.includes("data-exports")) return "dataexports";
     if (p.includes("baptism-report")) return "baptismreport";
     if (p.includes("reports")) return "reports";

@@ -87,16 +87,46 @@
       window.location.replace(url);
     }
 
-    try {
-      document.documentElement.setAttribute("data-theme", "light");
-      document.documentElement.classList.remove("dark");
-      document.body.classList.add("fs-force-light");
+    function withTimeout(promise, ms) {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("profile_timeout")), ms)),
+      ]);
+    }
 
-      const session = await getSessionOrNull();
-      if (!session) {
-        go(loginUrl);
-      } else {
-        const profile = await getCurrentProfile();
+    function resolveRoleFromSession(session) {
+      const raw =
+        session?.user?.user_metadata?.role ||
+        session?.user?.app_metadata?.role ||
+        "";
+      return String(raw || "").toLowerCase();
+    }
+
+    (async () => {
+      try {
+        document.documentElement.setAttribute("data-theme", "light");
+        document.documentElement.classList.remove("dark");
+        document.body.classList.add("fs-force-light");
+
+        const session = await getSessionOrNull();
+        if (!session) {
+          go(loginUrl);
+          return;
+        }
+
+        // Fast path: use role from current session metadata while profile loads.
+        const sessionRole = resolveRoleFromSession(session);
+        if (sessionRole === "teacher") {
+          go(teacherUrl);
+          return;
+        }
+        if (isAdmin(sessionRole)) {
+          go(adminUrl);
+          return;
+        }
+
+        // Slow path: profile lookup with timeout to avoid long spinner hangs.
+        const profile = await withTimeout(getCurrentProfile(), 2500).catch(() => null);
         const role = String(profile?.role || "").toLowerCase();
         const isActive = profile?.is_active !== false && profile?.active !== false;
 
@@ -109,10 +139,10 @@
         } else {
           go(loginUrl);
         }
+      } catch (_) {
+        go(loginUrl);
       }
-    } catch (_) {
-      go(loginUrl);
-    }
+    })();
   </script>
 </body>
 </html>

@@ -1,89 +1,392 @@
-# Foundation School System
+# Rock Solid Ops - Operations Platform
 
-Supabase-first registration and operations platform for Foundation School (staff/admin portals, student lifecycle, attendance/session outcomes, milestones, notifications, and Moodle sync).
+> **RockSolid OPS** - Internal staff operations platform for Foundation School.
+> Manages student registration, teacher scheduling, attendance, cohort batches, notifications, Moodle enrollment, and milestone tracking.
+> **Status: MVP Ready - Supabase-first backend, pilot launch ready (May 2026).**
 
-> Status: Active MVP hardening. Supabase is canonical backend as of May 2026.
+---
 
-## Canonical Operational Rule
-- Registration processing is single-path only.
-- Canonical path: Supabase Edge Function `registration-processor`.
-- Legacy registration processing is archived and non-operational.
+> **Portfolio Summary:** Full production operations platform for a school. Replaced a legacy Google Sheets + Apps Script backend with Supabase Edge Functions, a multi-stage email pipeline with retry/trace infrastructure, Moodle LMS sync, and a staff portal managing the student lifecycle from registration to graduation.
 
-## Core Runtime
-- Staff UI: `foundation/staff/*` (plain HTML/CSS/JS)
-- Shared JS: `foundation/js/*`
-- Supabase functions: `supabase/functions/*`
-- Migrations: `supabase/migrations/*`
+---
 
-## Edge Functions (MVP)
-- `registration-processor` (canonical intake path)
-- `moodle-sync` (enrollment sync)
-- `retry-worker` (manual + scheduled retry sweep)
-- `sender-worker` / `notification-dispatcher` / `email-retry` / `notification-batch-processor`
-- `teacher-portal-api`
+## Architecture Overview
 
-## Audit Logging Canonicalization
-- Canonical table: `public.audit_logs`
-- New/updated functions write directly to `audit_logs` only.
+```
+Public Registration Form
+  -> registration-processor (canonical intake)
+     -> ASSIGNED -> moodle-sync
+     -> WAITLISTED -> waitlist queue + class selection
+     -> DUPLICATE/REVIEW -> admin review
 
-## Retry Worker Scheduling
-- Target cadence: every 20 minutes.
-- Configured in `supabase/functions/retry-worker/config.toml`:
-  - `verify_jwt = false`
-  - `schedule = "*/20 * * * *"`
-- Auto sweep retries only retryable Moodle sync failures and skips permanent/non-retryable auth/WAF/mapping errors.
+Notification pipeline:
+  scheduled_notifications (PENDING)
+    -> notification-batch-processor
+    -> email_queue (Pending)
+    -> email-sender (every 15 minutes)
 
-## Legacy Archive Notes
-- Historical Google Apps Script code is archived at `archive/apps-script-legacy/*`.
-- Archive is reference-only and must not be used as a runtime backend.
+Operations layer:
+  retry-worker (every 20 min)
+  missed-class-detector
+  clickup-sync
+  student-engagement-monitor
+  report-generator
 
-## Docs
-- `foundation/docs/ARCHITECTURE.md`
-- `foundation/docs/CONSTRAINTS.md`
-- `foundation/docs/KNOWNBUGS.md`
-- `foundation/docs/NEXT_STEPS.md`
+Portals:
+  /foundation/staff/*   (admin/staff shell)
+  /foundation/teacher/* (teacher shell)
 
-## ClickUp Escalation MVP
-- Functions:
-  - `clickup-sync` (creates ClickUp tasks for missed-class + escalations)
-  - `missed-class-detector` (nightly missed-class + REVIEW>48h escalation detector)
-- Mapping table: `public.clickup_admin_mappings`
-  - Assignee resolution order: subgroup match first, then group-level mapping.
-  - Only `active = true` rows are used.
-  - No API keys are stored in this table.
-- Idempotency table: `public.clickup_task_links`
-  - Prevents duplicate ClickUp tasks for the same operational event.
-
-### Required Supabase secrets
-```bash
-supabase secrets set CLICKUP_API_KEY="..."
-supabase secrets set CLICKUP_LIST_ID="..."
-supabase secrets set CLICKUP_DEFAULT_ASSIGNEE_ID="..."
+Data:
+  Supabase Postgres with RLS
 ```
 
-### Assignee mapping management (no redeploy required)
-- Add/update rows in `clickup_admin_mappings` from Supabase Table Editor.
-- Example row fields:
-  - `group_id` (required)
-  - `subgroup_id` (optional, preferred over group fallback)
-  - `clickup_user_id` (required)
-  - `active` (set `true` to enable mapping)
+---
 
-### Scheduling
-- `retry-worker`: every 20 minutes (`supabase/functions/retry-worker/config.toml`)
-- `missed-class-detector`: nightly (`supabase/functions/missed-class-detector/config.toml`)
+## Table of Contents
 
+1. [What This Is](#what-this-is)
+2. [Tech Stack](#tech-stack)
+3. [Repository Structure](#repository-structure)
+4. [Core Features](#core-features)
+5. [Edge Functions Reference](#edge-functions-reference)
+6. [Cron Schedule](#cron-schedule)
+7. [Status Enums](#status-enums)
+8. [Deployment](#deployment)
+9. [Environment Variables / Secrets](#environment-variables--secrets)
+10. [Known Issues](#known-issues)
+11. [Tech Debt Register (Summary)](#tech-debt-register-summary)
+12. [Security Rules](#security-rules)
+13. [Legacy Archive](#legacy-archive)
 
+---
 
-### ClickUp Watchers
-- Primary assignee source of truth remains `clickup_admin_mappings`.
-- Optional secondary watchers are resolved from `clickup_admin_watchers`.
-- Watcher resolution: subgroup match first, group-level fallback only if no subgroup watcher mapping exists.
-- Watchers are never promoted to assignee; they are added as watcher comments.
-- Watcher comment failures are non-blocking and audited.
+## What This Is
 
-#### Assignment examples
-- `CSGA`: Chloe is primary assignee; Jason is watcher/secondary follower.
-- `CSGB`: Jason is primary assignee (configured in `clickup_admin_mappings`).
+Foundation School is an internal staff operations platform (not public SaaS). It is used by admins, regional secretaries, and teachers to run the student lifecycle:
 
+- Intake registrations from the public form
+- Assign students to batches and classes
+- Manage teacher availability and attendance
+- Sync assigned students to Moodle
+- Send lifecycle emails
+- Track milestones and engagement
+- Surface failures, retries, and audit events
 
+Backend migration from Google Apps Script + Sheets to Supabase Postgres + Edge Functions completed in May 2026.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Database | Supabase Postgres (public schema) |
+| Auth | Supabase Auth (JWT sessions) |
+| Backend logic | Supabase Edge Functions (Deno / TypeScript) |
+| Frontend | Plain HTML / CSS / Vanilla JS |
+| Email delivery | Resend API |
+| LMS sync | Moodle REST Web Services API |
+| Task escalation | ClickUp API |
+| Newsletter sync | Mailchimp API (dormant) |
+| Hosting | Vercel (static frontend) + Supabase (functions) |
+| Design tokens | `tokens.css`, `primitives.css` |
+| Font | Manrope |
+
+---
+
+## Repository Structure
+
+```
+/
+|- foundation/
+|  |- auth/
+|  |- staff/
+|  |- teacher/
+|  |- js/
+|  |- ui/
+|  `- docs/
+|- supabase/
+|  |- functions/
+|  |  |- _shared/
+|  |  `- <function>/
+|  `- migrations/
+|- ai/
+|- archive/
+|  `- apps-script-legacy/
+`- vercel.json
+```
+
+---
+
+## Core Features
+
+### 1. Registration Pipeline
+
+Canonical intake path: `registration-processor` only.
+
+- Validates and normalizes payload
+- Writes applicants and workflow state
+- Resolves fellowship/group/subgroup
+- Produces status: `PENDING`, `ASSIGNED`, `WAITLISTED`, `DUPLICATE`, `REVIEW`
+- Triggers downstream notifications
+- Writes trace/audit entries
+
+Rules:
+- WAITLISTED students are never enrolled in Moodle
+- DUPLICATE status is preserved and visible
+
+### 2. Admin Portal
+
+Located at `foundation/staff/`, using `admin-shell.js`.
+
+Key pages include: `admin-dashboard.html`, `admin-review.html`, `applicant-directory.html`, `batch-management.html`, `class-editor.html`, `teacher-management.html`, `waitlist.html`, `notification-center.html`, `failed-sync-retry-center.html`, `system-health.html`, `audit-log.html`, `reports.html`, `dashboards.html`.
+
+### 3. Teacher Portal
+
+Located at `foundation/teacher/`, using `teacher-shell.js`.
+
+- Teacher auth linkage required
+- Availability submission
+- Roster/class view
+- Attendance submission via `teacher-attendance.html`
+- Milestone updates
+
+Teacher actions are routed through `teacher-portal-api`.
+
+### 4. Batch and Class Management
+
+- Batch lifecycle: `DRAFT`, `UPCOMING`, `ACTIVE`, `COMPLETED`, `ARCHIVED`
+- Class options include day/time/fellowship mappings
+- Supports multi-campus fellowship selection
+
+### 5. Attendance and Session Outcomes
+
+- Attendance data stored in canonical attendance tables
+- Deduplication hardening in migrations
+- Late-start handling supported
+- Reminder/detector workers for missing attendance
+
+### 6. Milestones
+
+- Definitions are admin-managed
+- Student milestone status tracked per student/milestone
+- Includes `water_baptized`
+
+### 7. Notifications and Email Pipeline
+
+Pipeline:
+
+- `scheduled_notifications` (PENDING)
+- `notification-batch-processor`
+- `email_queue`
+- `email-sender`
+
+### 8. Moodle Enrollment Sync
+
+- Function: `moodle-sync`
+- Queue: `moodle_enrollment_sync`
+- Enroll ASSIGNED only
+- Failure classification for WAF/permissions/REST disabled/unknown 403
+
+### 9. Retry and Recovery Center
+
+- UI: `failed-sync-retry-center.html`
+- Worker: `retry-worker`
+- Manual helper: `notification-retry-helper`
+
+### 10. ClickUp Escalation
+
+- Function: `clickup-sync`
+- Idempotency via `clickup_task_links`
+
+### 11. Waitlist Processor
+
+- Function: `waitlist-processor`
+- Supports class-selection token flow
+
+### 12. Student Engagement Monitoring
+
+- Function: `student-engagement-monitor`
+- Surfaces at-risk signals
+
+### 13. Reports and Data Exports
+
+- Function: `report-generator`
+- UI: `reports.html`, `data-exports.html`
+
+### 14. System Health and Operational Trace
+
+- UI: `system-health.html`
+- JS: `system-health.js`, `operational-trace.js`
+- Trace RPC: `public.get_operational_trace(...)`
+
+### 15. Fellowship and Subgroup Management
+
+- UI: `fellowship-management.html`
+- Table: `fellowship_map`
+
+### 16. Audit Logging
+
+- Canonical table: `public.audit_logs`
+
+### 17. Auth and RBAC
+
+Roles in `profiles.role` include: `superadmin`, `admin`, `regional_secretary`, `pastor`, `subgroup_admin`, `principal`, `teacher`, `pending`.
+
+Note: current access is primarily role-based; regional data scoping is not globally enforced in every flow by default.
+
+---
+
+## Edge Functions Reference
+
+| Function | Schedule | Role |
+|---|---|---|
+| `registration-processor` | On-demand | Canonical registration intake |
+| `admin-api` | On-demand | Admin API router |
+| `teacher-portal-api` | On-demand | Teacher API router |
+| `phase2-processor` | On-demand | Assignment processing (legacy/consolidation path) |
+| `moodle-sync` | On-demand | Moodle enrollment |
+| `moodle-grade-sync` | Cron | Moodle grade pull |
+| `retry-worker` | `*/20 * * * *` | Retry sweep |
+| `notification-batch-processor` | On-demand | Scheduled notification batching |
+| `email-sender` | `*/15 * * * *` | Resend delivery |
+| `email-retry` | On-demand | Email retry helper |
+| `notification-retry-helper` | On-demand | Single-notification reset |
+| `notification-dispatcher` | On-demand | Notification routing |
+| `missed-class-detector` | `15 2 * * *` | Nightly attendance gap detection |
+| `attendance-reminder` | Cron | Attendance reminders |
+| `review-checkin` | Cron | REVIEW follow-up |
+| `student-engagement-monitor` | Cron | Engagement monitoring |
+| `clickup-sync` | On-demand | ClickUp escalation |
+| `waitlist-processor` | On-demand | Waitlist evaluation |
+| `class-selection` | On-demand | Class selection token handler |
+| `mailchimp-sync` | Dormant | Not in active use |
+| `report-generator` | Cron | Report generation |
+| `reminder-processor` | Do not schedule | Legacy stub |
+
+---
+
+## Cron Schedule
+
+| Time | Function |
+|---|---|
+| Every 15 min | `email-sender` |
+| Every 20 min | `retry-worker` |
+| Daily 02:15 UTC | `missed-class-detector` |
+| See function config | `attendance-reminder`, `review-checkin`, `student-engagement-monitor`, `report-generator`, `moodle-grade-sync` |
+
+Never schedule: `notification-retry-helper`, `reminder-processor`.
+
+---
+
+## Status Enums
+
+```
+Registration: PENDING | ASSIGNED | WAITLISTED | DUPLICATE | REVIEW | INACTIVE | COMPLETED
+Batch: DRAFT | UPCOMING | ACTIVE | COMPLETED | ARCHIVED
+Teacher availability: PENDING | APPROVED | REJECTED | RESET
+```
+
+---
+
+## Deployment
+
+### Pre-deploy
+
+1. Create `foundation/js/config.js` from `config.js.example`
+2. Set frontend config values (`SUPABASE_URL`, `SUPABASE_ANON_KEY`)
+3. Set required Supabase secrets
+4. Run `supabase db push`
+5. Run `supabase functions deploy`
+6. Confirm `ALLOWED_ORIGINS`
+
+### Post-deploy checks
+
+- Login works
+- Registration fellowships load
+- Admin portal loads
+- Teacher portal loads
+- Email is delivered
+- Moodle health check is green
+
+### Rollback
+
+1. Revert frontend deploy
+2. Redeploy prior function versions
+3. Apply forward-fix migration if needed
+4. Re-run smoke tests
+
+---
+
+## Environment Variables / Secrets
+
+| Secret | Required | Purpose |
+|---|---|---|
+| `SUPABASE_URL` | Yes | Project URL |
+| `SUPABASE_ANON_KEY` | Yes | Frontend auth/db access |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Function privileged operations |
+| `ALLOWED_ORIGINS` | Yes | CORS allowlist |
+| `RESEND_API_KEY` | Yes | Email delivery |
+| `MOODLE_URL` | Yes | Moodle endpoint |
+| `MOODLE_TOKEN` | Yes | Moodle token |
+| `CLICKUP_API_KEY` | Yes | ClickUp |
+| `CLICKUP_LIST_ID` | Yes | ClickUp list |
+| `CLICKUP_DEFAULT_ASSIGNEE_ID` | Yes | ClickUp fallback assignee |
+| `PHASE2_WEBHOOK_SECRET` | Yes | Phase2 auth |
+| `ATTENDANCE_ADMIN_EMAIL` | Yes | Attendance ops email |
+| `TEACHER_PORTAL_URL` | Yes | Teacher portal link |
+| `MAILCHIMP_API_KEY` | Optional (dormant) | Mailchimp |
+| `MAILCHIMP_SERVER_PREFIX` | Optional (dormant) | Mailchimp |
+| `MAILCHIMP_AUDIENCE_ID` | Optional (dormant) | Mailchimp |
+
+Never commit real credentials.
+
+---
+
+## Known Issues
+
+| Issue | Location | Status |
+|---|---|---|
+| `teacher_assignments` query still present in teacher roster flow | `foundation/teacher/roster.html` | Open |
+| Moodle HTTP 403 / WAF blocks enrollment sync | `moodle-sync` | External dependency |
+
+---
+
+## Tech Debt Register (Summary)
+
+| Area | Risk | Target |
+|---|---|---|
+| Assignment logic split across `registration-processor` and `phase2-processor` | High | Q3 2026 |
+| Remaining `fs-*` migration gaps | Medium | Q3-Q4 2026 |
+| Schema fallback loops in some functions | Medium | Q4 2026 |
+| Per-page style duplication | Medium | Q4 2026 |
+| Legacy audit fallback paths | Medium | Q3 2026 |
+
+---
+
+## Security Rules
+
+Before PR:
+
+- No real credentials in git
+- RLS enabled on new tables
+- Server-side auth checks on privileged functions
+- No client-only authorization assumptions
+- Additive/idempotent migrations
+
+Never:
+
+- Add a second registration pipeline
+- Enroll WAITLISTED students in Moodle
+- Remove RLS from protected tables
+- Expose service role operations publicly
+
+---
+
+## Legacy Archive
+
+`archive/apps-script-legacy/` is read-only historical reference and not part of runtime.
+
+---
+
+Generated May 2026. Keep updated as platform evolves.

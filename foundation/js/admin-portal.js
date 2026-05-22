@@ -223,7 +223,7 @@ function loadAdminTools() {
   setHtml('admin-tools', `
     <div class="actions">
       <button class="btn-sm btn-approve" onclick="openPortalPage('batch-management.html','superadmin')">Batch Management</button>
-      <button class="btn-sm btn-reinstate" onclick="openPortalPage('audit-log.html','all')">Audit Log</button>
+      <button class="btn-sm btn-reinstate" onclick="openPortalPage('audit-log.html','superadmin')">Audit Log</button>
       <button class="btn-sm btn-reinstate" onclick="openPortalPage('failed-sync-retry-center.html','all')">Retry Center</button>
       <button class="btn-sm btn-reinstate" onclick="openPortalPage('system-health.html','all')">System Health</button>
       <button class="btn-sm btn-reinstate" onclick="openPortalPage('email-campaigns.html','all')">Email Campaigns</button>

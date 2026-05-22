@@ -138,6 +138,7 @@
 
 <script src="../js/config.js"></script>
   <script src="../js/config-helper.js"></script>
+  <script src="../js/student-profile-drawer.js"></script>
 <script type="module">
 import { CONFIG, supabase } from "../auth/auth-client.js";
 import { requireAuth } from "../auth/auth-client.js";
@@ -266,6 +267,7 @@ function renderRoster() {
       </div>
       <textarea data-notes="${esc(s.id)}" placeholder="Notes...">${esc(s.notes)}</textarea>
       <div class="chips">${chips}</div>
+      <div style="margin-top:8px"><button type="button" class="btn" data-profile="${esc(s.id)}" style="font-size:11px;padding:5px 10px">View Profile</button></div>
     </article>`;
   }).join("") || `<div class="msg warn">No students found for this class.</div>`;
   $("saveMeta").textContent = `${rows.length} students in current roster.`;
@@ -290,6 +292,9 @@ function renderRoster() {
       if (row.milestones.has(key)) row.milestones.delete(key); else row.milestones.add(key);
       renderRoster();
     });
+  });
+  document.querySelectorAll("[data-profile]").forEach((el) => {
+    el.addEventListener("click", () => window.FSStudentProfile?.open(el.getAttribute("data-profile")));
   });
 }
 
@@ -436,6 +441,7 @@ async function boot() {
   const auth = await requireAuth(["teacher", "principal", "admin", "superadmin"]);
   if (!auth) return;
   state.auth = auth;
+  window.FSStudentProfile?.init({ supabase, userRole: auth.profile?.role || "teacher" });
   await loadData();
   wire();
   await maybePromptFirstSubmissionMeta();

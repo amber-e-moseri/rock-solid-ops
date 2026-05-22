@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rock Solid - Admin Management</title>
+  <title>Rock Solid - ClickUp Management</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -111,8 +111,8 @@
       <div class="brand">
         <div class="logo" aria-hidden="true">RS</div>
         <div>
-          <h1>Admin Management</h1>
-          <p id="welcomeLine">Staff/admin operations control</p>
+          <h1>ClickUp Management</h1>
+          <p id="welcomeLine">ClickUp assignee and watcher mappings</p>
         </div>
       </div>
       <div class="header-actions">
@@ -160,13 +160,10 @@
     const $ = (id) => document.getElementById(id);
     const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
     const tabsByRole = {
-      superadmin: ["staff", "teachers", "assignees", "watchers"],
-      admin: ["staff", "teachers", "assignees", "watchers"],
-      principal: ["teachers"],
+      superadmin: ["assignees", "watchers"],
+      admin: ["assignees", "watchers"],
     };
     const tabMeta = {
-      staff: { label: "Staff Accounts", empty: "No staff profiles found." },
-      teachers: { label: "Teachers", empty: "No teachers found." },
       assignees: { label: "ClickUp Assignees", empty: "No ClickUp assignee mappings found." },
       watchers: { label: "ClickUp Watchers", empty: "No ClickUp watcher mappings found." },
     };
@@ -184,8 +181,8 @@
       teachersEmailKey: "email",
       teacherSupportsDeletedAt: true,
       teacherSupportsStatus: true,
-      rows: { staff: [], teachers: [], assignees: [], watchers: [] },
-      loadErrors: { staff: null, teachers: null, assignees: null, watchers: null },
+      rows: { assignees: [], watchers: [] },
+      loadErrors: { assignees: null, watchers: null },
       editing: null
     };
 
@@ -368,8 +365,6 @@
     }
 
     async function refreshActiveData() {
-      if (state.activeTab === "staff") return loadStaff();
-      if (state.activeTab === "teachers") return loadTeachers();
       if (state.activeTab === "assignees") return loadAssignees();
       if (state.activeTab === "watchers") return loadWatchers();
     }
@@ -800,8 +795,6 @@
     }
 
     function openAddForActiveTab() {
-      if (state.activeTab === "staff") return openStaffModal(null);
-      if (state.activeTab === "teachers") return openTeacherModal(null);
       if (state.activeTab === "assignees") return openAssigneeModal(null);
       if (state.activeTab === "watchers") return openWatcherModal(null);
     }
@@ -837,7 +830,7 @@
     }
 
     async function ensureAccess() {
-      const auth = await requireAuth(["superadmin", "admin", "principal"]);
+      const auth = await requireAuth(["superadmin", "admin"]);
       if (!auth) return false;
       const role = String(auth.profile?.role || "").toLowerCase();
       state.auth = auth;
@@ -861,7 +854,7 @@
       renderTabs();
       await refreshActiveData();
       render();
-      notify("Admin management ready.", "info", 1600);
+      notify("ClickUp management ready.", "info", 1600);
     }
 
     boot().catch((err) => {
@@ -875,7 +868,7 @@
   </script>
   <script src="../js/admin-shell.js?v=20260518"></script>
   <script>
-    window.FSAdminShell && window.FSAdminShell.mount({ active: "clickupmanagement", pageTitle: "Admin Management" });
+    window.FSAdminShell && window.FSAdminShell.mount({ active: "clickupmanagement", pageTitle: "ClickUp Management" });
   </script>
 </body>
 </html>

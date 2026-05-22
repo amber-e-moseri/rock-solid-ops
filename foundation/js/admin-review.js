@@ -167,7 +167,7 @@ function renderTable(rows) {
         <td>${esc(preferredTime(app))}</td>
         <td><span class="${statusClass(status)}">${esc(status)}</span></td>
         <td>${esc(classLabel)}</td>
-        <td><button class="btn" data-open="${esc(app.id)}">Open</button></td>
+        <td><button class="btn" data-open="${esc(app.id)}">Open</button> <button class="btn" data-profile="${esc(app.id)}">Profile</button></td>
       </tr>
     `;
   }).join("");
@@ -182,7 +182,7 @@ function renderTable(rows) {
         </div>
         <div style="margin-top:6px;font-size:12px;color:var(--muted)">${esc(app.email || "-")} &middot; ${esc(app.phone || "-")}</div>
         <div style="margin-top:6px;font-size:12px">${esc(app.fellowship_code || "-")} &middot; ${esc(preferredTime(app))}</div>
-        <div class="actions" style="margin-top:8px"><button class="btn" data-open="${esc(app.id)}">Open</button></div>
+        <div class="actions" style="margin-top:8px"><button class="btn" data-open="${esc(app.id)}">Open</button><button class="btn" data-profile="${esc(app.id)}">Profile</button></div>
       </article>
     `;
   }).join("");
@@ -671,6 +671,11 @@ function wireEvents() {
       openDetail(openBtn.getAttribute("data-open"));
     }
 
+    const profileBtn = e.target.closest("[data-profile]");
+    if (profileBtn) {
+      window.FSStudentProfile?.open(profileBtn.getAttribute("data-profile"));
+    }
+
     const markBtn = e.target.closest("[data-mark]");
     if (markBtn) {
       markStatus(markBtn.getAttribute("data-mark"));
@@ -713,6 +718,7 @@ async function boot() {
     pageTitle: "Admin Review",
   });
   window.FSAdminShell && window.FSAdminShell.setProfile(profile.full_name || profile.email || "Admin");
+  window.FSStudentProfile?.init({ supabase, userRole: profile?.role || "" });
 
   wireEvents();
   await loadData();

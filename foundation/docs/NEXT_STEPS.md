@@ -24,14 +24,14 @@
 - Keep RLS and role-policy reviews aligned with any new operational tables.
 
 ## Current Platform State — May 2026
-- RLS hardening complete.
-- CORS cleanup complete.
-- Attendance dedupe complete.
+- RLS hardening baseline completed (continue incremental policy audits as new flows ship).
+- CORS cleanup baseline completed.
+- Attendance dedupe baseline completed.
 - fs-* design system introduced (`tokens.css` + `primitives.css`).
 - `teacher-portal-api` router refactor completed.
 - Moodle 403 classification completed (WAF vs permissions vs REST-disabled paths).
 - Shared `supabase/functions/_shared/` utilities introduced.
-- `sender-worker` marked for deprecation.
+- `sender-worker` deprecation tracked; verify function artifact state in each environment before release.
 - Operational visibility improved across retry/error surfaces.
 
 ## Current Highest Priority Consolidation Tasks
@@ -54,7 +54,7 @@
 - 2026-05-13: Treat dual endpoint configuration as a release blocker. Legacy `APPS_SCRIPT_URL` was removed from `registration-form.html`.
 - 2026-05-13: Ensure scheduled invocation of `retry-worker` every 20 minutes is active in deployed project. Confirmed active in `supabase/functions/retry-worker/config.toml` (no change required).
 - 2026-05-13: `sender-worker` must remain unscheduled. Confirmed no cron entry exists (no change required).
-- 2026-05-14: `sender-worker` deprecation completed. Added hard HTTP 410 guard in `supabase/functions/sender-worker/index.ts` returning `{"error":"sender-worker is deprecated. Use email-sender."}`.
+- 2026-05-14: `sender-worker` deprecation intent recorded. Follow-up required: verify runtime function file/state and update this note to match the current repository/deployed artifact.
 
 
 

@@ -253,7 +253,7 @@ function renderTable(rows) {
       <td>${statusPill(summary.notificationState)}</td>
       <td>${esc(fmt(summary.lastActivity))}</td>
       <td><span class="pill ${rowStatus.cls}">${esc(rowStatus.label)}</span></td>
-      <td><div class="btns"><button class="btn" data-open="${esc(app.id)}">Open</button><button class="btn" data-correct="${esc(app.id)}">Correct</button><button class="btn" data-direct-email="${esc(app.id)}">Email</button></div></td>
+      <td><div class="btns"><button class="btn" data-open="${esc(app.id)}">Open</button><button class="btn" data-profile="${esc(app.id)}">Profile</button><button class="btn" data-correct="${esc(app.id)}">Correct</button><button class="btn" data-direct-email="${esc(app.id)}">Email</button></div></td>
     </tr>`;
   }).join("");
   $("tableWrap").innerHTML = `<table><thead><tr>
@@ -268,12 +268,13 @@ function renderTable(rows) {
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><div style="font-weight:800">${esc(app.full_name || "-")}</div><div class="muted" style="font-size:12px">${esc(app.email || "-")}</div></div><span class="pill ${rowStatus.cls}">${esc(rowStatus.label)}</span></div>
       <div style="margin-top:8px;font-size:12px" class="muted">${esc(app.class_option_id || "No class assigned")} · Attendance ${summary.attendancePct == null ? "-" : `${summary.attendancePct}%`}</div>
       <div style="margin-top:6px">${statusPill(summary.notificationState)}</div>
-      <div class="btns" style="margin-top:10px"><button class="btn" data-open="${esc(app.id)}">Open</button><button class="btn" data-correct="${esc(app.id)}">Correct</button><button class="btn" data-direct-email="${esc(app.id)}">Email</button></div>
+      <div class="btns" style="margin-top:10px"><button class="btn" data-open="${esc(app.id)}">Open</button><button class="btn" data-profile="${esc(app.id)}">Profile</button><button class="btn" data-correct="${esc(app.id)}">Correct</button><button class="btn" data-direct-email="${esc(app.id)}">Email</button></div>
     </article>`;
   }).join("") || `<div class="muted">No registrants match the current filters.</div>`;
   document.querySelectorAll("[data-open]").forEach((btn) => btn.addEventListener("click", () => openDrawer(btn.getAttribute("data-open"))));
   document.querySelectorAll("[data-correct]").forEach((btn) => btn.addEventListener("click", () => openCorrectionModal(btn.getAttribute("data-correct"))));
   document.querySelectorAll("[data-direct-email]").forEach((btn) => btn.addEventListener("click", () => openDirectEmailModalForApplicant(btn.getAttribute("data-direct-email"))));
+  document.querySelectorAll("[data-profile]").forEach((btn) => btn.addEventListener("click", () => window.FSStudentProfile?.open(btn.getAttribute("data-profile"))));
 }
 function openDirectEmailModalForApplicant(applicantId) {
   const app = state.applicants.find((a) => String(a.id) === String(applicantId || ""));
@@ -856,6 +857,7 @@ async function boot() {
   if (!auth) return;
   state.auth = auth;
   window.FSDirectEmail?.init({ supabase, senderEmail: auth.profile?.email || "" });
+  window.FSStudentProfile?.init({ supabase, userRole: auth.profile?.role || "" });
   window.FSAdminShell && window.FSAdminShell.mount({
     active: "applicants",
     pageTitle: "Applicant Directory",
