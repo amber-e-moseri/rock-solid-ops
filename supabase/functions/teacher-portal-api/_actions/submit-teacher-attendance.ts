@@ -34,10 +34,6 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
         .filter((r) => String(r.attendanceStatus || "").toLowerCase() === "present")
         .map((r) => String(r.studentId));
       const presentStudentSet = new Set(presentStudentIds);
-      const notesByStudentId = new Map<string, string | null>();
-      for (const r of eligibleRecords) {
-        notesByStudentId.set(String(r.studentId), String(r.notes || "").trim() || null);
-      }
 
       const rosterMetaByStudentId = new Map<string, { group_id: string | null; subgroup_id: string | null; batch_id: string | null }>();
       if (allStudentIds.length) {
@@ -117,7 +113,6 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
             .from("class_slots")
             .select("batch_id,status,batches(batch_id,start_date,active,status)")
             .eq("class_option_id", classOptionId)
-            .order("created_at", { ascending: false })
             .limit(10),
           "resolve class batch for late start",
         );
@@ -146,7 +141,6 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
             .from("class_options")
             .update({
               confirmed_start_date: startDate,
-              updated_at: nowIso,
               updated_by: auth.teacher.email,
             })
             .eq("class_option_id", classOptionId),
@@ -162,7 +156,6 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
             db
               .from("class_options")
               .update({
-                updated_at: nowIso,
                 updated_by: auth.teacher.email,
               })
               .eq("class_option_id", classOptionId),
@@ -189,7 +182,6 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
               present: false,
               submitted_by_teacher: true,
               submission_date: nowIso,
-              session_status: "LATE_START",
               response_id: "Late start - confirmed by teacher",
             }));
           });
@@ -217,18 +209,15 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
           class_number: session,
           class_date: classDate,
           present: presentStudentSet.has(studentId),
-          notes: notesByStudentId.get(studentId) ?? null,
           submitted_by_teacher: true,
           submission_date: nowIso,
-          session_status: "SUBMITTED",
-          updated_at: nowIso,
         })),
       );
 
       const dedupe = new Map<string, typeof inserts[number]>();
       for (const row of inserts) {
         // attendance_log dedupe key aligns with DB upsert conflict key.
-        const key = `${row.student_id}::${row.class_option_id}::${row.class_number}::${row.batch_id || ""}`;
+        const key = `${row.student_id}::${row.class_option_id}::${row.class_number}::${row.class_date || ""}`;
         if (!dedupe.has(key)) dedupe.set(key, row);
       }
       const uniqueInserts = [...dedupe.values()];
@@ -236,7 +225,7 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
       if (uniqueInserts.length) {
         const upsertRes = await withTimeout(
           db.from("attendance_log").upsert(uniqueInserts, {
-            onConflict: "student_id,class_option_id,class_number,batch_id",
+            onConflict: "student_id,class_option_id,class_number,class_date",
           }),
           "attendance upsert",
         );
