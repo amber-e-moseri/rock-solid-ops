@@ -7,6 +7,22 @@
   <link rel="stylesheet" href="../ui/tokens.css" />
   <link rel="stylesheet" href="../ui/primitives.css" />
   <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <style>
+    body { font-family:"Manrope", system-ui, sans-serif; background: var(--color-bg); }
+    .fs-content { max-width: 1240px; margin: 0 auto; padding: 16px; }
+    #main-content .fs-card { border-radius: 12px; box-shadow: 0 4px 18px rgba(76,42,146,.08); }
+    #main-content .ta-pill { border-radius: 999px; min-height: 34px; }
+    #main-content .ta-pill.active { background:#4C2A92 !important; border-color:#4C2A92 !important; color:#fff; }
+    #main-content .ta-days { background:#f8f6ff; }
+    #main-content .ta-cell.on { background:#ede9fe; color:#4C2A92; }
+    #main-content .fs-btn-primary { background:#4C2A92; border-color:#4C2A92; min-height:44px; font-weight:700; }
+    #main-content .fs-btn-primary:hover { background:#3f2179; }
+    #main-content .ta-layout aside.fs-card { box-shadow: 0 6px 20px rgba(76,42,146,.1); }
+    @media (max-width: 768px) {
+      .fs-content { padding: 12px; }
+      #main-content .fs-btn, #main-content .fs-input, #main-content .fs-select { min-height:44px; }
+    }
+  </style>
 </head>
 <body>
   <main class="fs-content" style="max-width:1200px;margin:0 auto;padding:16px;">

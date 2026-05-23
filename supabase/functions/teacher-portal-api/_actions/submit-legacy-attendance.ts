@@ -33,7 +33,7 @@ export async function submitLegacyAttendanceAction(ctx: ActionContext): Promise<
             action: "UNAUTHORIZED_CLASS_ACCESS",
             actorEmail: auth.teacher.email,
             actorId: auth.user.id,
-            entityType: "attendance_records",
+            entityType: "attendance_log",
             entityId: classOptionId,
             status: "denied",
             details: { invalidStudentIds: invalidIds },
@@ -43,7 +43,7 @@ export async function submitLegacyAttendanceAction(ctx: ActionContext): Promise<
       }
 
       const { error: attErr } = await withTimeout(
-        db.from("attendance_records").upsert(attendanceRows, {
+        db.from("attendance_log").upsert(attendanceRows, {
           onConflict: "student_id,class_option_id,class_number,class_date",
         }),
         "upsert legacy attendance",

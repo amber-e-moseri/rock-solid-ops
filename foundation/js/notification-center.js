@@ -61,7 +61,7 @@ const invokeRetryWorker = async (action, source, id) => {
 };
 
 (async function boot() {
-  const auth = await requireAuth(["admin", "superadmin", "subgroup_admin", "pastor", "regional_secretary"]);
+  const auth = await requireAuth(["admin", "superadmin"]);
   if (!auth) return;
 
   const profile = await getCurrentProfile();

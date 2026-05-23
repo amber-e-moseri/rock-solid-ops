@@ -79,20 +79,39 @@
         return false;
       }
 
+      const uid = String(session.user?.id || "").trim();
       const email = String(session.user?.email || "").trim();
-      if (!email) {
+      if (!uid && !email) {
         window.location.href = resolveLoginPath();
         return false;
       }
 
-      const { data, error } = await auth.supabase
-        .from("teachers")
-        .select("teacher_id,status,active,deleted_at")
-        .eq("email", email)
-        .is("deleted_at", null)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      let data = null;
+      let error = null;
+      if (uid) {
+        const byUserId = await auth.supabase
+          .from("teachers")
+          .select("teacher_id,status,active,deleted_at")
+          .eq("teacher_user_id", uid)
+          .is("deleted_at", null)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        data = byUserId.data;
+        error = byUserId.error;
+      }
+      if (!data && email) {
+        const byEmail = await auth.supabase
+          .from("teachers")
+          .select("teacher_id,status,active,deleted_at")
+          .eq("email", email)
+          .is("deleted_at", null)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        data = byEmail.data;
+        error = byEmail.error;
+      }
       if (error || !data) {
         document.body.innerHTML = '<main class="fs-page"><section class="card"><h2 style="margin:0 0 8px;">Access Denied</h2><p>Teacher access record not found.</p></section></main>';
         return false;
@@ -121,9 +140,10 @@
     document.body.classList.add("fs-force-light");
     const active = opts.active || inferActiveKey();
     const links = [
-      { href: "../teacher/index.html?section=attendance", icon: "&#x2705;", label: "Attendance", key: "attendance" },
-      { href: "../teacher/index.html?section=my-class", icon: "&#x1F465;", label: "My Class", key: "my-class" },
-      { href: "../teacher/index.html?section=availability", icon: "&#x1F4C5;", label: "Availability", key: "availability" },
+      { href: "../teacher/index.html?section=dashboard", icon: "📊", label: "Dashboard", key: "dashboard" },
+      { href: "../teacher/index.html?section=attendance", icon: "✅", label: "Attendance", key: "attendance" },
+      { href: "../teacher/index.html?section=my-class", icon: "👥", label: "My Class", key: "my-class" },
+      { href: "../teacher/index.html?section=availability", icon: "📅", label: "Availability", key: "availability" },
     ];
 
     // Remove any accidental duplicate shells from previous buggy mounts.
@@ -137,7 +157,10 @@
       nav.className = "fs-shell-nav";
       nav.innerHTML = `
         <div class="fs-shell-inner">
-          <div class="fs-shell-brand">FS</div>
+          <div class="fs-shell-brand" style="display:flex;align-items:center;gap:8px;">
+            <img src="https://rocksolidsuite.netlify.app/foundation/registration/canada_sr.png" alt="Rock Solid" style="width:28px;height:28px;border-radius:8px;" />
+            <span>Rock Solid</span>
+          </div>
           <div class="fs-shell-links">
             ${links
               .map(
@@ -149,7 +172,7 @@
               )
               .join("")}
           </div>
-          <button id="fs-theme-toggle" class="fs-shell-theme-btn" aria-label="Toggle theme" style="display:none">??</button>
+          <button id="fs-theme-toggle" class="fs-shell-theme-btn" aria-label="Toggle theme" style="display:none">T</button>
         </div>
       `;
       document.body.prepend(nav);

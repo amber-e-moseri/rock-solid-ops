@@ -135,19 +135,20 @@ Deno.serve(async (req) => {
             // Skip if milestone already recorded.
             const { data: existing } = await supabase
               .from("student_milestone_status")
-              .select("completed")
+              .select("status")
               .eq("applicant_id", applicant.id)
               .eq("milestone_code", "HOLY_SPIRIT")
               .maybeSingle();
 
-            if (!existing?.completed) {
+            if (existing?.status !== "completed") {
               const { error: upsertErr } = await supabase
                 .from("student_milestone_status")
                 .upsert(
                   {
                     applicant_id:   applicant.id,
                     milestone_code: "HOLY_SPIRIT",
-                    completed:      true,
+                    status:         "completed",
+                    completed_at:   new Date().toISOString(),
                     updated_at:     new Date().toISOString(),
                   },
                   { onConflict: "applicant_id,milestone_code" },

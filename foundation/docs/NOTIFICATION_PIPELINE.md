@@ -3,7 +3,7 @@
 Authoritative reference for the Foundation School email notification pipeline.
 Keep this document up to date when pipeline functions change.
 
-Last updated: May 2026
+Last updated: May 23, 2026
 
 ---
 
@@ -81,21 +81,23 @@ Responsibility:
 
 ---
 
-### notification-retry-helper — RETRY HELPER ONLY
+### retry-worker — UNIFIED RETRY + MOODLE SWEEP
 
-**File:** `supabase/functions/notification-retry-helper/index.ts`
-**Schedule:** None. Must not be given a cron schedule.
-**Status:** Active — Retry Center helper only.
-
-**This function is NOT the canonical batch processor despite its name.**
+**File:** `supabase/functions/retry-worker/index.ts`
+**Schedule:** `0 * * * *` (hourly)
+**Status:** Active — canonical retry handler.
 
 Responsibility:
-- Accepts `POST { id, source: "scheduled_notifications" }`
-- Resets one notification to `PENDING` with `scheduled_for = now()`
-- Used by the Retry Center when an operator manually retries a failed notification
-- Does not insert email_queue rows, does not call Resend
+- **`action: "retry"`** — single-item retry for `email_queue` or `scheduled_notifications`:
+  - Reads row, validates status is FAILED/ERROR/PENDING (case-insensitive)
+  - Increments `attempts`
+  - For `email_queue`: resets `status = "Pending"`, clears `error_message` / `last_error`
+  - For `scheduled_notifications`: resets `status = "PENDING"`, resets `scheduled_for = now()`, clears `last_error`
+- **`action: "sweep"`** — auto-sweeps Moodle enrollment failures, retries failed syncs
+- On the hourly cron: runs the Moodle sweep automatically
 
-**Do not add batch processing logic here.** See TECH_DEBT_REGISTER.md §11 for the planned rename.
+This function merges all logic previously split across `email-retry` and `notification-retry-helper`.
+Both of those functions are now tombstoned (HTTP 410).
 
 ---
 
@@ -114,14 +116,15 @@ Legacy reconciliation behavior is retired. See git history for one-off reconcile
 ### Notification-level retry (scheduled_notifications)
 
 When a notification is FAILED or stuck PENDING, an operator can trigger a retry via the
-Retry Center. This calls `notification-retry-helper` with the notification ID, which
-resets it to `PENDING` with `scheduled_for = now()`. On the next `notification-batch-processor` run,
+Retry Center. This calls `retry-worker` with `{ action: "retry", source: "scheduled_notifications", id }`,
+which resets it to `PENDING` with `scheduled_for = now()`. On the next `notification-batch-processor` run,
 it will be picked up and re-queued to `email_queue`.
 
 ### Email-level retry (email_queue)
 
 When an `email_queue` row is `Failed`, the operator can reset it to `Pending` via the
-Retry Center. On the next `email-sender` cron run (daily 07:00 EST), it will be retried.
+Retry Center. This calls `retry-worker` with `{ action: "retry", source: "email_queue", id }`.
+On the next `email-sender` cron run (daily 07:00 EST), it will be retried.
 
 ### Retry limits
 
@@ -170,18 +173,9 @@ Retry Center.
 | Function | Schedule | Role |
 |---|---|---|
 | `email-sender` | `0 12 * * *` (daily 07:00 EST) | Resend delivery |
-| `retry-worker` | `*/20 * * * *` (every 20 min) | Moodle enrollment retry sweep |
+| `retry-worker` | `0 * * * *` (hourly) | Moodle enrollment retry sweep + unified retry handler |
 | `missed-class-detector` | `15 2 * * *` (daily 02:15) | Attendance gap detection |
 | `notification-batch-processor` | None (on-demand) | Notification batch queuing |
-| `notification-retry-helper` | None (must not schedule) | Retry Center helper |
-
----
-
-## Which Functions Must Never Run Together
-
-| Pair | Risk |
-|---|---|
-| `notification-retry-helper` as cron + `notification-batch-processor` | duplicate PENDING resets, potential duplicate email_queue rows |
 
 ---
 
@@ -294,12 +288,14 @@ Implementation note (MVP safety hardening):
 
 ---
 
-## Deleted Functions
+## Deleted / Tombstoned Functions
 
-| Function | Deleted On | Reason |
-|---|---|---|
-| `sender-worker` | May 18, 2026 | Deprecated reconciliation path removed; no stuck PENDING rows |
-| `scheduled-notification-sender` | May 18, 2026 | Renamed to `notification-retry-helper`; old stub removed |
-| `sender-healthcheck` | May 18, 2026 | Non-operational stub retired |
+| Function | Status | Date | Reason |
+|---|---|---|---|
+| `sender-worker` | Deleted | May 18, 2026 | Deprecated reconciliation path removed; no stuck PENDING rows |
+| `scheduled-notification-sender` | Deleted | May 18, 2026 | Renamed to `notification-retry-helper`; old stub removed |
+| `sender-healthcheck` | Deleted | May 18, 2026 | Non-operational stub retired |
+| `email-retry` | Tombstoned (410) | May 23, 2026 | Merged into `retry-worker` — supports both `email_queue` and `scheduled_notifications` |
+| `notification-retry-helper` | Tombstoned (410) | May 23, 2026 | Merged into `retry-worker` — `scheduled_for` reset behavior preserved |
 
 

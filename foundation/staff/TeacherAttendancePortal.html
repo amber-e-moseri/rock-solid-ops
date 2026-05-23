@@ -1,4 +1,4 @@
-<!doctype html>
+ï»¿<!doctype html>
 <html lang="en">
 <head>
   <style>
@@ -9,7 +9,7 @@
   </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Teacher Attendance Portal</title>
+  <title>Attendance</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
@@ -107,7 +107,7 @@
 <body>
   <main class="wrap fs-page fs-wrap-narrow">
     <section class="hero">
-      <h1 class="hero-title">Teacher Attendance Portal</h1>
+      <h1 class="hero-title">Attendance</h1>
     </section>
 
     <div class="stepper" id="stepper">
@@ -204,6 +204,15 @@
     }
     const SESSIONS = ['Class1','Class2','Class3','Class4A','Class4B','Class5','Class6','Class7'];
     const state = { teacher:null, teachers:[], classes:[], classOption:null, action:'', sessions:['Class1'], session:'Class1', classDate:'', roster:[], attendance:{}, addResults:[], fellowships:[], milestones:[], attendanceSubmitted:false, lastRecords:[], gridRows:[] };
+    const teacherModeScope = (() => {
+      try {
+        const raw = sessionStorage.getItem("fs_teacher_mode_scope");
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (String(parsed?.mode || "").toLowerCase() !== "teacher") return null;
+        return parsed;
+      } catch (_) { return null; }
+    })();
 
     function showRuntimeError(message){
       const root = document.querySelector(".hero") || document.querySelector("main");
@@ -268,7 +277,7 @@
       const el = document.getElementById('ctx-badge');
       if(!el) return;
       const parts=[]; if(state.teacher) parts.push(state.teacher.fullName); const cls = selectedClassLabel(); if(cls) parts.push(cls);
-      el.textContent = parts.join(' | ') || 'Teacher Attendance Portal';
+      el.textContent = parts.join(' | ') || 'Attendance';
     }
 
     let tmr = null;
@@ -279,7 +288,10 @@
       el.innerHTML = '<div class="muted">Searching...</div>';
       try{
         const r = await apiGet('lookupTeacherForAttendance', { query:q });
-        state.teachers = r.data || [];
+        state.teachers = (r.data || []).filter((t) => {
+          if (!teacherModeScope?.teacherId) return true;
+          return String(t.teacherId || "").trim() === String(teacherModeScope.teacherId || "").trim();
+        });
         el.innerHTML = state.teachers.map(t => `<div class="item" onclick="pickTeacher('${esc(t.teacherId)}')" id="t-${esc(t.teacherId)}"><div class="item-name">${esc(t.fullName)}</div><div class="item-meta">${esc(t.email)} ${esc(t.subGroupLabel || '')}</div></div>`).join('') || '<div class="muted">No matches found.</div>';
       } catch(e){ el.innerHTML = `<div class="error">${esc(e.message)}</div>`; }
     }
@@ -408,7 +420,7 @@
     function renderRoster(){
       const q = (document.getElementById('rosterSearch').value || '').toLowerCase();
       const rows = state.roster.filter(r => !q || String(r.fullName || '').toLowerCase().includes(q) || String(r.email || '').toLowerCase().includes(q));
-      document.getElementById('roster').innerHTML = rows.map(r => `<div class="item ${state.attendance[r.id] ? 'sel' : ''}" onclick="toggle('${esc(r.id)}')"><div class="roster-item"><div class="roster-main"><div class="item-name">${esc(r.fullName)} <span class="item-meta">(${esc(r.personType)})</span></div><div class="item-meta">${esc(r.email || '')}${r.phone ? ' • ' + esc(r.phone) : ''} • ${esc(r.status || '')}</div></div><div class="roster-status">${state.attendance[r.id] ? 'Present' : 'Absent'}</div></div></div>`).join('') || '<div class="muted">No roster records found.</div>';
+      document.getElementById('roster').innerHTML = rows.map(r => `<div class="item ${state.attendance[r.id] ? 'sel' : ''}" onclick="toggle('${esc(r.id)}')"><div class="roster-item"><div class="roster-main"><div class="item-name">${esc(r.fullName)} <span class="item-meta">(${esc(r.personType)})</span></div><div class="item-meta">${esc(r.email || '')}${r.phone ? ' â€¢ ' + esc(r.phone) : ''} â€¢ ${esc(r.status || '')}</div></div><div class="roster-status">${state.attendance[r.id] ? 'Present' : 'Absent'}</div></div></div>`).join('') || '<div class="muted">No roster records found.</div>';
       updateCounts();
     }
 
@@ -517,7 +529,7 @@
 
     async function autoInitTeacherFromEmail() {
       const params = new URLSearchParams(window.location.search || "");
-      let email = String(params.get("email") || "").trim();
+      let email = String(teacherModeScope?.email || params.get("email") || "").trim();
       if (!email) {
         email = String(sessionStorage.getItem("fs_teacher_email") || "").trim();
       }
@@ -534,7 +546,10 @@
       if (innerName) innerName.textContent = email;
 
       const input = document.getElementById("teacherQuery");
-      if (input) input.value = email;
+      if (input) {
+        input.value = email;
+        if (teacherModeScope?.teacherId) input.readOnly = true;
+      }
 
       try {
         const r = await apiGet("lookupTeacherForAttendance", { query: email });
@@ -548,7 +563,7 @@
             pickClass(state.classes[0].classOptionId);
             chooseAction('attendance');
           } else if (state.classes && state.classes.length > 1) {
-            // Multiple classes — stop at class selection, let teacher choose
+            // Multiple classes â€” stop at class selection, let teacher choose
             show(2);
           }
           return;
@@ -603,6 +618,7 @@
   </script>
 </body>
 </html>
+
 
 
 

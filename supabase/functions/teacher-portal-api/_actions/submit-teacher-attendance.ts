@@ -24,10 +24,20 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
         : null;
 
       const eligibleRecords = records.filter((r) => r && r.studentId);
-      const allStudentIds = [...new Set(eligibleRecords.map((r) => String(r.studentId)))];
+      const allStudentIdsFromPayload = Array.isArray(params.allStudentIds) ? params.allStudentIds : [];
+      const allStudentIds = [...new Set(
+        (allStudentIdsFromPayload.length ? allStudentIdsFromPayload : eligibleRecords.map((r) => r.studentId))
+          .map((id) => String(id || "").trim())
+          .filter(Boolean),
+      )];
       const presentStudentIds = eligibleRecords
         .filter((r) => String(r.attendanceStatus || "").toLowerCase() === "present")
         .map((r) => String(r.studentId));
+      const presentStudentSet = new Set(presentStudentIds);
+      const notesByStudentId = new Map<string, string | null>();
+      for (const r of eligibleRecords) {
+        notesByStudentId.set(String(r.studentId), String(r.notes || "").trim() || null);
+      }
 
       const rosterMetaByStudentId = new Map<string, { group_id: string | null; subgroup_id: string | null; batch_id: string | null }>();
       if (allStudentIds.length) {
@@ -142,7 +152,26 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
             .eq("class_option_id", classOptionId),
           "save confirmed class start date",
         );
-        if (confirmedStartRes.error) throw new ApiError("INTERNAL_ERROR", "Failed to save confirmed class start date", 500);
+        if (confirmedStartRes.error) {
+          const isMissingConfirmedStartColumn = String(confirmedStartRes.error?.code || "") === "42703" ||
+            String(confirmedStartRes.error?.message || "").toLowerCase().includes("confirmed_start_date");
+          if (!isMissingConfirmedStartColumn) {
+            throw new ApiError("INTERNAL_ERROR", "Failed to save confirmed class start date", 500);
+          }
+          const fallbackUpdateRes = await withTimeout(
+            db
+              .from("class_options")
+              .update({
+                updated_at: nowIso,
+                updated_by: auth.teacher.email,
+              })
+              .eq("class_option_id", classOptionId),
+            "save class metadata fallback",
+          );
+          if (fallbackUpdateRes.error) {
+            throw new ApiError("INTERNAL_ERROR", "Failed to save class metadata fallback", 500);
+          }
+        }
 
         const missedWeeks = Math.max(0, Math.floor(dateDiffDays(batchStartDate, startDate) / 7));
         if (missedWeeks > 0 && allStudentIds.length > 0) {
@@ -161,7 +190,7 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
               submitted_by_teacher: true,
               submission_date: nowIso,
               session_status: "LATE_START",
-              response_id: "Late start — confirmed by teacher",
+              response_id: "Late start - confirmed by teacher",
             }));
           });
           if (lateRows.length) {
@@ -176,7 +205,7 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
         }
       }
 
-      const inserts = presentStudentIds.flatMap((studentId) =>
+      const inserts = allStudentIds.flatMap((studentId) =>
         classSessions.map((session) => ({
           student_id: studentId,
           // Source group/subgroup/batch from class_roster metadata; keep null if unavailable.
@@ -187,17 +216,19 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
           teacher_name: auth.teacher.fullName || null,
           class_number: session,
           class_date: classDate,
-          present: true,
+          present: presentStudentSet.has(studentId),
+          notes: notesByStudentId.get(studentId) ?? null,
           submitted_by_teacher: true,
           submission_date: nowIso,
           session_status: "SUBMITTED",
+          updated_at: nowIso,
         })),
       );
 
       const dedupe = new Map<string, typeof inserts[number]>();
       for (const row of inserts) {
         // attendance_log dedupe key aligns with DB upsert conflict key.
-        const key = `${row.student_id}::${row.class_option_id}::${row.class_number}::${row.class_date || ""}`;
+        const key = `${row.student_id}::${row.class_option_id}::${row.class_number}::${row.batch_id || ""}`;
         if (!dedupe.has(key)) dedupe.set(key, row);
       }
       const uniqueInserts = [...dedupe.values()];
@@ -205,7 +236,7 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
       if (uniqueInserts.length) {
         const upsertRes = await withTimeout(
           db.from("attendance_log").upsert(uniqueInserts, {
-            onConflict: "student_id,class_option_id,class_number,class_date",
+            onConflict: "student_id,class_option_id,class_number,batch_id",
           }),
           "attendance upsert",
         );

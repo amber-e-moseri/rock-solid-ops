@@ -45,7 +45,11 @@
     }
     .kpi-card.kpi-warn .kpi-value  { color: #c07400; }
     .kpi-card.kpi-danger .kpi-value { color: #b53030; }
-    #failedSyncKpiCard.is-clickable { cursor: pointer; }
+    .kpi-stamp { margin-top: 8px; font-size: 11px; color: var(--fs-text-muted); }
+
+    .kpi-good { color: #15803d !important; }
+    .kpi-watch { color: #b45309 !important; }
+    .kpi-action { color: #b91c1c !important; }
 
     /* Two-column chart row */
     .chart-row {
@@ -84,6 +88,47 @@
     }
     .hidden { display: none !important; }
 
+    .batch-switcher {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .batch-switch {
+      border: 1px solid var(--fs-border);
+      border-radius: 12px;
+      background: var(--fs-surface);
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+    .batch-switch.active {
+      border-color: var(--fs-primary);
+      box-shadow: 0 0 0 2px rgba(76,42,146,.12);
+    }
+    .batch-switch .title { font-size: 13px; font-weight: 700; }
+    .batch-switch .meta { margin-top: 4px; font-size: 11px; color: var(--fs-text-muted); }
+
+    .health-meter { display: grid; gap: 8px; }
+    .health-progress-track { height: 12px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+    .health-progress-fill { height: 100%; width: 0%; background: #15803d; transition: width .2s ease; }
+    .health-progress-fill.watch { background: #b45309; }
+    .health-progress-fill.action { background: #b91c1c; }
+
+    .funnel-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .funnel-step {
+      border: 1px solid var(--fs-border);
+      border-radius: 10px;
+      padding: 10px;
+      background: var(--fs-surface);
+    }
+    .funnel-step .label { font-size: 11px; color: var(--fs-text-muted); text-transform: uppercase; letter-spacing: .04em; }
+    .funnel-step .count { font-size: 1.2rem; font-weight: 800; margin-top: 4px; }
+    .funnel-step .pct { font-size: 11px; color: var(--fs-text-muted); margin-top: 3px; }
+
     /* Table */
     .fs-table-wrap { overflow: auto; border: 1px solid var(--color-border, var(--border)); border-radius: 12px; }
     table.fs-table { width: 100%; min-width: 560px; border-collapse: collapse; }
@@ -96,9 +141,13 @@
       .kpi-row    { grid-template-columns: repeat(2, 1fr); }
       .chart-row  { grid-template-columns: 1fr; }
       .ops-row    { grid-template-columns: 1fr; }
+      .batch-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .funnel-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 520px) {
-      .kpi-row { grid-template-columns: 1fr 1fr; }
+      .kpi-row { grid-template-columns: 1fr; }
+      .batch-switcher { grid-template-columns: 1fr; }
+      .funnel-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -124,6 +173,7 @@
         <button id="refreshBtn" class="fs-btn fs-btn-primary fs-btn-sm">Refresh</button>
         <span id="lastRefreshed" style="margin-left:auto;font-size:12px;color:var(--color-text-muted,var(--color-text-muted));"></span>
       </div>
+      <div id="batchSwitcher" class="batch-switcher"></div>
     </section>
 
     <!-- Stale queue alert -->
@@ -136,43 +186,88 @@
     <!-- KPI cards -->
     <div class="kpi-row">
       <article class="kpi-card">
-        <div class="kpi-value" id="kpiEnrolled">—</div>
+        <div class="kpi-value" id="kpiEnrolled">-</div>
         <div class="kpi-label">Total Enrolled</div>
+        <div class="kpi-stamp" data-stamp="kpiEnrolled">as of -</div>
       </article>
       <article class="kpi-card">
-        <div class="kpi-value" id="kpiWaitlisted">—</div>
+        <div class="kpi-value" id="kpiWaitlisted">-</div>
         <div class="kpi-label">Waitlisted</div>
+        <div class="kpi-stamp" data-stamp="kpiWaitlisted">as of -</div>
       </article>
-      <article class="kpi-card fs-metric" title="Teachers currently certified and active for this quarter">
-        <div class="kpi-value fs-metric-value" id="kpiActiveCertifiedTeachers">-</div>
-        <div class="kpi-label fs-metric-label">Active/Certified Teachers</div>
+      <article class="kpi-card fs-metric" title="Applicants currently in REVIEW status">
+        <div class="kpi-value fs-metric-value" id="kpiPendingReview">-</div>
+        <div class="kpi-label fs-metric-label">Pending Review</div>
+        <div class="kpi-stamp" data-stamp="kpiPendingReview">as of -</div>
       </article>
-      <article class="kpi-card fs-metric" title="Teachers assigned to at least one active class in the current batch">
-        <div class="kpi-value fs-metric-value" id="kpiCurrentlyTeaching">-</div>
-        <div class="kpi-label fs-metric-label">Currently Teaching</div>
+      <article class="kpi-card fs-metric" title="Applicants currently marked DUPLICATE">
+        <div class="kpi-value fs-metric-value" id="kpiDuplicates">-</div>
+        <div class="kpi-label fs-metric-label">Duplicates</div>
+        <div class="kpi-stamp" data-stamp="kpiDuplicates">as of -</div>
       </article>
       <article class="kpi-card kpi-warn">
-        <div class="kpi-value" id="kpiStale">—</div>
+        <div class="kpi-value" id="kpiStale">-</div>
         <div class="kpi-label">Stale Reviews (&gt;48 h)</div>
+        <div class="kpi-stamp" data-stamp="kpiStale">as of -</div>
       </article>
-      <article id="failedSyncKpiCard" class="kpi-card kpi-danger">
-        <div class="kpi-value" id="kpiFailedSyncs">—</div>
-        <div class="kpi-label">Failed Syncs</div>
-      </article>
+    </div>
+
+    <section class="card" style="margin-bottom:16px;">
+      <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h3 style="margin:0;font-size:14px;font-weight:800;">Attendance Health</h3>
+        <span id="attendanceAsOf" class="kpi-stamp">as of -</span>
+      </div>
+      <div class="health-meter">
+        <div style="font-size:1.5rem;font-weight:800;" id="attendanceRateBig">-% attendance submission rate</div>
+        <div class="health-progress-track"><div id="attendanceProgressFill" class="health-progress-fill"></div></div>
+        <div id="attendanceHealthMeta" style="font-size:12px;color:var(--fs-text-muted);">Loading...</div>
+      </div>
+      <div id="attendanceMissingWrap" class="fs-table-wrap" style="margin-top:12px;">
+        <table class="fs-table">
+          <thead><tr><th>Teacher</th><th>Class</th><th>Last submitted</th><th>Sessions missing</th></tr></thead>
+          <tbody id="attendanceMissingRows"><tr><td colspan="4">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="ops-row">
+      <section class="card ops-card">
+        <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h4 style="margin:0;">Student Milestone Progress</h4>
+          <span id="milestoneAsOf" class="kpi-stamp">as of -</span>
+        </div>
+        <div id="milestoneSummaryMeta" style="font-size:12px;color:var(--fs-text-muted);margin-bottom:10px;">Loading...</div>
+        <div class="health-progress-track"><div id="milestoneProgressFill" class="health-progress-fill"></div></div>
+        <div id="milestoneBreakdownWrap" class="fs-table-wrap" style="margin-top:12px;">
+          <table class="fs-table">
+            <thead><tr><th>Milestone</th><th>% completed</th></tr></thead>
+            <tbody id="milestoneBreakdownRows"><tr><td colspan="2">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="card ops-card">
+        <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h4 style="margin:0;">Moodle Sync Health</h4>
+          <span id="moodleAsOf" class="kpi-stamp">as of -</span>
+        </div>
+        <div id="moodleSyncHealthGrid" class="funnel-grid"></div>
+        <div style="margin-top:10px;font-size:12px;color:var(--fs-text-muted);" id="moodleSyncMeta">Loading...</div>
+        <button id="retryFailedSyncsBtn" class="fs-btn fs-btn-secondary fs-btn-sm" style="margin-top:12px;">Retry all failed</button>
+      </section>
     </div>
 
     <!-- Row 2: bar chart + doughnut -->
     <div class="chart-row">
       <section class="card chart-card">
         <h3>Registration Status</h3>
-        <div id="regChartState" class="state">Loading…</div>
+        <div id="regChartState" class="state">Loading...</div>
         <div id="regChartWrap" class="chart-wrap hidden">
           <canvas id="regChart" height="220"></canvas>
         </div>
       </section>
       <section class="card chart-card">
         <h3>Fellowship Breakdown</h3>
-        <div id="fellowshipChartState" class="state">Loading…</div>
+        <div id="fellowshipChartState" class="state">Loading...</div>
         <div id="fellowshipChartWrap" class="chart-wrap hidden">
           <canvas id="fellowshipChart" height="220"></canvas>
         </div>
@@ -182,7 +277,7 @@
     <!-- Row 3: weekly line chart -->
     <section class="card" style="margin-bottom:16px;">
       <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Weekly Registrations (last 12 weeks)</h3>
-      <div id="weeklyChartState" class="state">Loading…</div>
+      <div id="weeklyChartState" class="state">Loading...</div>
       <div id="weeklyChartWrap" class="chart-wrap hidden">
         <canvas id="weeklyChart" height="120"></canvas>
       </div>
@@ -191,13 +286,12 @@
     <!-- Row 4: class capacity -->
     <section class="card" style="margin-bottom:16px;">
       <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Class Capacity</h3>
-      <div id="capacityState" class="state">Loading…</div>
+      <div id="capacityState" class="state">Loading...</div>
       <div id="capacityWrap" class="fs-table-wrap hidden">
         <table class="fs-table">
           <thead>
             <tr>
-              <th>Day</th><th>Time</th><th>Fellowship</th>
-              <th>Reg / Applied</th><th>Max</th><th style="min-width:100px;">Fill</th>
+              <th>Day</th><th>Time</th><th>Teacher</th><th>Fellowship</th><th>Enrolled</th>
             </tr>
           </thead>
           <tbody id="capacityRows"></tbody>
@@ -205,28 +299,31 @@
       </div>
     </section>
 
-    <!-- Row 5: failed syncs + escalation -->
+    <!-- Row 5: escalation -->
     <div id="systemOpsRow" class="ops-row">
       <section class="card ops-card">
-        <h4>Failed Syncs</h4>
-        <div id="failedSyncState" class="state">Loading…</div>
-        <ul id="failedSyncList" class="hidden" style="margin:0;padding:0;list-style:none;line-height:2.2;"></ul>
-        <a href="failed-sync-retry-center.html" class="fs-btn fs-btn-sm fs-btn-secondary" style="margin-top:12px;display:inline-flex;">Open Retry Center</a>
-      </section>
-      <section class="card ops-card">
         <h4>Escalation Tasks</h4>
-        <div id="escalationState" class="state">Loading…</div>
+        <div id="escalationState" class="state">Loading...</div>
         <div id="escalationList" class="hidden"></div>
         <p style="font-size:11px;color:var(--color-text-muted,var(--color-text-muted));margin-top:10px;">
           Tasks raised by the system. Resolve in ClickUp directly.
         </p>
+      </section>
+      <section class="card ops-card">
+        <h4>Recent Activity</h4>
+        <div class="fs-table-wrap">
+          <table class="fs-table">
+            <thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Entity</th></tr></thead>
+            <tbody id="activityFeedRows"><tr><td colspan="4">Loading...</td></tr></tbody>
+          </table>
+        </div>
       </section>
     </div>
 
     <!-- Recent registrations -->
     <section class="card" style="margin-bottom:16px;">
       <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Recent Registrations</h3>
-      <div id="recentState" class="state">Loading…</div>
+      <div id="recentState" class="state">Loading...</div>
       <div id="recentWrap" class="fs-table-wrap hidden">
         <table class="fs-table">
           <thead>
@@ -254,471 +351,308 @@
   <script src="../js/config-helper.js"></script>
   <script src="../js/admin-shell.js?v=20260518"></script>
 
-  <script type="module">
+    <script type="module">
     import { supabase, getCurrentProfile, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
-
     const $ = (id) => document.getElementById(id);
-    const appRoute = (relativePath) => (window.location.pathname.includes("/foundation/") ? `/foundation/${relativePath}` : `/${relativePath}`);
-
-    const PURPLE      = "#4C2A92";
+    const PURPLE = "#4C2A92";
     const PURPLE_SOFT = "rgba(76,42,146,0.12)";
-    const PALETTE     = ["#4C2A92","#7B52C8","#A97EE8","#C9B4F2","#6B3FA0","#9B6BD6","#D4BCF7","#3D1F7A"];
-
+    const PALETTE = ["#4C2A92","#7B52C8","#A97EE8","#C9B4F2","#6B3FA0","#9B6BD6","#D4BCF7","#3D1F7A"];
     const isScopedRole = (role) => !isAdmin(role) && !isRegionalSecretary(role);
     const missingItems = new Set();
-
-    let _scope   = { profile: null, subgroups: null };
+    let _scope = { profile: null, subgroups: null };
     let _batchId = null;
-    let _charts  = {};
+    let _charts = {};
+    let _lastRefreshTs = null;
+    let _activityTimer = null;
+    let _exportState = { kpis: {}, registration: [], capacity: [] };
 
-    function getParams() {
-      return { p_batch_id: _batchId || null, p_subgroups: _scope.subgroups || null };
+    const STATUS_BADGE = { ASSIGNED:"fs-badge-success",PENDING:"fs-badge-info",WAITLISTED:"fs-badge-warning",DUPLICATE:"fs-badge-danger",REVIEW:"fs-badge-warning",INACTIVE:"fs-badge-neutral" };
+    const show = (id) => $(id)?.classList.remove("hidden");
+    const hide = (id) => $(id)?.classList.add("hidden");
+    const setState = (id, msg) => { if ($(id)) { $(id).textContent = msg; show(id); } };
+    const fmtDate = (v) => v ? (isNaN(new Date(v)) ? String(v) : new Date(v).toLocaleDateString()) : "-";
+    const fmtTime = (v) => v ? (isNaN(new Date(v)) ? String(v) : new Date(v).toLocaleString()) : "-";
+    const statusBadge = (s) => `<span class="fs-badge ${STATUS_BADGE[String(s||"").toUpperCase()] || "fs-badge-neutral"}>${s || "-"}</span>`;
+    const getParams = () => ({ p_batch_id: _batchId || null, p_subgroups: _scope.subgroups || null });
+    const isMissingTable = (err) => err?.code === "42P01" || String(err?.message || "").toLowerCase().includes("does not exist");
+    const destroyChart = (k) => { if (_charts[k]) { _charts[k].destroy(); delete _charts[k]; } };
+    const relativeMinutes = (iso) => iso ? `${Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000))} min ago` : "-";
+
+    function setKpiStamp(id, ts) {
+      const el = document.querySelector(`[data-stamp="${id}"]`);
+      if (el) el.textContent = `as of ${relativeMinutes(ts)}`;
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-    function show(id)  { $(id).classList.remove("hidden"); }
-    function hide(id)  { $(id).classList.add("hidden"); }
-    function setState(id, msg) { $(id).textContent = msg; show(id); }
-
-    function isMissingTable(err) {
-      const m = String(err?.message || "").toLowerCase();
-      return err?.code === "42P01" || m.includes("does not exist") || m.includes("relation");
-    }
-
-    function fmtTime(v)  { if (!v) return "—"; const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleString(); }
-    function fmtDate(v)  { if (!v) return "—"; const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleDateString(); }
-    function findAny(obj, keys) { return keys.map((k) => obj?.[k]).find((v) => v != null && v !== "") ?? "—"; }
-
-    const STATUS_BADGE = {
-      ASSIGNED: "fs-badge-success", PENDING: "fs-badge-info", WAITLISTED: "fs-badge-warning",
-      DUPLICATE: "fs-badge-danger", REVIEW: "fs-badge-warning", INACTIVE: "fs-badge-neutral",
-    };
-    function statusBadge(s) {
-      const cls = STATUS_BADGE[String(s || "").toUpperCase()] || "fs-badge-neutral";
-      return `<span class="fs-badge ${cls}">${s || "—"}</span>`;
-    }
-
+    function setAsOf(id, ts) { if ($(id)) $(id).textContent = `as of ${relativeMinutes(ts)}`; }
     function fillBarHtml(pct) {
       const p = Math.min(Number(pct) || 0, 100);
       const cls = p >= 90 ? "fill-danger" : p >= 75 ? "fill-warn" : "";
-      return `<div class="fill-bar-track"><div class="fill-bar-fill ${cls}" style="width:${p}%;"></div></div>
-              <span style="font-size:11px;color:var(--color-text-muted,var(--color-text-muted));">${p}%</span>`;
+      return `<div class="fill-bar-track"><div class="fill-bar-fill ${cls}" style="width:${p}%;"></div></div><span style="font-size:11px;color:var(--fs-text-muted);">${p}%</span>`;
     }
 
-    function destroyChart(key) {
-      if (_charts[key]) { _charts[key].destroy(); delete _charts[key]; }
-    }
-
-    // ── Scope resolver ───────────────────────────────────────────────────────
     async function resolveScope() {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData?.session) { window.location.href = "login.html"; return null; }
-
+      const { data: s } = await supabase.auth.getSession();
+      if (!s?.session) { window.location.href = "login.html"; return null; }
       const profile = await getCurrentProfile();
-      if (!profile || !(isAdmin(profile.role) || isRegionalSecretary(profile.role))) {
-        setState("regChartState", "Access denied for this account.");
-        return null;
-      }
-
+      if (!profile || !(isAdmin(profile.role) || isRegionalSecretary(profile.role))) { setState("regChartState", "Access denied."); return null; }
       let subgroups = null;
       if (isScopedRole(profile.role)) {
-        const { data } = await supabase
-          .from("admin_users")
-          .select("subgroup_id,group_id,subgroups")
-          .eq("auth_user_id", profile.user_id)
-          .maybeSingle();
-        if (data) {
-          if (data.subgroups?.length > 0) {
-            subgroups = data.subgroups;
-          } else if (data.subgroup_id) {
-            subgroups = [data.subgroup_id];
-          } else if (data.group_id) {
-            subgroups = [data.group_id];
-          }
-          if (subgroups) show("scopeBanner");
-        }
+        const { data } = await supabase.from("admin_users").select("subgroup_id,group_id,subgroups").eq("auth_user_id", profile.user_id).maybeSingle();
+        if (data?.subgroups?.length) subgroups = data.subgroups;
+        else if (data?.subgroup_id) subgroups = [data.subgroup_id];
+        else if (data?.group_id) subgroups = [data.group_id];
+        if (subgroups) show("scopeBanner");
       }
-
       return { profile, subgroups };
     }
 
-    function applyRegionalView(role) {
-      if (!isRegionalSecretary(role)) return;
-      $("failedSyncKpiCard")?.classList.add("hidden");
-      $("systemOpsRow")?.classList.add("hidden");
-    }
+    function applyRegionalView(role) { if (isRegionalSecretary(role)) $("systemOpsRow")?.classList.add("hidden"); }
 
-    // ── Batch filter ─────────────────────────────────────────────────────────
     async function loadBatchOptions() {
-      const { data } = await supabase
-        .from("batches")
-        .select("batch_id,batch_name,active")
-        .order("created_at", { ascending: false })
-        .limit(20);
+      const { data } = await supabase.from("batches").select("batch_id,name,batch_name,start_date,end_date,active").order("created_at", { ascending: false }).limit(30);
       if (!data?.length) return;
-
       const sel = $("batchFilter");
+      const switcher = $("batchSwitcher");
+      const countsByBatch = {};
+      try {
+        const { data: counts } = await supabase.from("students").select("batch_id").eq("status", "Active");
+        (counts || []).forEach((r) => { const k = r.batch_id || ""; countsByBatch[k] = (countsByBatch[k] || 0) + 1; });
+      } catch (_) {}
+      sel.innerHTML = `<option value="">All Batches</option>`;
+      switcher.innerHTML = "";
       data.forEach((b) => {
+        const batchName = b.name || b.batch_name || b.batch_id;
         const opt = document.createElement("option");
         opt.value = b.batch_id;
-        opt.textContent = (b.active ? "★ " : "") + (b.batch_name || b.batch_id);
+        opt.textContent = `${b.active ? "[A] " : ""}${batchName}`;
         sel.appendChild(opt);
-        if (b.active && !_batchId) { _batchId = b.batch_id; opt.selected = true; }
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "batch-switch" + ((_batchId === b.batch_id) ? " active" : "");
+        btn.dataset.batchId = b.batch_id;
+        btn.innerHTML = `<div class="title">${batchName}</div><div class="meta">${fmtDate(b.start_date)} - ${fmtDate(b.end_date)} - ${b.active ? "Active" : "Inactive"} - ${Number(countsByBatch[b.batch_id] || 0).toLocaleString()} students</div>`;
+        btn.addEventListener("click", () => {
+          _batchId = b.batch_id;
+          [...switcher.querySelectorAll(".batch-switch")].forEach((n) => n.classList.remove("active"));
+          btn.classList.add("active");
+          sel.value = b.batch_id;
+          refresh();
+        });
+        switcher.appendChild(btn);
       });
     }
 
-    // ── Widget: KPI cards + Registration Status chart ────────────────────────
     async function loadRegistrationSummary() {
-      setState("regChartState", "Loading…");
-      hide("regChartWrap");
-      destroyChart("reg");
-
+      setState("regChartState", "Loading-"); hide("regChartWrap"); destroyChart("reg");
       const { data, error } = await supabase.rpc("get_registration_summary", getParams());
-      if (error) {
-        if (isMissingTable(error)) missingItems.add("get_registration_summary RPC");
-        setState("regChartState", error.message || "Could not load registration summary.");
-        return;
-      }
-
+      if (error) { if (isMissingTable(error)) missingItems.add("get_registration_summary RPC"); setState("regChartState", error.message || "Could not load registration summary."); return; }
       const rows = data || [];
-      if (!rows.length) { setState("regChartState", "No registration data for this filter."); return; }
-
-      // Populate KPI cards
+      if (!rows.length) { setState("regChartState", "No registration data."); return; }
       const byStatus = Object.fromEntries(rows.map((r) => [r.reg_status, Number(r.cnt)]));
-      $("kpiEnrolled").textContent   = (byStatus["ASSIGNED"] ?? byStatus["ENROLLED"] ?? 0).toLocaleString();
-      $("kpiWaitlisted").textContent = (byStatus["WAITLISTED"] ?? 0).toLocaleString();
-
-      // Bar chart
-      const labels = rows.map((r) => r.reg_status);
-      const values = rows.map((r) => Number(r.cnt));
-      hide("regChartState");
-      show("regChartWrap");
-
-      _charts.reg = new Chart($("regChart"), {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{ label: "Count", data: values, backgroundColor: PALETTE.slice(0, labels.length), borderRadius: 6 }],
-        },
-        options: {
-          indexAxis: "y",
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
-        },
-      });
+      const enrolled = byStatus.ASSIGNED ?? byStatus.ENROLLED ?? 0;
+      const waitlisted = byStatus.WAITLISTED ?? 0;
+      const pendingReview = byStatus.REVIEW ?? 0;
+      const duplicates = byStatus.DUPLICATE ?? 0;
+      $("kpiEnrolled").textContent = enrolled.toLocaleString();
+      $("kpiWaitlisted").textContent = waitlisted.toLocaleString();
+      $("kpiPendingReview").textContent = pendingReview.toLocaleString();
+      $("kpiDuplicates").textContent = duplicates.toLocaleString();
+      setKpiStamp("kpiEnrolled", _lastRefreshTs); setKpiStamp("kpiWaitlisted", _lastRefreshTs);
+      setKpiStamp("kpiPendingReview", _lastRefreshTs); setKpiStamp("kpiDuplicates", _lastRefreshTs);
+      _exportState.registration = rows;
+      hide("regChartState"); show("regChartWrap");
+      _charts.reg = new Chart($("regChart"), { type: "bar", data: { labels: rows.map((r) => r.reg_status), datasets: [{ data: rows.map((r) => Number(r.cnt)), backgroundColor: PALETTE.slice(0, rows.length), borderRadius: 6 }] }, options: { indexAxis:"y", responsive:true, plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } } } } });
     }
 
-    // ── Widget: Fellowship Breakdown doughnut ────────────────────────────────
     async function loadFellowshipBreakdown() {
-      setState("fellowshipChartState", "Loading…");
-      hide("fellowshipChartWrap");
-      destroyChart("fellowship");
-
+      setState("fellowshipChartState", "Loading-"); hide("fellowshipChartWrap"); destroyChart("fellowship");
       const { data, error } = await supabase.rpc("get_fellowship_breakdown", getParams());
-      if (error) {
-        if (isMissingTable(error)) missingItems.add("get_fellowship_breakdown RPC");
-        setState("fellowshipChartState", error.message || "Could not load fellowship data.");
-        return;
-      }
-
+      if (error) { if (isMissingTable(error)) missingItems.add("get_fellowship_breakdown RPC"); setState("fellowshipChartState", error.message || "Could not load fellowship data."); return; }
       const rows = data || [];
-      if (!rows.length) { setState("fellowshipChartState", "No fellowship data for this filter."); return; }
-
-      hide("fellowshipChartState");
-      show("fellowshipChartWrap");
-
-      _charts.fellowship = new Chart($("fellowshipChart"), {
-        type: "doughnut",
-        data: {
-          labels: rows.map((r) => r.fellowship),
-          datasets: [{
-            data: rows.map((r) => Number(r.cnt)),
-            backgroundColor: PALETTE.slice(0, rows.length),
-            borderWidth: 2,
-            borderColor: "#fff",
-          }],
-        },
-        options: {
-          responsive: true,
-          cutout: "60%",
-          plugins: {
-            legend: { position: "right", labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
-          },
-        },
-      });
+      if (!rows.length) { setState("fellowshipChartState", "No fellowship data."); return; }
+      hide("fellowshipChartState"); show("fellowshipChartWrap");
+      _charts.fellowship = new Chart($("fellowshipChart"), { type:"doughnut", data:{ labels:rows.map((r)=>r.fellowship), datasets:[{ data:rows.map((r)=>Number(r.cnt)), backgroundColor:PALETTE.slice(0, rows.length), borderColor:"#fff", borderWidth:2 }] }, options:{ responsive:true, cutout:"60%", plugins:{ legend:{ position:"right", labels:{ font:{ size:11 }, boxWidth:12, padding:10 } } } } });
     }
 
-    // ── Widget: Weekly Trend line chart ──────────────────────────────────────
     async function loadWeeklyTrend() {
-      setState("weeklyChartState", "Loading…");
-      hide("weeklyChartWrap");
-      destroyChart("weekly");
-
+      setState("weeklyChartState", "Loading-"); hide("weeklyChartWrap"); destroyChart("weekly");
       const { data, error } = await supabase.rpc("get_registrations_by_week", getParams());
-      if (error) {
-        if (isMissingTable(error)) missingItems.add("get_registrations_by_week RPC");
-        setState("weeklyChartState", error.message || "Could not load weekly data.");
-        return;
-      }
-
+      if (error) { if (isMissingTable(error)) missingItems.add("get_registrations_by_week RPC"); setState("weeklyChartState", error.message || "Could not load weekly data."); return; }
       const rows = (data || []).slice(-12);
-      if (!rows.length) { setState("weeklyChartState", "No weekly data for this filter."); return; }
-
-      hide("weeklyChartState");
-      show("weeklyChartWrap");
-
-      _charts.weekly = new Chart($("weeklyChart"), {
-        type: "line",
-        data: {
-          labels: rows.map((r) => fmtDate(r.week_start)),
-          datasets: [{
-            label: "Registrations",
-            data: rows.map((r) => Number(r.cnt)),
-            borderColor: PURPLE,
-            backgroundColor: PURPLE_SOFT,
-            fill: true,
-            tension: 0.35,
-            pointRadius: 4,
-            pointBackgroundColor: PURPLE,
-          }],
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-        },
-      });
+      if (!rows.length) { setState("weeklyChartState", "No weekly data."); return; }
+      hide("weeklyChartState"); show("weeklyChartWrap");
+      _charts.weekly = new Chart($("weeklyChart"), { type:"line", data:{ labels:rows.map((r)=>fmtDate(r.week_start)), datasets:[{ data:rows.map((r)=>Number(r.cnt)), borderColor:PURPLE, backgroundColor:PURPLE_SOFT, fill:true, tension:.35, pointRadius:4, pointBackgroundColor:PURPLE }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } } });
     }
 
-    // ── Widget: Class Capacity ───────────────────────────────────────────────
     async function loadCapacity() {
-      setState("capacityState", "Loading…");
-      hide("capacityWrap");
-
+      setState("capacityState", "Loading-"); hide("capacityWrap");
       const { data, error } = await supabase.rpc("get_capacity_summary", getParams());
-      if (error) {
-        if (isMissingTable(error)) missingItems.add("get_capacity_summary RPC");
-        setState("capacityState", error.message || "Could not load capacity data.");
-        return;
-      }
-
+      if (error) { if (isMissingTable(error)) missingItems.add("get_capacity_summary RPC"); setState("capacityState", error.message || "Could not load capacity data."); return; }
       const rows = data || [];
-      if (!rows.length) { setState("capacityState", "No class data for this filter."); return; }
-
-      $("capacityRows").innerHTML = rows.map((r) => `
-        <tr>
-          <td>${r.day || "—"}</td>
-          <td>${r.class_time || "—"}</td>
-          <td>${r.fellowship || "—"}</td>
-          <td>${Number(r.enrolled_count).toLocaleString()} / ${Number(r.applicant_count ?? 0).toLocaleString()}</td>
-          <td>${r.max_capacity > 0 ? r.max_capacity : "—"}</td>
-          <td>${r.max_capacity > 0 ? fillBarHtml(r.pct) : "—"}</td>
-        </tr>
-      `).join("");
-      hide("capacityState");
-      show("capacityWrap");
+      if (!rows.length) { setState("capacityState", "No class data."); return; }
+      $("capacityRows").innerHTML = rows.map((r) => `<tr><td>${r.day || "-"}</td><td>${r.class_time || "-"}</td><td>${r.teacher_name || r.teacher || "-"}</td><td>${r.fellowship || "-"}</td><td>${Number(r.enrolled_count || 0).toLocaleString()}</td></tr>`).join("");
+      _exportState.capacity = rows;
+      hide("capacityState"); show("capacityWrap");
     }
 
-    // ── Widget: Stale Queue banner + KPI ─────────────────────────────────────
     async function loadStaleQueue() {
       const { data, error } = await supabase.rpc("get_stale_queue_items", getParams());
       if (error) return;
       const cnt = Number(data?.[0]?.cnt || 0);
       $("kpiStale").textContent = cnt.toLocaleString();
-      if (cnt > 0) {
-        $("staleQueueCount").textContent = cnt.toLocaleString();
-        show("staleQueueBanner");
-      } else {
-        hide("staleQueueBanner");
+      if (cnt > 10) $("kpiStale").classList.add("kpi-action"); else $("kpiStale").classList.remove("kpi-action");
+      setKpiStamp("kpiStale", _lastRefreshTs);
+      if (cnt > 0) { $("staleQueueCount").textContent = cnt.toLocaleString(); show("staleQueueBanner"); } else hide("staleQueueBanner");
+    }
+
+    async function loadAttendanceHealth() {
+      try {
+        const { data, error } = await supabase.rpc("get_attendance_health", { p_batch_id: _batchId || null });
+        if (error) throw error;
+        const row = data?.[0] || {};
+        const rate = Number(row.submission_rate_pct || 0);
+        $("attendanceRateBig").textContent = `${rate.toFixed(1)}% attendance submission rate`;
+        $("attendanceRateBig").className = rate > 80 ? "kpi-good" : rate >= 60 ? "kpi-watch" : "kpi-action";
+        const fill = $("attendanceProgressFill");
+        fill.style.width = `${Math.min(rate, 100)}%`;
+        fill.classList.remove("watch","action");
+        if (rate < 60) fill.classList.add("action"); else if (rate < 80) fill.classList.add("watch");
+        $("attendanceHealthMeta").textContent = `${Number(row.total_submitted_records || 0).toLocaleString()} submitted / ${Number(row.total_expected_sessions || 0).toLocaleString()} expected - ${Number(row.classes_zero_submissions || 0)} classes with zero submissions - ${Number(row.classes_missing_2w || 0)} stale classes`;
+        const missing = Array.isArray(row.missing_classes) ? row.missing_classes : [];
+        $("attendanceMissingRows").innerHTML = missing.length ? missing.map((m) => `<tr><td>${m.teacher_name || "-"}</td><td>${m.class_label || "-"}</td><td>${fmtTime(m.last_submitted)}</td><td>${Number(m.sessions_missing || 0)}</td></tr>`).join("") : `<tr><td colspan="4">No missing attendance classes.</td></tr>`;
+        setAsOf("attendanceAsOf", row.calculated_at || _lastRefreshTs);
+      } catch (e) {
+        $("attendanceHealthMeta").textContent = `Unavailable: ${String(e?.message || e)}`;
       }
     }
 
-    async function loadTeacherKpis() {
-      const activeEl = $("kpiActiveCertifiedTeachers");
-      const teachingEl = $("kpiCurrentlyTeaching");
-      if (activeEl) activeEl.textContent = "-";
-      if (teachingEl) teachingEl.textContent = "-";
-
+    async function loadMilestoneSummary() {
       try {
-        const { data, error } = await supabase.rpc("get_active_teacher_count");
+        const { data, error } = await supabase.rpc("get_milestone_summary", { p_batch_id: _batchId || null });
         if (error) throw error;
-        const count = Number(data?.[0]?.active_certified || 0);
-        if (activeEl) activeEl.textContent = count.toLocaleString();
-      } catch (_) {
-        if (activeEl) activeEl.textContent = "?";
+        const row = data?.[0] || {};
+        const total = Number(row.total_active_students || 0);
+        const full = Number(row.students_all_complete || 0);
+        const zero = Number(row.students_zero_complete || 0);
+        const avg = Number(row.avg_completion_pct || 0);
+        const pct = total > 0 ? (full * 100 / total) : 0;
+        $("milestoneSummaryMeta").textContent = `${full}/${total} fully complete - ${zero} with zero complete - avg ${avg.toFixed(1)}%`;
+        const fill = $("milestoneProgressFill");
+        fill.style.width = `${Math.min(pct, 100)}%`;
+        fill.classList.remove("watch","action");
+        if (pct < 60) fill.classList.add("action"); else if (pct < 80) fill.classList.add("watch");
+        const breakdown = Array.isArray(row.milestones_breakdown) ? row.milestones_breakdown : [];
+        $("milestoneBreakdownRows").innerHTML = breakdown.length ? breakdown.map((m) => `<tr><td>${m.milestone_name || m.milestone_code || "-"}</td><td>${Number(m.completion_pct || 0).toFixed(1)}%</td></tr>`).join("") : `<tr><td colspan="2">No milestone data.</td></tr>`;
+        setAsOf("milestoneAsOf", row.calculated_at || _lastRefreshTs);
+      } catch (e) {
+        $("milestoneSummaryMeta").textContent = `Unavailable: ${String(e?.message || e)}`;
       }
+    }
 
+    async function loadMoodleSyncHealth() {
       try {
-        const { data, error } = await supabase.rpc("get_currently_teaching_count", {
-          p_batch_id: _batchId || null,
+        const { data, error } = await supabase.from("moodle_enrollment_sync").select("sync_status,synced_at,updated_at");
+        if (error) throw error;
+        const counts = { SYNCED:0, PENDING:0, FAILED:0, PROCESSING:0 };
+        let lastSuccess = null;
+        (data || []).forEach((r) => {
+          const s = String(r.sync_status || "").toUpperCase();
+          if (counts[s] != null) counts[s]++;
+          if (s === "SYNCED" && r.synced_at && (!lastSuccess || new Date(r.synced_at) > new Date(lastSuccess))) lastSuccess = r.synced_at;
         });
-        if (error) throw error;
-        const count = Number(data?.[0]?.currently_teaching || 0);
-        if (teachingEl) teachingEl.textContent = count.toLocaleString();
+        $("moodleSyncHealthGrid").innerHTML = [
+          { label:"SYNCED", value:counts.SYNCED, cls:"kpi-good" },
+          { label:"PENDING", value:counts.PENDING, cls:"kpi-watch" },
+          { label:"FAILED", value:counts.FAILED, cls:"kpi-action" },
+          { label:"PROCESSING", value:counts.PROCESSING, cls:"kpi-good" },
+        ].map((x) => `<div class="funnel-step"><div class="label">${x.label}</div><div class="count ${x.cls}">${x.value.toLocaleString()}</div></div>`).join("");
+        $("moodleSyncMeta").textContent = `Last successful sync: ${fmtTime(lastSuccess)}`;
+        setAsOf("moodleAsOf", _lastRefreshTs);
+      } catch (e) {
+        $("moodleSyncMeta").textContent = `Unavailable: ${String(e?.message || e)}`;
+      }
+    }
+
+    async function retryAllFailedSyncs() {
+      const btn = $("retryFailedSyncsBtn");
+      btn.disabled = true;
+      const old = btn.textContent;
+      btn.textContent = "Retrying-";
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess?.session?.access_token;
+        const { data: failedRows } = await supabase.from("moodle_enrollment_sync").select("id").in("sync_status", ["FAILED", "RETRYING"]).limit(100);
+        for (const row of (failedRows || [])) {
+          await fetch(`${window.location.origin}/functions/v1/moodle-sync`, {
+            method: "POST",
+            headers: { "Content-Type":"application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ id: row.id, limit: 1 }),
+          });
+        }
+        await loadMoodleSyncHealth();
       } catch (_) {
-        if (teachingEl) teachingEl.textContent = "?";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = old;
       }
     }
 
-    // ── Widget: Failed Syncs ─────────────────────────────────────────────────
-    async function loadFailedSyncs() {
-      setState("failedSyncState", "Loading…");
-      hide("failedSyncList");
-
-      const { data, error } = await supabase.rpc("get_failed_sync_counts", {
-        p_subgroups: _scope.subgroups || null,
-      });
-      if (error) {
-        if (isMissingTable(error)) missingItems.add("get_failed_sync_counts RPC");
-        setState("failedSyncState", error.message || "Could not load sync data.");
-        $("kpiFailedSyncs").textContent = "—";
-        return;
-      }
-
-      const rows = data || [];
-      const total = rows.reduce((s, r) => s + Number(r.cnt), 0);
-      $("kpiFailedSyncs").textContent = total.toLocaleString();
-
-      if (!rows.length || total === 0) { setState("failedSyncState", "No failed syncs."); return; }
-
-      const sourceLabel = { moodle_sync: "Moodle Sync", email_queue: "Email Queue" };
-      $("failedSyncList").innerHTML = rows.map((r) => {
-        const label = sourceLabel[r.source] || r.source;
-        const cnt   = Number(r.cnt);
-        const cls   = cnt > 0 ? "fs-badge-danger" : "fs-badge-success";
-        return `<li><span class="fs-badge ${cls}" style="margin-right:8px;">${cnt}</span>${label}</li>`;
-      }).join("");
-      hide("failedSyncState");
-      show("failedSyncList");
-    }
-
-    // ── Widget: Escalation Details ───────────────────────────────────────────
     async function loadEscalationSummary() {
-      setState("escalationState", "Loading…");
-      hide("escalationList");
-
-      const { data, error } = await supabase.rpc("get_escalation_details", {
-        p_subgroups: _scope.subgroups || null,
-        p_limit: 50,
-      });
-      if (error) {
-        if (isMissingTable(error)) missingItems.add("get_escalation_details RPC");
-        setState("escalationState", error.message || "Could not load escalation data.");
-        return;
-      }
-
+      setState("escalationState", "Loading-"); hide("escalationList");
+      const { data, error } = await supabase.rpc("get_escalation_details", { p_subgroups: _scope.subgroups || null, p_limit: 50 });
+      if (error) { if (isMissingTable(error)) missingItems.add("get_escalation_details RPC"); setState("escalationState", error.message || "Could not load escalation data."); return; }
       const rows = data || [];
       if (!rows.length) { setState("escalationState", "No escalation tasks on record."); return; }
-
-      const statusCls = { CREATED: "fs-badge-warning", PENDING: "fs-badge-info", FAILED: "fs-badge-danger", DONE: "fs-badge-success" };
-      const typeLabel = (t) => {
-        if (t === "missed_class") return "Missed Class";
-        if (t === "escalation:applicants") return "Applicant";
-        if (t === "escalation:moodle_enrollment_sync") return "Moodle Sync";
-        return t || "—";
-      };
-      $("escalationList").innerHTML = `
-        <table class="fs-table" style="min-width:700px;">
-          <thead><tr>
-            <th>Type</th><th>Person</th><th>Class</th>
-            <th>Status</th><th>ClickUp Task</th><th>Error</th><th>Created</th>
-          </tr></thead>
-          <tbody>${rows.map((r) => {
-            const cls = statusCls[r.task_status] || "fs-badge-neutral";
-            const taskLink = r.clickup_task_id
-              ? `<a href="https://app.clickup.com/t/${r.clickup_task_id}" target="_blank" rel="noopener" style="font-size:11px;">${r.clickup_task_id}</a>`
-              : "—";
-            const person = [r.person_name, r.person_email ? `<span style="color:var(--color-text-muted);font-size:11px;">${r.person_email}</span>` : ""].filter(Boolean).join("<br>");
-            return `<tr>
-              <td style="white-space:nowrap;">${typeLabel(r.source_type)}</td>
-              <td>${person || "—"}</td>
-              <td style="font-size:12px;">${r.class_info || "—"}</td>
-              <td><span class="fs-badge ${cls}">${r.task_status}</span></td>
-              <td>${taskLink}</td>
-              <td style="font-size:11px;color:var(--color-text-muted);max-width:180px;word-break:break-word;">${r.error_message || "—"}</td>
-              <td style="white-space:nowrap;font-size:12px;">${fmtDate(r.created_at)}</td>
-            </tr>`;
-          }).join("")}</tbody>
-        </table>`;
-      hide("escalationState");
-      show("escalationList");
+      const statusCls = { CREATED:"fs-badge-warning",PENDING:"fs-badge-info",FAILED:"fs-badge-danger",DONE:"fs-badge-success" };
+      $("escalationList").innerHTML = `<table class="fs-table" style="min-width:700px;"><thead><tr><th>Type</th><th>Person</th><th>Class</th><th>Status</th><th>ClickUp Task</th><th>Error</th><th>Created</th></tr></thead><tbody>${rows.map((r) => `<tr><td>${r.source_type || "-"}</td><td>${r.person_name || "-"}</td><td>${r.class_info || "-"}</td><td><span class="fs-badge ${statusCls[r.task_status] || "fs-badge-neutral"}">${r.task_status}</span></td><td>${r.clickup_task_id ? `<a href="https://app.clickup.com/t/${r.clickup_task_id}" target="_blank" rel="noopener">${r.clickup_task_id}</a>` : "-"}</td><td>${r.error_message || "-"}</td><td>${fmtDate(r.created_at)}</td></tr>`).join("")}</tbody></table>`;
+      hide("escalationState"); show("escalationList");
     }
 
-    // ── Widget: Recent Registrations ─────────────────────────────────────────
     async function loadRecent() {
-      setState("recentState", "Loading…");
-      hide("recentWrap");
-
-      const { data, error } = await supabase
-        .from("applicants")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) {
-        if (isMissingTable(error)) missingItems.add("applicants");
-        setState("recentState", error.message || "Could not load recent registrations.");
-        return;
-      }
-
-      const rows = (data || []).map((row) => `
-        <tr>
-          <td>${fmtTime(findAny(row, ["created_at","submitted_at"]))}</td>
-          <td>${findAny(row, ["full_name","name","applicant_name"])}</td>
-          <td>${findAny(row, ["email","email_address"])}</td>
-          <td>${findAny(row, ["fellowship_code","fellowship","group_id"])}${findAny(row, ["subgroup_id"]) ? ` <span style="color:var(--color-text-muted)">/ ${findAny(row, ["subgroup_id"])}</span>` : ""}</td>
-          <td>${findAny(row, ["batch_id","batch_name"])}</td>
-          <td>${statusBadge(findAny(row, ["registration_status","status"]))}</td>
-          <td>${findAny(row, ["availability_status","availability_outcome"])}</td>
-        </tr>
-      `).join("");
-
-      $("recentRows").innerHTML = rows || `<tr><td colspan="7">No recent registrations found.</td></tr>`;
-      hide("recentState");
-      show("recentWrap");
+      setState("recentState", "Loading-"); hide("recentWrap");
+      const { data, error } = await supabase.from("applicants").select("*").order("created_at", { ascending: false }).limit(20);
+      if (error) { if (isMissingTable(error)) missingItems.add("applicants"); setState("recentState", error.message || "Could not load recent registrations."); return; }
+      $("recentRows").innerHTML = (data || []).map((row) => `<tr><td>${fmtTime(row.created_at || row.submitted_at)}</td><td>${row.full_name || row.name || "-"}</td><td>${row.email || "-"}</td><td>${row.fellowship_code || row.group_id || "-"}${row.subgroup_id ? ` / ${row.subgroup_id}` : ""}</td><td>${row.batch_id || "-"}</td><td>${statusBadge(row.registration_status || row.status)}</td><td>${row.availability_status || row.availability_outcome || "-"}</td></tr>`).join("") || `<tr><td colspan="7">No recent registrations found.</td></tr>`;
+      hide("recentState"); show("recentWrap");
     }
 
-    // ── Migration notes ──────────────────────────────────────────────────────
+    async function loadActivityFeed() {
+      try {
+        const { data, error } = await supabase.from("audit_logs").select("created_at,action,actor_email,entity_type,entity_id").order("created_at", { ascending: false }).limit(10);
+        if (error) throw error;
+        $("activityFeedRows").innerHTML = (data || []).map((r) => `<tr><td>${relativeMinutes(r.created_at)}</td><td>${r.action || "-"}</td><td>${r.actor_email || "system"}</td><td>${r.entity_type || "-"}${r.entity_id ? `:${r.entity_id}` : ""}</td></tr>`).join("") || `<tr><td colspan="4">No activity.</td></tr>`;
+      } catch (e) {
+        $("activityFeedRows").innerHTML = `<tr><td colspan="4">Unavailable: ${String(e?.message || e)}</td></tr>`;
+      }
+    }
+
     function renderMigrationNotes() {
       const items = [...missingItems];
-      $("migrationNotes").innerHTML = items.length
-        ? items.map((i) => `<li>Missing: ${i}</li>`).join("")
-        : "<li>No missing-table migrations detected.</li>";
+      $("migrationNotes").innerHTML = items.length ? items.map((i) => `<li>Missing: ${i}</li>`).join("") : "<li>No missing-table migrations detected.</li>";
     }
 
-    // ── Refresh ──────────────────────────────────────────────────────────────
     async function refresh() {
       missingItems.clear();
+      _lastRefreshTs = new Date().toISOString();
       await Promise.all([
-        loadRegistrationSummary(),
-        loadFellowshipBreakdown(),
-        loadWeeklyTrend(),
-        loadCapacity(),
-        loadStaleQueue(),
-        loadTeacherKpis(),
-        isRegionalSecretary(_scope.profile?.role) ? Promise.resolve() : loadFailedSyncs(),
-        isRegionalSecretary(_scope.profile?.role) ? Promise.resolve() : loadEscalationSummary(),
-        loadRecent(),
+        loadRegistrationSummary(), loadFellowshipBreakdown(), loadWeeklyTrend(), loadCapacity(), loadStaleQueue(),
+        loadAttendanceHealth().catch(() => {}), loadMilestoneSummary().catch(() => {}), loadMoodleSyncHealth().catch(() => {}),
+        isRegionalSecretary(_scope.profile?.role) ? Promise.resolve() : loadEscalationSummary(), loadRecent(), loadActivityFeed()
       ]);
+      _exportState.kpis = {
+        enrolled: $("kpiEnrolled")?.textContent || "0",
+        waitlisted: $("kpiWaitlisted")?.textContent || "0",
+        pending_review: $("kpiPendingReview")?.textContent || "0",
+        duplicates: $("kpiDuplicates")?.textContent || "0",
+        stale_reviews: $("kpiStale")?.textContent || "0",
+      };
+      $("lastRefreshed").textContent = `Updated ${new Date().toLocaleTimeString()}`;
       renderMigrationNotes();
-      $("lastRefreshed").textContent = "Updated " + new Date().toLocaleTimeString();
     }
 
-    // ── Init ─────────────────────────────────────────────────────────────────
     async function init() {
       _scope = await resolveScope();
       if (!_scope) return;
       applyRegionalView(_scope.profile.role);
-
-      const failedSyncKpiCard = $("failedSyncKpiCard");
-      if (failedSyncKpiCard && !isRegionalSecretary(_scope.profile.role)) {
-        failedSyncKpiCard.classList.add("is-clickable");
-        failedSyncKpiCard.title = "Open Failed Sync Retry Center";
-        failedSyncKpiCard.addEventListener("click", () => {
-          window.location.href = appRoute("staff/failed-sync-retry-center.html");
-        });
-      }
-
       window.FSAdminShell?.mount({
         active: "dashboard",
         title: "Rock Solid Admin",
@@ -726,16 +660,18 @@
         role: _scope.profile.role,
         breadcrumbs: [{ label: "Admin", href: "dashboards.html" }, "Dashboards"],
       });
-
       await loadBatchOptions();
-
       $("batchFilter").addEventListener("change", (e) => { _batchId = e.target.value || null; refresh(); });
       $("refreshBtn").addEventListener("click", refresh);
-
+      $("retryFailedSyncsBtn").addEventListener("click", retryAllFailedSyncs);
+      if (_activityTimer) clearInterval(_activityTimer);
+      _activityTimer = setInterval(loadActivityFeed, 60000);
       await refresh();
     }
-
     init();
   </script>
 </body>
 </html>
+
+
+

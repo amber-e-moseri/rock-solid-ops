@@ -135,6 +135,15 @@ const SUBGROUP_LABELS={CESGA:"Prairies (MB / SK)",CESGB:"Atlantic Canada",CSGA:"
 const TZ_OPTIONS=["America/Toronto","America/Edmonton","America/Vancouver","America/Regina","America/Winnipeg","America/Halifax","America/St_Johns","UTC"];
 const state={campuses:[],teachers:[],campusSource:"live",selectedCampusCodes:new Set(),activeCampusCode:"",slotSet:new Set(),search:"",
 teacherName:"",teacherEmail:"",teacherTimezone:"",monthKey:"",submitting:false,occupiedByCampus:{},emailTouched:false,campusDebug:null,selectedTeacher:null,conflictCache:{},conflictDebounceTimer:null,conflictLoading:false};
+const teacherModeScope = (() => {
+  try {
+    const raw = sessionStorage.getItem("fs_teacher_mode_scope");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (String(parsed?.mode || "").toLowerCase() !== "teacher") return null;
+    return parsed;
+  } catch (_) { return null; }
+})();
 function readRuntimeConfig(){
   const cfg = window.FSConfig?.get ? window.FSConfig.get() : {
     SUPABASE_URL: String(window.FS_CONFIG?.SUPABASE_URL || "").trim(),
@@ -216,6 +225,7 @@ async function apiGet(action, params){
       return {
         ok: true,
         data: (data || []).map((r) => ({
+          teacherId: String(r.teacher_id || "").trim(),
           teacherName: r.full_name || "",
           teacherEmail: r.email || "",
           teacherTimezone: timezoneBySubgroup.get(subgroupByTeacher.get(String(r.teacher_id || "").trim()) || "") || null
@@ -335,6 +345,9 @@ async function initTeachers(){
   try{
     const json=await apiGet("getTeachers");
     state.teachers=Array.isArray(json.data)?json.data:[];
+    if (teacherModeScope?.teacherId) {
+      state.teachers = state.teachers.filter((t) => String(t.teacherId || "").trim() === String(teacherModeScope.teacherId || "").trim());
+    }
     console.log("[TA DEBUG] teachersLoaded count:", state.teachers.length);
   }catch(e){
     state.teachers=[];
@@ -532,6 +545,12 @@ function render(){state.teacherName=el("teacherName").value; state.teacherEmail=
 }
 
 function init(){const browserTz=Intl.DateTimeFormat().resolvedOptions().timeZone||"America/Toronto"; el("teacherTimezone").innerHTML=TZ_OPTIONS.map(t=>`<option value="${t}">${t}</option>`).join(""); el("teacherTimezone").value=browserTz; state.teacherTimezone=browserTz;
+  if (teacherModeScope?.email || teacherModeScope?.fullName) {
+    if (teacherModeScope.fullName) { el("teacherName").value = String(teacherModeScope.fullName); state.teacherName = String(teacherModeScope.fullName); }
+    if (teacherModeScope.email) { el("teacherEmail").value = String(teacherModeScope.email); state.teacherEmail = String(teacherModeScope.email); }
+    el("teacherName").readOnly = true;
+    el("teacherEmail").readOnly = true;
+  }
   const months=monthOptions(6); el("month").innerHTML=months.map(m=>`<option value="${m.key}">${m.label}</option>`).join(""); state.monthKey=months[0].key;
   ["teacherName","teacherEmail","teacherTimezone","month","campusSearch"].forEach(id=>el(id).addEventListener("input",()=>{if(id==="campusSearch") state.search=el("campusSearch").value; if(id==="teacherEmail") state.emailTouched=true; if(id==="month") scheduleConflictRefresh(); render();}));
   el("review").onclick=()=>{renderReview(); el("modal").classList.add("open");}; el("close").onclick=()=>el("modal").classList.remove("open"); el("modal").onclick=e=>{if(e.target===el("modal")) el("modal").classList.remove("open");}; el("submit").onclick=submitAvailability;
@@ -580,7 +599,9 @@ window.addEventListener("load", () => {
     window.FSAdminShell && window.FSAdminShell.mount({ active: "schedule", pageTitle: "Schedule" });
     (async () => {
       const params = new URLSearchParams(window.location.search);
-      let email = String(params.get('email') || '').trim();
+      let scoped = null;
+      try { scoped = JSON.parse(sessionStorage.getItem("fs_teacher_mode_scope") || "null"); } catch (_) {}
+      let email = String(scoped?.email || params.get('email') || '').trim();
       let displayName = '';
       if (supabase && supabase.auth && typeof supabase.auth.getSession === 'function') {
         try {
@@ -590,7 +611,7 @@ window.addEventListener("load", () => {
           displayName = String(user?.user_metadata?.full_name || '').trim() || String(user?.email || '').trim();
         } catch (_) {}
       }
-      const profileName = displayName || email;
+      const profileName = String(scoped?.fullName || displayName || email);
       if (window.FSAdminShell && typeof window.FSAdminShell.setProfile === 'function' && profileName) {
         window.FSAdminShell.setProfile(profileName, profileName.charAt(0).toUpperCase());
       }

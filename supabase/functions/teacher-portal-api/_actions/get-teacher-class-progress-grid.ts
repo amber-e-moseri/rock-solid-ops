@@ -22,7 +22,7 @@ export async function getTeacherClassProgressGridAction(ctx: ActionContext): Pro
   const studentsRes = await withTimeout(
     db
       .from("students")
-      .select("student_id,full_name,applicant_id")
+      .select("student_id,full_name,email")
       .eq("class_option_id", classOptionId)
       .is("deleted_at", null)
       .order("full_name"),
@@ -38,14 +38,14 @@ export async function getTeacherClassProgressGridAction(ctx: ActionContext): Pro
 
   const students = studentsRes.data || [];
   const studentIds = students.map((s: any) => String(s.student_id || "")).filter(Boolean);
-  const applicantIds = students.map((s: any) => String(s.applicant_id || "")).filter(Boolean);
+  const studentEmails = students.map((s: any) => String(s.email || "").trim().toLowerCase()).filter(Boolean);
 
-  const applicantsRes = applicantIds.length
+  const applicantsRes = studentEmails.length
     ? await withTimeout(
       db
         .from("applicants")
-        .select("id,born_again,speaks_in_tongues,water_baptized")
-        .in("id", applicantIds),
+        .select("id,email,born_again,speaks_in_tongues,water_baptized")
+        .in("email", studentEmails),
       "fetch applicant faith profile rows",
     )
     : { data: [], error: null };
@@ -90,15 +90,17 @@ export async function getTeacherClassProgressGridAction(ctx: ActionContext): Pro
     }
   });
 
-  const faithByApplicantId = new Map<string, {
+  const faithByEmail = new Map<string, {
+    applicant_id: string;
     born_again: string | null;
     speaks_in_tongues: string | null;
     water_baptized: string | null;
   }>();
   (applicantsRes.data || []).forEach((row: any) => {
-    const id = String(row.id || "");
-    if (!id) return;
-    faithByApplicantId.set(id, {
+    const email = String(row.email || "").trim().toLowerCase();
+    if (!email) return;
+    faithByEmail.set(email, {
+      applicant_id: String(row.id || ""),
       born_again: row.born_again ?? null,
       speaks_in_tongues: row.speaks_in_tongues ?? null,
       water_baptized: row.water_baptized ?? null,
@@ -107,12 +109,14 @@ export async function getTeacherClassProgressGridAction(ctx: ActionContext): Pro
 
   const outStudents = students.map((s: any) => {
     const sid = String(s.student_id || "");
-    const applicantId = String(s.applicant_id || "");
-    const faith = faithByApplicantId.get(applicantId) || {
+    const email = String(s.email || "").trim().toLowerCase();
+    const faith = faithByEmail.get(email) || {
+      applicant_id: "",
       born_again: null,
       speaks_in_tongues: null,
       water_baptized: null,
     };
+    const applicantId = faith.applicant_id || "";
     const outMilestones: Record<string, boolean> = {};
     milestones.forEach((m: any) => {
       outMilestones[m.code] = completedSet.has(`${sid}::${m.code}`);

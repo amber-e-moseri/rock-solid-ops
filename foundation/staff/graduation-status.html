@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Graduation Status</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
+    .gate-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .gate-icon.pass { background: #dcfce7; color: #166534; }
+    .gate-icon.fail { background: #fee2e2; color: #991b1b; }
+    .gates-row { display: flex; gap: 6px; align-items: center; }
+    .badge { display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge-eligible   { background: #dcfce7; color: #166534; }
+    .badge-not        { background: #fee2e2; color: #991b1b; }
+    .badge-override   { background: #ede9fe; color: #5b21b6; }
+    .badge-unevaluated { background: #f3f4f6; color: #6b7280; }
+    .msg { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-raised); font-size: var(--fs-body); }
+    .msg.error   { border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .msg.success { border-color: color-mix(in srgb,var(--color-success-fg) 30%,transparent); background: var(--color-success-bg); color: var(--color-success-fg); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(11,8,19,.45); z-index: 900; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); width: min(480px, 94vw); box-shadow: var(--shadow-overlay); }
+    .modal h2 { margin: 0 0 var(--space-3); font-size: 16px; font-weight: 800; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: var(--space-1); display: block; }
+    .form-row { margin-bottom: var(--space-3); }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="fs-page-header">
+      <div>
+        <h1 class="fs-page-title">Graduation Status</h1>
+        <p class="fs-page-subtitle">Four-gate eligibility engine — evaluates attendance, Moodle, milestones, and exam grade.</p>
+      </div>
+      <div class="fs-page-actions">
+        <button id="evaluateBatchBtn" class="fs-btn fs-btn-primary" type="button" disabled>Evaluate All</button>
+      </div>
+    </div>
+
+    <!-- Summary metrics -->
+    <section class="fs-metric-grid" id="summaryGrid" style="margin-bottom:var(--space-4)"></section>
+
+    <!-- Filters -->
+    <div class="fs-action-bar" style="margin-bottom:var(--space-3)">
+      <div class="fs-action-bar-search">
+        <input class="fs-input" id="searchInput" type="search" placeholder="Search name or email…" />
+      </div>
+      <div class="fs-action-bar-filters">
+        <select class="fs-select" id="batchSelect"><option value="">— Select batch —</option></select>
+        <select class="fs-select" id="eligibilityFilter">
+          <option value="">All</option>
+          <option value="eligible">Eligible</option>
+          <option value="not_eligible">Not Eligible</option>
+          <option value="override">Overridden</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="flashArea" style="margin-bottom:var(--space-2)"></div>
+
+    <div id="emptyState" style="display:none" class="msg">Select a batch above to load graduation status.</div>
+
+    <div class="fs-table-wrap" id="tableWrap" style="display:none">
+      <table class="fs-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th title="≥ 6 sessions present/makeup">Attend</th>
+            <th title="Moodle course complete">Moodle</th>
+            <th title="Born Again + Holy Spirit milestones">Milestones</th>
+            <th title="Overall course grade ≥ 70%">Exam</th>
+            <th>Status</th>
+            <th>Last Evaluated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Override modal -->
+  <div class="modal-overlay" id="overrideModal">
+    <div class="modal">
+      <h2 id="modalTitle">Override Eligibility</h2>
+      <input type="hidden" id="modalApplicantId" />
+      <div class="form-row">
+        <label class="form-label">Decision</label>
+        <select class="fs-select" id="modalDecision" style="width:100%">
+          <option value="true">Mark Eligible</option>
+          <option value="false">Mark Not Eligible</option>
+          <option value="null">Clear Override</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="modalReason">Reason (optional)</label>
+        <textarea class="fs-input" id="modalReason" rows="3" style="width:100%;resize:vertical" placeholder="Briefly explain the override…"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:var(--space-2)">
+        <button id="modalCancelBtn" class="fs-btn fs-btn-secondary" type="button">Cancel</button>
+        <button id="modalSaveBtn"   class="fs-btn fs-btn-primary"   type="button">Save Override</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/admin-shell.js?v=20260519"></script>
+  <script type="module">
+    import { supabase, requireAuth } from "../auth/auth-client.js";
+
+    const $  = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (m) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]));
+    const fmt = (v) => v ? new Date(v).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" }) : "—";
+
+    let _auth = null;
+    let _isAdmin = false;
+    let _allRows = [];
+    let _currentBatch = "";
+
+    async function boot() {
+      if (!window.FS_CONFIG?.SUPABASE_URL) {
+        document.body.insertAdjacentHTML("afterbegin",
+          `<div class="msg error" style="margin:12px">Not connected. Create config.js from config.js.example.</div>`);
+        return;
+      }
+      _auth = await requireAuth(["admin", "superadmin", "principal", "subgroup_admin", "pastor", "teacher", "regional_secretary"]);
+      if (!_auth) return;
+
+      _isAdmin = ["admin","superadmin","principal","subgroup_admin","pastor"].includes(String(_auth.role || "").toLowerCase());
+
+      await loadBatches();
+      wireUI();
+
+      $("emptyState").style.display = "";
+    }
+
+    async function loadBatches() {
+      const { data } = await supabase.from("batches").select("batch_id,name,active").order("created_at", { ascending: false }).limit(50);
+      const sel = $("batchSelect");
+      (data || []).forEach((b) => {
+        const opt = document.createElement("option");
+        opt.value = b.batch_id;
+        opt.textContent = `${b.name || b.batch_id}${b.active ? "" : " (inactive)"}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function wireUI() {
+      $("batchSelect").addEventListener("change", () => {
+        _currentBatch = $("batchSelect").value;
+        if (_currentBatch) loadBatch(_currentBatch);
+        else {
+          $("emptyState").style.display = "";
+          $("tableWrap").style.display = "none";
+          $("evaluateBatchBtn").disabled = true;
+          renderSummary([]);
+        }
+      });
+      $("searchInput").addEventListener("input", () => renderTable(filteredRows()));
+      $("eligibilityFilter").addEventListener("change", () => renderTable(filteredRows()));
+      $("evaluateBatchBtn").addEventListener("click", onEvaluateAll);
+
+      // Override modal
+      $("modalCancelBtn").addEventListener("click", () => $("overrideModal").classList.remove("open"));
+      $("modalSaveBtn").addEventListener("click", onSaveOverride);
+      $("overrideModal").addEventListener("click", (e) => {
+        if (e.target === $("overrideModal")) $("overrideModal").classList.remove("open");
+      });
+    }
+
+    async function loadBatch(batchId) {
+      $("emptyState").style.display = "none";
+      $("tableWrap").style.display = "";
+      $("evaluateBatchBtn").disabled = !_isAdmin;
+      $("tableBody").innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--color-text-muted)">Loading…</td></tr>`;
+      flash("");
+
+      // Fetch applicants + eligibility in one joined query
+      const { data: apps, error: appErr } = await supabase
+        .from("applicants")
+        .select("id,full_name,email,registration_status,graduation_eligibility(gate1_attendance,gate2_moodle_complete,gate3_milestones_met,gate4_exam_passed,eligible,override_eligible,override_reason,overridden_by,last_evaluated_at)")
+        .eq("batch_id", batchId)
+        .not("registration_status", "in", '("INACTIVE","DUPLICATE")')
+        .order("full_name", { ascending: true })
+        .limit(1000);
+
+      if (appErr) {
+        $("tableBody").innerHTML = `<tr><td colspan="8"><div class="msg error">${esc(appErr.message)}</div></td></tr>`;
+        return;
+      }
+
+      _allRows = (apps || []).map((a) => {
+        const ge = Array.isArray(a.graduation_eligibility) ? a.graduation_eligibility[0] : a.graduation_eligibility;
+        return { ...a, ge: ge || null };
+      });
+
+      renderSummary(_allRows);
+      renderTable(filteredRows());
+    }
+
+    function filteredRows() {
+      const q = $("searchInput").value.trim().toLowerCase();
+      const f = $("eligibilityFilter").value;
+      return _allRows.filter((r) => {
+        if (q && !String(r.full_name || "").toLowerCase().includes(q) && !String(r.email || "").toLowerCase().includes(q)) return false;
+        if (f === "eligible"     && !isEffectivelyEligible(r.ge)) return false;
+        if (f === "not_eligible" && (isEffectivelyEligible(r.ge) || r.ge?.override_eligible != null)) return false;
+        if (f === "override"     && r.ge?.override_eligible == null) return false;
+        return true;
+      });
+    }
+
+    function isEffectivelyEligible(ge) {
+      if (!ge) return false;
+      if (ge.override_eligible != null) return ge.override_eligible;
+      return ge.eligible === true;
+    }
+
+    function renderSummary(rows) {
+      const evaluated  = rows.filter((r) => r.ge != null).length;
+      const eligible   = rows.filter((r) => isEffectivelyEligible(r.ge)).length;
+      const overridden = rows.filter((r) => r.ge?.override_eligible != null).length;
+      $("summaryGrid").innerHTML = [
+        ["Total Students", rows.length, ""],
+        ["Evaluated",      evaluated,   ""],
+        ["Eligible",       eligible,    "color:#166534"],
+        ["Overridden",     overridden,  "color:#5b21b6"],
+      ].map(([lbl, val, style]) => `
+        <div class="fs-metric-card">
+          <div class="fs-metric-label">${esc(lbl)}</div>
+          <div class="fs-metric-value" style="${style}">${val}</div>
+        </div>`).join("");
+    }
+
+    function gateIcon(pass) {
+      return `<span class="gate-icon ${pass ? "pass" : "fail"}">${pass ? "✓" : "✗"}</span>`;
+    }
+
+    function eligibilityBadge(ge) {
+      if (!ge) return `<span class="badge badge-unevaluated">Not Evaluated</span>`;
+      if (ge.override_eligible != null) {
+        const label = ge.override_eligible ? "Eligible (Override)" : "Not Eligible (Override)";
+        return `<span class="badge badge-override" title="${esc(ge.override_reason || "")}">${esc(label)}</span>`;
+      }
+      if (ge.eligible) return `<span class="badge badge-eligible">Eligible</span>`;
+      return `<span class="badge badge-not">Not Eligible</span>`;
+    }
+
+    function renderTable(rows) {
+      if (!rows.length) {
+        $("tableBody").innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--color-text-muted)">No students match current filters.</td></tr>`;
+        return;
+      }
+
+      $("tableBody").innerHTML = rows.map((r) => {
+        const ge = r.ge;
+        const actions = _isAdmin
+          ? `<button class="fs-btn fs-btn-secondary" style="font-size:11px;padding:4px 10px"
+               data-override="${esc(r.id)}" data-name="${esc(r.full_name || r.email)}">
+               Override
+             </button>`
+          : "";
+        return `<tr>
+          <td>
+            <div style="font-weight:600;font-size:13px">${esc(r.full_name || "—")}</div>
+            <div style="font-size:11px;color:var(--color-text-muted)">${esc(r.email || "")}</div>
+          </td>
+          <td class="text-center">${ge ? gateIcon(ge.gate1_attendance) : "—"}</td>
+          <td class="text-center">${ge ? gateIcon(ge.gate2_moodle_complete) : "—"}</td>
+          <td class="text-center">${ge ? gateIcon(ge.gate3_milestones_met) : "—"}</td>
+          <td class="text-center">${ge ? gateIcon(ge.gate4_exam_passed) : "—"}</td>
+          <td>${eligibilityBadge(ge)}</td>
+          <td style="font-size:12px;color:var(--color-text-muted)">${ge ? fmt(ge.last_evaluated_at) : "—"}</td>
+          <td>${actions}</td>
+        </tr>`;
+      }).join("");
+
+      if (_isAdmin) {
+        $("tableBody").querySelectorAll("[data-override]").forEach((btn) => {
+          btn.addEventListener("click", () => openOverrideModal(btn.dataset.override, btn.dataset.name));
+        });
+      }
+    }
+
+    function openOverrideModal(applicantId, name) {
+      const existing = _allRows.find((r) => r.id === applicantId)?.ge;
+      $("modalTitle").textContent = `Override — ${name}`;
+      $("modalApplicantId").value = applicantId;
+      $("modalDecision").value = existing?.override_eligible != null ? String(existing.override_eligible) : "null";
+      $("modalReason").value   = existing?.override_reason || "";
+      $("overrideModal").classList.add("open");
+    }
+
+    async function onSaveOverride() {
+      const applicantId = $("modalApplicantId").value;
+      const decision    = $("modalDecision").value;
+      const reason      = $("modalReason").value.trim();
+      const eligible    = decision === "null" ? null : decision === "true";
+
+      $("modalSaveBtn").disabled = true;
+      $("modalSaveBtn").textContent = "Saving…";
+
+      const { error } = await supabase.rpc("override_graduation_eligibility", {
+        p_applicant_id: applicantId,
+        p_batch_id:     _currentBatch,
+        p_eligible:     eligible,
+        p_reason:       reason || null,
+      });
+
+      $("modalSaveBtn").disabled = false;
+      $("modalSaveBtn").textContent = "Save Override";
+
+      if (error) {
+        flash(`Override failed: ${error.message}`, "error");
+      } else {
+        flash("Override saved.", "success");
+        $("overrideModal").classList.remove("open");
+        await loadBatch(_currentBatch);
+      }
+    }
+
+    async function onEvaluateAll() {
+      if (!_currentBatch) return;
+      const btn = $("evaluateBatchBtn");
+      btn.disabled = true;
+      btn.textContent = "Evaluating…";
+      flash("");
+
+      const { data, error } = await supabase.rpc("evaluate_batch_graduation", { p_batch_id: _currentBatch });
+
+      btn.disabled = false;
+      btn.textContent = "Evaluate All";
+
+      if (error) {
+        flash(`Evaluation failed: ${error.message}`, "error");
+        return;
+      }
+
+      const result = Array.isArray(data) ? data[0] : data;
+      flash(`Evaluated ${result?.processed ?? "?"} students — ${result?.eligible ?? "?"} eligible, ${result?.not_eligible ?? "?"} not eligible.`, "success");
+      await loadBatch(_currentBatch);
+    }
+
+    function flash(msg, type = "") {
+      $("flashArea").innerHTML = msg
+        ? `<div class="msg ${type}">${esc(msg)}</div>`
+        : "";
+    }
+
+    boot();
+  </script>
+</body>
+</html>

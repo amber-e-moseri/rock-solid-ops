@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Dashboard</title>
+  <link rel="stylesheet" href="../../ui/tokens.css" />
+  <link rel="stylesheet" href="../../ui/primitives.css" />
+  <style>
+    body { margin: 0; background: var(--color-bg); color: var(--color-text-primary); font-family: "Manrope", system-ui, sans-serif; }
+    .wrap { padding: 16px; max-width: 1100px; margin: 0 auto; }
+    .welcome { background: #fff; border-radius: 12px; box-shadow: var(--shadow-raised); padding: 18px; margin-bottom: 14px; }
+    .welcome h1 { margin: 0 0 6px; font-size: 22px; }
+    .welcome p { margin: 0; color: var(--color-text-muted); }
+    .metrics { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; margin-bottom: 14px; }
+    .metric { background:#fff; border-radius:12px; box-shadow:var(--shadow-raised); padding:14px; }
+    .metric .k { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); font-weight:700; }
+    .metric .v { font-size:30px; font-weight:800; margin-top:3px; color:#4C2A92; line-height:1; }
+    .links { background:#fff; border-radius:12px; box-shadow:var(--shadow-raised); padding:14px; }
+    .link-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .quick-link { min-height:44px; display:flex; align-items:center; justify-content:center; border:1px solid var(--color-border); border-radius:10px; text-decoration:none; color:var(--color-text-primary); font-weight:700; background:#fff; }
+    .quick-link:hover { background:#f5f0ff; color:#4C2A92; border-color:#d9c9ff; }
+    @media (max-width: 900px) { .metrics,.link-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="welcome">
+      <h1 id="welcomeTitle">Welcome</h1>
+      <p>Quick view of your class health and direct links to daily tasks.</p>
+    </section>
+
+    <section class="metrics">
+      <article class="metric"><div class="k">Students In Class</div><div class="v" id="mStudents">-</div></article>
+      <article class="metric"><div class="k">Sessions Completed</div><div class="v" id="mSessions">-</div></article>
+      <article class="metric"><div class="k">Pending Milestones</div><div class="v" id="mMilestones">-</div></article>
+    </section>
+
+    <section class="links">
+      <div class="link-grid">
+        <a class="quick-link" href="../index.html?section=attendance" target="_top">Go to Attendance</a>
+        <a class="quick-link" href="../index.html?section=roster" target="_top">Go to Class Roster</a>
+        <a class="quick-link" href="../index.html?section=availability" target="_top">Go to Availability</a>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { supabase, getCurrentProfile } from "../../auth/auth-client.js";
+    const profile = await getCurrentProfile();
+    document.getElementById("welcomeTitle").textContent = `Welcome, ${profile?.full_name || "Teacher"}`;
+    const email = String(profile?.email || "").trim();
+    const userId = String(profile?.user_id || "").trim();
+    let teacher = null;
+    if (userId) {
+      const byUser = await supabase.from("teachers").select("teacher_id").eq("teacher_user_id", userId).is("deleted_at", null).limit(1).maybeSingle();
+      teacher = byUser.data || null;
+    }
+    if (!teacher && email) {
+      const byEmail = await supabase.from("teachers").select("teacher_id").ilike("email", email).is("deleted_at", null).limit(1).maybeSingle();
+      teacher = byEmail.data || null;
+    }
+    const teacherId = teacher?.teacher_id;
+    if (!teacherId) return;
+    const { data: classes } = await supabase.from("class_options").select("class_option_id").eq("teacher_id", teacherId).eq("active", true).limit(20);
+    const classIds = (classes || []).map((c) => c.class_option_id).filter(Boolean);
+    if (!classIds.length) return;
+    const { count: students } = await supabase.from("students").select("student_id", { count: "exact", head: true }).in("class_option_id", classIds);
+    const { data: attendance } = await supabase.from("attendance_log").select("class_date").in("class_option_id", classIds).not("class_date", "is", null).limit(20000);
+    const uniqueDates = new Set((attendance || []).map((a) => String(a.class_date)));
+    const { data: teacherStudents } = await supabase.from("students").select("student_id").in("class_option_id", classIds).limit(10000);
+    const studentIds = (teacherStudents || []).map((s) => s.student_id).filter(Boolean);
+    const pendingMilestones = studentIds.length
+      ? (await supabase.from("student_milestone_status").select("id", { count: "exact", head: true }).in("student_id", studentIds).eq("status", "pending")).count
+      : 0;
+    document.getElementById("mStudents").textContent = String(students || 0);
+    document.getElementById("mSessions").textContent = String(uniqueDates.size || 0);
+    document.getElementById("mMilestones").textContent = String(pendingMilestones || 0);
+  </script>
+</body>
+</html>

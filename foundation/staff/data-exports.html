@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -104,6 +104,7 @@ ORDER BY s.full_name;</pre>
 <script src="../js/admin-shell.js?v=20260518"></script>
 <script type="module">
   import { supabase, requireAuth, isRegionalSecretary } from "../auth/auth-client.js";
+  const isEmbedded = new URLSearchParams(window.location.search).get("embedded") === "1";
   import { downloadCsv } from "../js/export-utils.js";
 
   const $ = (id) => document.getElementById(id);
@@ -333,11 +334,18 @@ ORDER BY s.full_name;</pre>
       class_option_id: String(auth.profile?.class_option_id || ""),
       email: String(auth.profile?.email || auth.session?.user?.email || ""),
     };
-    window.FSAdminShell && window.FSAdminShell.mount({
-      active: "dataexports",
-      pageTitle: "Data Exports",
-      role: window.FS_USER.role,
-    });
+    if (!isEmbedded) {
+      window.FSAdminShell && window.FSAdminShell.mount({
+        active: "dataexports",
+        pageTitle: "Data Exports",
+        role: window.FS_USER.role,
+      });
+    } else {
+      document.body.style.background = "transparent";
+      document.body.style.margin = "0";
+      const main = document.querySelector("main.wrap");
+      if (main) main.style.paddingTop = "0";
+    }
     await loadData();
     wireFilters();
     applyRoleGating();

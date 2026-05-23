@@ -1,0 +1,610 @@
+﻿<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Needs Attention</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); }
+    .na-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
+    .na-pill { border:1px solid var(--color-border); border-radius:12px; padding:12px; background:var(--color-surface); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .na-pill .label { font-size:12px; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
+    .na-pill .count { font-size:24px; font-weight:800; }
+    .na-pill.student .count { color:#b91c1c; }
+    .na-pill.teacher .count { color:#b45309; }
+    .na-pill.system .count { color:#7c2d12; }
+    .na-meta { margin:6px 0 12px; font-size:12px; color:var(--color-text-muted); }
+    .na-controls { margin-bottom:12px; }
+    .na-accordion { border:1px solid var(--color-border); border-radius:14px; background:var(--color-surface); margin-bottom:12px; overflow:hidden; }
+    .na-accordion > summary { list-style:none; cursor:pointer; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; font-weight:800; font-size:14px; border-bottom:1px solid color-mix(in srgb, var(--color-border) 45%, transparent); }
+    .na-accordion > summary::-webkit-details-marker { display:none; }
+    .na-badge { display:inline-flex; align-items:center; border-radius:999px; padding:2px 9px; font-size:11px; font-weight:700; }
+    .na-badge.critical { background:#fee2e2; color:#991b1b; }
+    .na-badge.warning { background:#fef3c7; color:#92400e; }
+    .na-badge.info { background:#dbeafe; color:#1d4ed8; }
+    .na-pane { padding:12px; }
+    .na-state { padding:12px; border:1px dashed var(--color-border); border-radius:10px; color:var(--color-text-muted); font-size:13px; }
+    .na-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .na-system-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .na-system-card { border:1px solid var(--color-border); border-radius:12px; padding:10px; background:var(--color-surface-raised); }
+    .na-system-card .title { font-size:12px; font-weight:800; }
+    .na-system-card .count { margin-top:6px; font-size:22px; font-weight:800; }
+    .na-system-card .detail { margin-top:6px; font-size:12px; color:var(--color-text-muted); }
+    .is-resolved { opacity:.58; }
+    @media (max-width: 980px) {
+      .na-summary { grid-template-columns:1fr; }
+      .na-system-grid { grid-template-columns:1fr; }
+      .fs-table-wrap { display:none; }
+      .mobile-cards { display:grid !important; gap:8px; }
+    }
+    .mobile-cards { display:none; }
+    .mobile-card { border:1px solid var(--color-border); border-radius:12px; padding:10px; background:var(--color-surface); }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="fs-page-header">
+      <h1 class="fs-page-title">Needs Attention</h1>
+      <div class="fs-page-actions">
+        <button id="refreshBtn" class="fs-btn fs-btn-secondary">Refresh</button>
+      </div>
+    </div>
+
+    <section class="na-summary">
+      <article class="na-pill student" id="studentSummaryPill"><div class="label">Students need attention</div><div class="count" id="studentsCount">0</div></article>
+      <article class="na-pill teacher"><div class="label">Teachers need attention</div><div class="count" id="teachersCount">0</div></article>
+      <article class="na-pill system"><div class="label">System issues</div><div class="count" id="systemCount">0</div></article>
+    </section>
+    <div class="na-meta" id="lastUpdated">Last updated: --</div>
+
+    <section class="fs-action-bar na-controls">
+      <div class="fs-action-bar-search">
+        <input id="searchInput" class="fs-input" type="search" placeholder="Search student, teacher, email, detail" />
+      </div>
+      <div class="fs-action-bar-filters">
+        <select id="batchFilter" class="fs-select"><option value="">All batches</option></select>
+        <select id="fellowshipFilter" class="fs-select"><option value="">All fellowships</option></select>
+        <select id="subgroupFilter" class="fs-select"><option value="">All subgroups</option></select>
+        <select id="severityFilter" class="fs-select"><option value="">All severity</option><option value="critical">Critical</option><option value="warning">Warning</option></select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;"><input type="checkbox" id="showResolved" /> Show resolved</label>
+      </div>
+    </section>
+
+    <details class="na-accordion" id="studentAccordion" open>
+      <summary>
+        <span>Student Attention Flags</span>
+        <span class="na-badge critical" id="studentSectionCount">0</span>
+      </summary>
+      <div class="na-pane">
+        <div id="studentState" class="na-state">Loading student flags...</div>
+        <div id="studentOverview" class="na-system-grid" style="display:none;margin-top:10px;"></div>
+        <div id="studentTableWrap" class="fs-table-wrap" style="display:none;margin-top:10px;">
+          <table class="fs-table">
+            <thead><tr><th>Flag</th><th>Student</th><th>Fellowship</th><th>Teacher</th><th>Detail</th><th>Severity</th><th>Actions</th></tr></thead>
+            <tbody id="studentRows"></tbody>
+          </table>
+        </div>
+        <div id="studentCards" class="mobile-cards"></div>
+      </div>
+    </details>
+
+    <details class="na-accordion" open>
+      <summary>
+        <span>Teacher Attention Flags</span>
+        <span class="na-badge warning" id="teacherSectionCount">0</span>
+      </summary>
+      <div class="na-pane">
+        <div id="teacherState" class="na-state">Loading teacher flags...</div>
+        <div id="teacherTableWrap" class="fs-table-wrap" style="display:none;margin-top:10px;">
+          <table class="fs-table">
+            <thead><tr><th>Flag</th><th>Teacher</th><th>Email</th><th>Classes</th><th>Detail</th><th>Severity</th><th>Actions</th></tr></thead>
+            <tbody id="teacherRows"></tbody>
+          </table>
+        </div>
+        <div id="teacherCards" class="mobile-cards"></div>
+      </div>
+    </details>
+
+    <details class="na-accordion" open>
+      <summary>
+        <span>System Flags</span>
+        <span class="na-badge info" id="systemSectionCount">0</span>
+      </summary>
+      <div class="na-pane">
+        <div id="systemState" class="na-state">Loading system flags...</div>
+        <div id="systemGrid" class="na-system-grid" style="display:none;"></div>
+      </div>
+    </details>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/admin-shell.js?v=20260518"></script>
+  <script src="../js/toast.js"></script>
+  <script src="../js/student-profile-drawer.js"></script>
+  <script src="../js/direct-email-modal.js"></script>
+  <script type="module">
+    import { supabase, requireAuth } from "../auth/auth-client.js";
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (m) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]));
+
+    const state = {
+      profile: null,
+      isRegionalSecretary: false,
+      lastRefreshAt: null,
+      students: [],
+      teachers: [],
+      systems: [],
+      resolved: new Map(),
+      batches: [],
+      fellowships: [],
+      subgroups: [],
+      refreshTimer: null,
+    };
+
+    const norm = (v) => String(v || "").trim().toLowerCase();
+
+    const FLAG_LABELS = {
+      inactive_no_attendance: "Inactive Student",
+      repeat_absence_3_plus: "3+ Consecutive Absences",
+      moodle_synced_no_login: "No Moodle Login",
+      stalled_no_milestones_4_weeks: "Stalled Milestones",
+      waitlist_over_14_days: "Waitlisted 2+ Weeks",
+      overdue_attendance_submission: "Overdue Attendance",
+      teacher_neglect: "Teacher Neglect",
+      teacher_unlinked_auth: "Unlinked Teacher",
+      stuck_moodle_sync_processing: "Stuck Moodle Sync",
+      failed_email_queue_24h: "Failed Email Queue",
+      stale_reviews_48h: "Stale Reviews"
+    };
+
+    function keyOf(flagType, entityType, entityId) {
+      return `${flagType}::${entityType}::${entityId}`;
+    }
+
+    function nowLabel() {
+      if (!state.lastRefreshAt) return "--";
+      const mins = Math.max(0, Math.floor((Date.now() - state.lastRefreshAt.getTime()) / 60000));
+      return mins === 0 ? "just now" : `${mins} min ago`;
+    }
+
+    function setLastUpdated() {
+      $("lastUpdated").textContent = `Last updated: ${nowLabel()}`;
+    }
+
+    function badgeCls(s) {
+      const sev = String(s || "").toLowerCase();
+      return sev === "critical" ? "critical" : sev === "warning" ? "warning" : "info";
+    }
+
+    function isResolved(flagType, entityType, entityId) {
+      const rec = state.resolved.get(keyOf(flagType, entityType, entityId));
+      return !!rec?.resolved;
+    }
+
+    function noteResolvedText(flagType, entityType, entityId) {
+      const rec = state.resolved.get(keyOf(flagType, entityType, entityId));
+      if (!rec?.resolved) return "";
+      return `Resolved ${rec.resolved_at ? new Date(rec.resolved_at).toLocaleString() : ""} by ${rec.resolved_by || "unknown"}${rec.resolution_note ? ` (${rec.resolution_note})` : ""}`;
+    }
+
+    async function loadResolvedFlags() {
+      const { data, error } = await supabase
+        .from("attention_flags")
+        .select("flag_type,entity_type,entity_id,resolved,resolved_at,resolved_by,resolution_note,created_at")
+        .order("created_at", { ascending: false })
+        .limit(5000);
+      if (error) throw error;
+      state.resolved.clear();
+      for (const row of (data || [])) {
+        const k = keyOf(row.flag_type, row.entity_type, row.entity_id);
+        if (!state.resolved.has(k)) state.resolved.set(k, row);
+      }
+    }
+
+    function applyFiltersStudents(rows) {
+      const q = String($("searchInput").value || "").toLowerCase().trim();
+      const fellowship = $("fellowshipFilter").value || "";
+      const subgroup = $("subgroupFilter").value || "";
+      const severity = $("severityFilter").value || "";
+      const showResolved = $("showResolved").checked;
+      return rows.filter((r) => {
+        if (fellowship && norm(r.fellowship_code) !== norm(fellowship)) return false;
+        if (
+          subgroup &&
+          !norm(r.detail).includes(norm(subgroup)) &&
+          !norm(r.fellowship_code).includes(norm(subgroup))
+        ) return false;
+        if (severity && norm(r.severity) !== norm(severity)) return false;
+        if (!showResolved && isResolved(r.flag_type, "student", r.applicant_id)) return false;
+        if (!q) return true;
+        const hay = [r.full_name, r.email, r.teacher_name, r.detail, FLAG_LABELS[r.flag_type] || r.flag_type].join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    function applyFiltersTeachers(rows) {
+      const q = String($("searchInput").value || "").toLowerCase().trim();
+      const severity = $("severityFilter").value || "";
+      const showResolved = $("showResolved").checked;
+      return rows.filter((r) => {
+        if (severity && norm(r.severity) !== norm(severity)) return false;
+        if (!showResolved && isResolved(r.flag_type, "teacher", r.teacher_id)) return false;
+        if (!q) return true;
+        const hay = [r.full_name, r.email, r.detail, FLAG_LABELS[r.flag_type] || r.flag_type].join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    function applyFiltersSystem(rows) {
+      const severity = $("severityFilter").value || "";
+      const showResolved = $("showResolved").checked;
+      return rows.filter((r) => {
+        if (severity && norm(r.severity) !== norm(severity)) return false;
+        if (!showResolved && isResolved(r.flag_type, "system", r.flag_type)) return false;
+        return true;
+      });
+    }
+
+    function renderSummary(sRows, tRows, sysRows) {
+      const sCount = sRows.length;
+      const tCount = tRows.length;
+      const sysCount = sysRows.reduce((n, r) => n + Number(r.count || 0), 0);
+      $("studentsCount").textContent = String(sCount);
+      $("teachersCount").textContent = String(tCount);
+      $("systemCount").textContent = String(sysCount);
+      $("studentSectionCount").textContent = String(sCount);
+      $("teacherSectionCount").textContent = String(tCount);
+      $("systemSectionCount").textContent = String(sysCount);
+      const totalIssues = sCount + tCount + sysCount;
+      window.FSAdminShell?.setBadge?.("needsattention", totalIssues > 0 ? String(totalIssues) : "");
+    }
+
+    function renderStudents() {
+      if (state.isRegionalSecretary) {
+        const rows = applyFiltersStudents(state.students);
+        const byFlag = new Map();
+        rows.forEach((r) => {
+          const key = String(r.flag_type || "unknown");
+          const prev = byFlag.get(key) || { count: 0, severity: String(r.severity || "info") };
+          prev.count += 1;
+          if (String(r.severity || "").toLowerCase() === "critical") prev.severity = "critical";
+          else if (prev.severity !== "critical" && String(r.severity || "").toLowerCase() === "warning") prev.severity = "warning";
+          byFlag.set(key, prev);
+        });
+        $("studentState").textContent = rows.length
+          ? `${rows.length} student flags (overview only for regional secretary).`
+          : "No student attention flags for this filter.";
+        $("studentTableWrap").style.display = "none";
+        $("studentCards").innerHTML = "";
+        const overview = $("studentOverview");
+        if (!rows.length) {
+          overview.style.display = "none";
+          overview.innerHTML = "";
+          return rows;
+        }
+        overview.style.display = "grid";
+        overview.innerHTML = [...byFlag.entries()].map(([flagType, meta]) => `
+          <article class="na-system-card">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+              <div class="title">${esc(FLAG_LABELS[flagType] || flagType)}</div>
+              <span class="na-badge ${badgeCls(meta.severity)}">${esc(meta.severity)}</span>
+            </div>
+            <div class="count">${Number(meta.count || 0).toLocaleString()}</div>
+            <div class="detail">Students currently flagged</div>
+          </article>
+        `).join("");
+        return rows;
+      }
+      $("studentOverview").style.display = "none";
+      $("studentOverview").innerHTML = "";
+      const rows = applyFiltersStudents(state.students);
+      const tbody = $("studentRows");
+      const cards = $("studentCards");
+      if (!rows.length) {
+        $("studentState").textContent = "No student attention flags for this filter.";
+        $("studentTableWrap").style.display = "none";
+        cards.innerHTML = "";
+        return rows;
+      }
+      $("studentState").textContent = `${rows.length} student flags loaded (${nowLabel()}).`;
+      $("studentTableWrap").style.display = "block";
+      tbody.innerHTML = rows.map((r) => {
+        const resolved = isResolved(r.flag_type, "student", r.applicant_id);
+        return `<tr class="${resolved ? "is-resolved" : ""}">
+          <td>${esc(FLAG_LABELS[r.flag_type] || r.flag_type)}</td>
+          <td><strong>${esc(r.full_name || "-")}</strong><div style="font-size:12px;color:var(--color-text-muted)">${esc(r.email || "")}</div>${resolved ? `<div style="font-size:11px;color:var(--color-text-muted)">${esc(noteResolvedText(r.flag_type, "student", r.applicant_id))}</div>` : ""}</td>
+          <td>${esc(r.fellowship_code || "-")}</td>
+          <td>${esc(r.teacher_name || "-")}</td>
+          <td>${esc(r.detail || "")}</td>
+          <td><span class="na-badge ${badgeCls(r.severity)}">${esc(r.severity || "info")}</span></td>
+          <td><div class="na-actions">
+            <button class="fs-btn fs-btn-secondary" data-act="view-profile" data-id="${esc(r.applicant_id)}">View Profile</button>
+            <button class="fs-btn fs-btn-secondary" data-act="send-email" data-id="${esc(r.applicant_id)}" data-email="${esc(r.email || "")}" data-name="${esc(r.full_name || "")}">Send Email</button>
+            <button class="fs-btn fs-btn-primary" data-act="resolve-student" data-flag="${esc(r.flag_type)}" data-id="${esc(r.applicant_id)}">Mark Resolved</button>
+          </div></td>
+        </tr>`;
+      }).join("");
+      cards.innerHTML = rows.map((r) => {
+        const resolved = isResolved(r.flag_type, "student", r.applicant_id);
+        return `<article class="mobile-card ${resolved ? "is-resolved" : ""}">
+          <div style="display:flex;justify-content:space-between;gap:8px"><strong>${esc(r.full_name || "-")}</strong><span class="na-badge ${badgeCls(r.severity)}">${esc(r.severity || "info")}</span></div>
+          <div style="font-size:12px;color:var(--color-text-muted)">${esc(r.email || "-")}</div>
+          <div style="margin-top:6px;font-size:12px;">${esc(FLAG_LABELS[r.flag_type] || r.flag_type)} · ${esc(r.teacher_name || "-")}</div>
+          <div style="margin-top:6px;font-size:12px;color:var(--color-text-muted)">${esc(r.detail || "")}</div>
+          <div class="na-actions" style="margin-top:8px;">
+            <button class="fs-btn fs-btn-secondary" data-act="view-profile" data-id="${esc(r.applicant_id)}">Profile</button>
+            <button class="fs-btn fs-btn-secondary" data-act="send-email" data-id="${esc(r.applicant_id)}" data-email="${esc(r.email || "")}" data-name="${esc(r.full_name || "")}">Email</button>
+            <button class="fs-btn fs-btn-primary" data-act="resolve-student" data-flag="${esc(r.flag_type)}" data-id="${esc(r.applicant_id)}">Resolve</button>
+          </div>
+        </article>`;
+      }).join("");
+      return rows;
+    }
+
+    function renderTeachers() {
+      const rows = applyFiltersTeachers(state.teachers);
+      const tbody = $("teacherRows");
+      const cards = $("teacherCards");
+      if (!rows.length) {
+        $("teacherState").textContent = "No teacher attention flags for this filter.";
+        $("teacherTableWrap").style.display = "none";
+        cards.innerHTML = "";
+        return rows;
+      }
+      $("teacherState").textContent = `${rows.length} teacher flags loaded (${nowLabel()}).`;
+      $("teacherTableWrap").style.display = "block";
+      tbody.innerHTML = rows.map((r) => {
+        const resolved = isResolved(r.flag_type, "teacher", r.teacher_id);
+        return `<tr class="${resolved ? "is-resolved" : ""}">
+          <td>${esc(FLAG_LABELS[r.flag_type] || r.flag_type)}</td>
+          <td><strong>${esc(r.full_name || "-")}</strong>${resolved ? `<div style="font-size:11px;color:var(--color-text-muted)">${esc(noteResolvedText(r.flag_type, "teacher", r.teacher_id))}</div>` : ""}</td>
+          <td>${esc(r.email || "-")}</td>
+          <td>${esc(r.class_count || 0)}</td>
+          <td>${esc(r.detail || "")}</td>
+          <td><span class="na-badge ${badgeCls(r.severity)}">${esc(r.severity || "info")}</span></td>
+          <td><div class="na-actions">
+            <a class="fs-btn fs-btn-secondary" href="teacher-management.html?teacher_id=${encodeURIComponent(r.teacher_id || "")}">View Teacher</a>
+            <button class="fs-btn fs-btn-secondary" data-act="send-reminder" data-id="${esc(r.teacher_id)}" data-email="${esc(r.email || "")}" data-name="${esc(r.full_name || "")}">Send Reminder</button>
+            <a class="fs-btn fs-btn-secondary" href="teacher-management.html">Link Auth</a>
+            <button class="fs-btn fs-btn-primary" data-act="resolve-teacher" data-flag="${esc(r.flag_type)}" data-id="${esc(r.teacher_id)}">Mark Resolved</button>
+          </div></td>
+        </tr>`;
+      }).join("");
+      cards.innerHTML = rows.map((r) => `<article class="mobile-card">
+        <div style="display:flex;justify-content:space-between;gap:8px"><strong>${esc(r.full_name || "-")}</strong><span class="na-badge ${badgeCls(r.severity)}">${esc(r.severity || "info")}</span></div>
+        <div style="font-size:12px;color:var(--color-text-muted)">${esc(r.email || "-")}</div>
+        <div style="margin-top:6px;font-size:12px;">${esc(FLAG_LABELS[r.flag_type] || r.flag_type)} · Classes ${esc(r.class_count || 0)}</div>
+        <div style="margin-top:6px;font-size:12px;color:var(--color-text-muted)">${esc(r.detail || "")}</div>
+        <div class="na-actions" style="margin-top:8px;">
+          <a class="fs-btn fs-btn-secondary" href="teacher-management.html?teacher_id=${encodeURIComponent(r.teacher_id || "")}">Teacher</a>
+          <button class="fs-btn fs-btn-secondary" data-act="send-reminder" data-id="${esc(r.teacher_id)}" data-email="${esc(r.email || "")}" data-name="${esc(r.full_name || "")}">Reminder</button>
+          <button class="fs-btn fs-btn-primary" data-act="resolve-teacher" data-flag="${esc(r.flag_type)}" data-id="${esc(r.teacher_id)}">Resolve</button>
+        </div>
+      </article>`).join("");
+      return rows;
+    }
+
+    function renderSystems() {
+      const rows = applyFiltersSystem(state.systems);
+      if (!rows.length) {
+        $("systemState").textContent = "No active system flags for this filter.";
+        $("systemGrid").style.display = "none";
+        return rows;
+      }
+      $("systemState").textContent = `System checks refreshed (${nowLabel()}).`;
+      $("systemGrid").style.display = "grid";
+      $("systemGrid").innerHTML = rows.map((r) => {
+        const resolved = isResolved(r.flag_type, "system", r.flag_type);
+        return `<article class="na-system-card ${resolved ? "is-resolved" : ""}">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+            <div class="title">${esc(FLAG_LABELS[r.flag_type] || r.flag_type)}</div>
+            <span class="na-badge ${badgeCls(r.severity)}">${esc(r.severity || "info")}</span>
+          </div>
+          <div class="count">${esc(r.count || 0)}</div>
+          <div class="detail">${esc(r.detail || "")}</div>
+          <div class="na-actions" style="margin-top:8px;">
+            <button class="fs-btn fs-btn-primary" data-act="resolve-system" data-flag="${esc(r.flag_type)}" data-id="${esc(r.flag_type)}">Mark Resolved</button>
+          </div>
+        </article>`;
+      }).join("");
+      return rows;
+    }
+
+    function refreshView() {
+      const s = renderStudents();
+      const t = renderTeachers();
+      const sys = renderSystems();
+      renderSummary(s, t, sys);
+      setLastUpdated();
+    }
+
+    function applyRoleVisibility() {
+      if (!state.isRegionalSecretary) return;
+      const fellowshipFilter = $("fellowshipFilter");
+      if (fellowshipFilter) fellowshipFilter.style.display = "none";
+    }
+
+    async function markResolved(flagType, entityType, entityId) {
+      const note = window.prompt("Resolution note (optional):", "");
+      const who = state.profile?.email || state.profile?.role || "admin";
+      const now = new Date().toISOString();
+      const { data: updatedRows, error: updErr } = await supabase
+        .from("attention_flags")
+        .update({ resolved: true, resolved_at: now, resolved_by: who, resolution_note: note || null })
+        .eq("flag_type", flagType)
+        .eq("entity_type", entityType)
+        .eq("entity_id", entityId)
+        .eq("resolved", false)
+        .select("id");
+      if (updErr) throw updErr;
+      if (!updatedRows || updatedRows.length === 0) {
+        const { error: insErr } = await supabase.from("attention_flags").insert({
+          flag_type: flagType,
+          entity_type: entityType,
+          entity_id: entityId,
+          resolved: true,
+          resolved_at: now,
+          resolved_by: who,
+          resolution_note: note || null,
+        });
+        if (insErr) throw insErr;
+      }
+      if (window.FSToast?.show) window.FSToast.show("Flag marked resolved", "success");
+      await loadAllData(false);
+    }
+
+    async function loadSectionStudents() {
+      try {
+        const batchId = $("batchFilter").value || null;
+        const { data, error } = await supabase.rpc("get_student_attention_flags", { p_batch_id: batchId });
+        if (error) throw error;
+        state.students = data || [];
+        const fellowships = [...new Set(state.students.map((r) => String(r.fellowship_code || "").trim()).filter(Boolean))].sort();
+        state.fellowships = fellowships;
+        const sel = $("fellowshipFilter");
+        const prevValue = sel.value || "";
+        sel.innerHTML = `<option value="">All fellowships</option>${fellowships.map((f) => `<option value="${esc(f)}">${esc(f)}</option>`).join("")}`;
+        if (fellowships.some((f) => norm(f) === norm(prevValue))) {
+          sel.value = fellowships.find((f) => norm(f) === norm(prevValue)) || "";
+        } else {
+          sel.value = "";
+        }
+      } catch (e) {
+        state.students = [];
+        $("studentState").textContent = `Student flags unavailable: ${String(e?.message || e)}`;
+      }
+    }
+
+    async function loadSectionTeachers() {
+      try {
+        const batchId = $("batchFilter").value || null;
+        const { data, error } = await supabase.rpc("get_teacher_attention_flags", { p_batch_id: batchId });
+        if (error) throw error;
+        state.teachers = data || [];
+      } catch (e) {
+        state.teachers = [];
+        $("teacherState").textContent = `Teacher flags unavailable: ${String(e?.message || e)}`;
+      }
+    }
+
+    async function loadSectionSystem() {
+      try {
+        const { data, error } = await supabase.rpc("get_system_attention_flags");
+        if (error) throw error;
+        state.systems = (data || []).filter((r) => Number(r.count || 0) > 0);
+      } catch (e) {
+        state.systems = [];
+        $("systemState").textContent = `System flags unavailable: ${String(e?.message || e)}`;
+      }
+    }
+
+    async function loadFilters() {
+      const { data } = await supabase.from("batches").select("batch_id,batch_name").order("start_date", { ascending: false }).limit(200);
+      state.batches = data || [];
+      $("batchFilter").innerHTML = `<option value="">All batches</option>${state.batches.map((b) => `<option value="${esc(b.batch_id)}">${esc(b.batch_name || b.batch_id)}</option>`).join("")}`;
+
+      const { data: subData } = await supabase.from("fellowship_map").select("subgroup_id").eq("active", true).limit(500);
+      state.subgroups = [...new Set((subData || []).map((r) => String(r.subgroup_id || "").trim()).filter(Boolean))].sort();
+      $("subgroupFilter").innerHTML = `<option value="">All subgroups</option>${state.subgroups.map((s) => `<option value="${esc(s)}">${esc(s)}</option>`).join("")}`;
+    }
+
+    async function loadAllData(advanceStamp = true) {
+      await Promise.all([
+        loadResolvedFlags().catch(() => {}),
+        loadSectionStudents(),
+        loadSectionTeachers(),
+        loadSectionSystem()
+      ]);
+      if (advanceStamp) state.lastRefreshAt = new Date();
+      refreshView();
+    }
+
+    function wireEvents() {
+      ["searchInput", "fellowshipFilter", "subgroupFilter", "severityFilter", "showResolved"].forEach((id) => {
+        $(id).addEventListener("input", refreshView);
+        $(id).addEventListener("change", refreshView);
+      });
+      $("batchFilter").addEventListener("change", () => loadAllData(true));
+      $("refreshBtn").addEventListener("click", () => loadAllData(true));
+
+      document.body.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (!btn) return;
+        const action = btn.getAttribute("data-act");
+        const id = btn.getAttribute("data-id") || "";
+        const flag = btn.getAttribute("data-flag") || "";
+        const email = btn.getAttribute("data-email") || "";
+        const name = btn.getAttribute("data-name") || "";
+        try {
+          if (action === "view-profile") {
+            window.FSStudentProfile?.open(id);
+            return;
+          }
+          if (action === "send-email" || action === "send-reminder") {
+            window.FSDirectEmail?.open({ email, name });
+            return;
+          }
+          if (action === "resolve-student") {
+            await markResolved(flag, "student", id);
+            return;
+          }
+          if (action === "resolve-teacher") {
+            await markResolved(flag, "teacher", id);
+            return;
+          }
+          if (action === "resolve-system") {
+            await markResolved(flag, "system", id);
+            return;
+          }
+        } catch (err) {
+          if (window.FSToast?.show) window.FSToast.show(`Action failed: ${String(err?.message || err)}`, "error");
+        }
+      });
+    }
+
+    async function boot() {
+      const auth = await requireAuth(["admin", "regional_secretary"]);
+      if (!auth) return;
+      state.profile = auth.profile;
+      state.isRegionalSecretary = norm(auth.profile?.role) === "regional_secretary";
+
+      window.FSAdminShell?.mount({
+        active: "needsattention",
+        pageTitle: "Needs Attention",
+        role: auth.profile?.role,
+        profileName: auth.profile?.full_name || auth.profile?.email || "Admin",
+      });
+
+      window.FSStudentProfile?.init({ supabase, userRole: auth.profile?.role || "admin" });
+      window.FSDirectEmail?.init({ supabase, senderEmail: auth.profile?.email || "" });
+
+      applyRoleVisibility();
+      await loadFilters();
+      wireEvents();
+      await loadAllData(true);
+
+      if (state.refreshTimer) clearInterval(state.refreshTimer);
+      state.refreshTimer = setInterval(() => loadAllData(true), 5 * 60 * 1000);
+      setInterval(setLastUpdated, 60 * 1000);
+    }
+
+    boot().catch((e) => {
+      console.error("NEEDS_ATTENTION_BOOT_FAILED", e);
+      if (window.FSToast?.show) window.FSToast.show(`Failed to load page: ${String(e?.message || e)}`, "error");
+    });
+  </script>
+</body>
+</html>
+
+
+

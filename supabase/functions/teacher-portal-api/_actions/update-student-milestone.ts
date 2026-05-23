@@ -5,12 +5,12 @@ import { assertClassOwnership } from "../_lib/class-ownership.ts";
 
 export async function updateStudentMilestoneAction(ctx: ActionContext): Promise<Response> {
   const { db, auth, params } = ctx;
-  const studentId = String(params.studentId || "").trim();
-  const milestoneCode = String(params.milestoneCode || "").trim();
+  const studentId = String(params.studentId || params.student_id || params.applicant_id || "").trim();
+  const milestoneCode = String(params.milestoneCode || params.milestone_code || "").trim();
   const completed = Boolean(params.completed);
 
   if (!studentId || !milestoneCode) {
-    throw new ApiError("INVALID_PAYLOAD", "studentId and milestoneCode are required", 400);
+    throw new ApiError("INVALID_PAYLOAD", "studentId/applicant_id and milestoneCode/milestone_code are required", 400);
   }
 
   const studentRes = await withTimeout(
@@ -71,21 +71,30 @@ export async function updateStudentMilestoneAction(ctx: ActionContext): Promise<
       if (insertRes.error) throw new ApiError("INTERNAL_ERROR", "Failed to insert milestone status", 500);
     }
   } else {
-    const incompleteRes = await withTimeout(
+    const pendingRes = await withTimeout(
       db
         .from("student_milestone_status")
         .update({
-          status: "incomplete",
+          status: "pending",
+          completed_at: null,
+          completed_by: null,
           updated_at: new Date().toISOString(),
           updated_by: auth.teacher.email,
         })
         .eq("student_id", studentId)
         .eq("milestone_code", milestoneCode),
-      "update milestone as incomplete",
+      "update milestone as pending",
     );
-    if (incompleteRes.error) throw new ApiError("INTERNAL_ERROR", "Failed to clear milestone status", 500);
+    if (pendingRes.error) throw new ApiError("INTERNAL_ERROR", "Failed to clear milestone status", 500);
   }
 
-  return json({ ok: true });
+  return json({
+    ok: true,
+    data: {
+      student_id: studentId,
+      milestone_code: milestoneCode,
+      completed,
+      updated_at: new Date().toISOString(),
+    },
+  });
 }
-

@@ -264,18 +264,53 @@ async function applyRetry(
   const now = new Date().toISOString();
 
   if (source === "email_queue") {
+    const { data: row, error: readErr } = await db
+      .from("email_queue")
+      .select("id,status,attempts")
+      .eq("id", id)
+      .maybeSingle();
+    if (readErr) throw readErr;
+    if (!row) throw new Error("Row not found in email_queue");
+    const st = String(row.status || "").trim().toUpperCase();
+    if (!["FAILED", "ERROR", "PENDING"].includes(st)) {
+      throw new Error(`email_queue row status "${row.status}" is not retryable`);
+    }
     const { error } = await db
       .from("email_queue")
-      .update({ status: "Pending", error_message: null, last_error: null, updated_at: now })
+      .update({
+        status: "Pending",
+        error_message: null,
+        last_error: null,
+        attempts: Number(row.attempts || 0) + 1,
+        updated_at: now,
+      })
       .eq("id", id);
     if (error) throw error;
     return;
   }
 
   if (source === "scheduled_notifications") {
+    const { data: row, error: readErr } = await db
+      .from("scheduled_notifications")
+      .select("id,status,attempts")
+      .eq("id", id)
+      .maybeSingle();
+    if (readErr) throw readErr;
+    if (!row) throw new Error("Row not found in scheduled_notifications");
+    const st = String(row.status || "").trim().toUpperCase();
+    if (!["FAILED", "ERROR", "PENDING"].includes(st)) {
+      throw new Error(`scheduled_notifications row status "${row.status}" is not retryable`);
+    }
     const { error } = await db
       .from("scheduled_notifications")
-      .update({ status: "PENDING", last_error: null, error_message: null, updated_at: now })
+      .update({
+        status: "PENDING",
+        scheduled_for: now,
+        last_error: null,
+        error_message: null,
+        attempts: Number(row.attempts || 0) + 1,
+        updated_at: now,
+      })
       .eq("id", id);
     if (error) throw error;
     return;

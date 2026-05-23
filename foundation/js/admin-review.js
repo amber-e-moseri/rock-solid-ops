@@ -1,4 +1,4 @@
-﻿import { supabase, requireSession, getCurrentProfile, requireRole } from "../auth/auth-client.js";
+import { supabase, requireSession, getCurrentProfile, requireRole } from "../auth/auth-client.js";
 
 const STATUS_ORDER = [
   "PENDING",
@@ -718,7 +718,7 @@ async function boot() {
     pageTitle: "Admin Review",
   });
   window.FSAdminShell && window.FSAdminShell.setProfile(profile.full_name || profile.email || "Admin");
-  window.FSStudentProfile?.init({ supabase, userRole: profile?.role || "" });
+  window.FSStudentProfile?.init({ supabase, userRole: state.profile?.role || "admin" });
 
   wireEvents();
   await loadData();

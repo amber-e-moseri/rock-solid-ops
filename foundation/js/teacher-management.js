@@ -14,7 +14,7 @@
     teachers: [],
     filtered: [],
     classMap: new Map(), // teacher_id → class_option_id
-    activeTab: "PENDING",
+    activeTab: "ALL",
     loading: false,
     linkTargetTeacherId: null,
     unlinkTargetTeacherId: null,
@@ -149,23 +149,33 @@
     }
 
     if (normalized === "ACTIVE") {
-      const suspendBtn    = isSuperAdmin()
-        ? `<button class="btn"    data-action="suspend"    data-id="${id}">Suspend</button>`
+      const suspendBtn = isAdmin()
+        ? `<button class="btn" data-action="suspend" data-id="${id}">Suspend</button>`
         : "";
-      const deactivateBtn = isSuperAdmin()
-        ? `<button class="btn danger" data-action="deactivate" data-id="${id}">Deactivate</button>`
+      const inactivateBtn = isAdmin()
+        ? `<button class="btn danger" data-action="inactivate" data-id="${id}">Inactivate</button>`
         : "";
-      return `<div class="actions">${suspendBtn}${deactivateBtn}${emailBtn}${linkBtn}${unlinkBtn}</div>`;
+      return `<div class="actions">${suspendBtn}${inactivateBtn}${emailBtn}${linkBtn}${unlinkBtn}</div>`;
     }
 
     if (normalized === "SUSPENDED") {
-      const reactivateBtn = isAdmin()
-        ? `<button class="btn success" data-action="unsuspend" data-id="${id}">Reactivate</button>`
+      const activateBtn = isAdmin()
+        ? `<button class="btn success" data-action="unsuspend" data-id="${id}">Activate</button>`
         : "";
-      const deactivateBtn = isSuperAdmin()
-        ? `<button class="btn danger"  data-action="deactivate" data-id="${id}">Deactivate</button>`
+      const inactivateBtn = isAdmin()
+        ? `<button class="btn danger" data-action="inactivate" data-id="${id}">Inactivate</button>`
         : "";
-      return `<div class="actions">${reactivateBtn}${deactivateBtn}${emailBtn}${linkBtn}${unlinkBtn}</div>`;
+      return `<div class="actions">${activateBtn}${inactivateBtn}${emailBtn}${linkBtn}${unlinkBtn}</div>`;
+    }
+
+    if (normalized === "INACTIVE") {
+      const activateBtn = isAdmin()
+        ? `<button class="btn success" data-action="activate" data-id="${id}">Activate</button>`
+        : "";
+      const suspendBtn = isAdmin()
+        ? `<button class="btn" data-action="suspend" data-id="${id}">Suspend</button>`
+        : "";
+      return `<div class="actions">${activateBtn}${suspendBtn}${emailBtn}${linkBtn}${unlinkBtn}</div>`;
     }
 
     return `<div class="actions">${emailBtn}${linkBtn}${unlinkBtn}</div>`;
@@ -398,6 +408,11 @@
         teachersPatch  = { status: "INACTIVE", active: false, deactivated_at: nowIso, deactivated_by: actorEmail, deactivated_reason: reason, updated_at: nowIso };
         profilePatch   = { role: "pending", is_active: false };
         break;
+      case "inactivate":
+        eventType      = "TEACHER_INACTIVATED";
+        teachersPatch  = { status: "INACTIVE", active: false, deactivated_at: nowIso, deactivated_by: actorEmail, deactivated_reason: reason || null, updated_at: nowIso };
+        profilePatch   = { is_active: false };
+        break;
       case "activate":
         eventType      = "TEACHER_APPROVED";
         teachersPatch  = { status: "ACTIVE", active: true, activated_at: nowIso, activated_by: actorEmail, rejected_at: null, suspended_at: null, suspended_reason: null, updated_at: nowIso };
@@ -504,8 +519,8 @@
     if (!row) return;
 
     // Role guards
-    if ((action === "suspend" || action === "deactivate") && !isSuperAdmin()) {
-      notify("Only superadmins can suspend or deactivate teachers.", "error");
+    if ((action === "suspend" || action === "inactivate" || action === "deactivate") && !isAdmin()) {
+      notify("Only admins can suspend or inactivate teachers.", "error");
       return;
     }
     if ((action === "activate" || action === "unsuspend") && !isAdmin()) {
@@ -520,6 +535,13 @@
         title: "Suspend Teacher",
         description: `Suspending ${row.full_name}. This will disable portal access and suspend their pending availability slots.`,
         minLength: 10,
+      });
+      if (reason === null) return;
+    } else if (action === "inactivate") {
+      reason = await askReason({
+        title: "Inactivate Teacher",
+        description: `Inactivating ${row.full_name}. This disables teacher access until they are activated again.`,
+        minLength: 5,
       });
       if (reason === null) return;
     } else if (action === "deactivate") {
@@ -544,7 +566,7 @@
 
     try {
       await performAction(action, row, reason);
-      const labels = { suspend: "suspended", unsuspend: "reactivated", deactivate: "deactivated", activate: "approved", reject: "rejected" };
+      const labels = { suspend: "suspended", unsuspend: "activated", deactivate: "deactivated", inactivate: "inactivated", activate: "activated", reject: "rejected" };
       notify(`${row.full_name || "Teacher"} ${labels[action] || action}.`, "success");
       await loadTeachers();
     } catch (err) {

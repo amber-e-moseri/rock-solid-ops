@@ -179,7 +179,8 @@
         <span class="search-icon">??</span>
         <input id="studentSearch" placeholder="Filter students..." oninput="filterTable()" autocomplete="off" />
       </div>
-      <div style="display:flex;gap:6px;margin-left:auto">
+      <div style="display:flex;gap:6px;margin-left:auto;align-items:center">
+        <button id="atRiskChip" type="button" onclick="toggleAtRisk()" style="border:1px solid var(--color-border,#e0d9ff);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;background:var(--color-surface,#f3f0ff);color:var(--ink,#1e1b4b);transition:background .15s">At Risk Only</button>
         <button class="fs-btn" onclick="exportCSV()">Export CSV</button>
       </div>
     </div>
@@ -217,7 +218,16 @@
   }
   const CLASS_COLUMNS = ['Class1','Class2','Class3','Class4A','Class4B','Class5','Class6','Class7'];
   const VIEW_KEY = 'fs_progress_view';
-  const state = { teacher:null, teachers:[], classes:[], classOptionId:'', students:[], filtered:[], milestones:[], progressView:'classes' };
+  const state = { teacher:null, teachers:[], classes:[], classOptionId:'', students:[], filtered:[], milestones:[], progressView:'classes', atRiskOnly: false };
+  const teacherModeScope = (() => {
+    try {
+      const raw = sessionStorage.getItem("fs_teacher_mode_scope");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (String(parsed?.mode || "").toLowerCase() !== "teacher") return null;
+      return parsed;
+    } catch (_) { return null; }
+  })();
 
   function esc(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   function normFaith(v){ const t = String(v||'').trim(); return t || "I'm not sure"; }
@@ -262,7 +272,10 @@
   async function searchTeacher(q) {
     try {
       const r = await apiGet('lookupTeacherForAttendance', { query:q });
-      state.teachers = r.data || [];
+      state.teachers = (r.data || []).filter((t) => {
+        if (!teacherModeScope?.teacherId) return true;
+        return String(t.teacherId || "").trim() === String(teacherModeScope.teacherId || "").trim();
+      });
       const drop = document.getElementById('teacherDrop');
       if (!state.teachers.length) { drop.innerHTML = '<div class="drop-item" style="color:var(--text-muted)">No matches</div>'; drop.classList.remove('hidden'); return; }
       drop.innerHTML = state.teachers.map(t =>
@@ -471,11 +484,29 @@
   }
 
   // -- FILTER --
+  function toggleAtRisk() {
+    state.atRiskOnly = !state.atRiskOnly;
+    const chip = document.getElementById('atRiskChip');
+    if (chip) {
+      chip.style.background = state.atRiskOnly ? '#991b1b' : 'var(--color-surface,#f3f0ff)';
+      chip.style.color = state.atRiskOnly ? '#fff' : 'var(--ink,#1e1b4b)';
+      chip.style.borderColor = state.atRiskOnly ? '#991b1b' : 'var(--color-border,#e0d9ff)';
+    }
+    filterTable();
+  }
+
   function filterTable() {
     const q = document.getElementById('studentSearch').value.toLowerCase();
-    state.filtered = q
-      ? state.students.filter(s => (s.fullName||'').toLowerCase().includes(q) || (s.studentId||'').toLowerCase().includes(q))
-      : [...state.students];
+    const classCols = state.classes || CLASS_COLUMNS;
+    state.filtered = state.students.filter(s => {
+      if (q && !(s.fullName||'').toLowerCase().includes(q) && !(s.studentId||'').toLowerCase().includes(q)) return false;
+      if (state.atRiskOnly) {
+        const attended = classCols.filter(c => !!(s.attendance || {})[c]).length;
+        const pct = classCols.length ? Math.round(attended / classCols.length * 100) : 0;
+        if (pct >= 75) return false;
+      }
+      return true;
+    });
     renderTable();
   }
 
@@ -558,8 +589,8 @@
     window.FSAdminShell && window.FSAdminShell.mount({ active: "progress", pageTitle: "Student Progress" });
     (async () => {
       const params = new URLSearchParams(window.location.search);
-      const teacherId = params.get('teacherId') || '';
-      let email = params.get('email') || '';
+      const teacherId = String(teacherModeScope?.teacherId || params.get('teacherId') || '');
+      let email = String(teacherModeScope?.email || params.get('email') || '');
       let displayName = '';
       if (supabase && supabase.auth && typeof supabase.auth.getSession === 'function') {
         try {
@@ -577,6 +608,7 @@
       const input = document.getElementById('teacherQuery');
       if (input) {
         input.value = seed;
+        if (teacherModeScope?.teacherId) input.readOnly = true;
         input.dispatchEvent(new Event('input', { bubbles: true }));
         input.dispatchEvent(new Event('change', { bubbles: true }));
       }

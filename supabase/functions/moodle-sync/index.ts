@@ -265,7 +265,8 @@ function hasCredentialPayload(payload: { moodle_url: string; moodle_username: st
 }
 
 async function resolveCourseId(db: ReturnType<typeof createClient>, row: Record<string, unknown>) {
-  const explicit = String(row.course_id || "").trim();
+  // moodle_course_id is the written column name; course_id is a legacy alias — check both
+  const explicit = String(row.course_id || row.moodle_course_id || "").trim();
   if (explicit) return explicit;
 
   const batchId = String(row.batch_id || "").trim();
@@ -472,12 +473,38 @@ Deno.serve(async (req) => {
         }
 
         const courseId = await resolveCourseId(db, row);
+        console.log("MOODLE_SYNC_RESOLVE_COURSE", {
+          id,
+          courseId,
+          row_course_id: row.course_id ?? null,
+          row_moodle_course_id: row.moodle_course_id ?? null,
+          batch_id: row.batch_id ?? null,
+          class_option_id: row.class_option_id ?? null,
+        });
+
         if (!courseId) {
-          throw new Error("No Moodle course mapping found for this assignment");
+          console.warn("MOODLE_SYNC_NO_COURSE_ID", { id, email, batch_id: row.batch_id ?? null, class_option_id: row.class_option_id ?? null });
+          await patchSyncRow(db, id, {
+            sync_status: "SKIPPED",
+            last_error: "No Moodle course mapping found — enrollment skipped",
+            error_message: "No Moodle course mapping found — enrollment skipped",
+            error_code: "NO_COURSE_MAPPING",
+          });
+          await logAudit(db, "MOODLE_SYNC_SKIPPED", id, "SKIPPED", {
+            reason: "No Moodle course mapping found",
+            batch_id: String(row.batch_id || ""),
+            class_option_id: String(row.class_option_id || ""),
+            ...(traceId ? { trace_id: traceId } : {}),
+          });
+          summary.skipped += 1;
+          continue;
         }
 
+        console.log("MOODLE_SYNC_CREATE_USER", { id, email, courseId });
         const { userId: moodleUserId, tempPassword, usernameUsed } = await findOrCreateMoodleUser(MOODLE_URL, MOODLE_TOKEN, email, fullName);
+        console.log("MOODLE_SYNC_ENROLL", { id, email, moodleUserId, courseId });
         await ensureEnrollment(MOODLE_URL, MOODLE_TOKEN, moodleUserId, courseId);
+        console.log("MOODLE_SYNC_ENROLL_DONE", { id, email, moodleUserId, courseId });
 
         await patchSyncRow(db, id, {
           sync_status: "SYNCED" satisfies SyncStatus,

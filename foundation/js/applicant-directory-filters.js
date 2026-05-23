@@ -9,14 +9,33 @@
     $("classFilter").innerHTML = `<option value="">All Classes</option>${classes.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}`;
     const batches = [...new Set(state.applicants.map((a) => a.batch_id).concat(state.classOptions.map((c) => c.batch_id)).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
     $("batchFilter").innerHTML = `<option value="">All Batches</option>${batches.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}`;
-    $("milestoneFilter").innerHTML = `<option value="">All Milestones</option>${Object.entries(milestoneLabels).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join("")}`;
+    const labels = milestoneLabels();
+    $("milestoneFilter").innerHTML = `<option value="">All Milestones</option>${Object.entries(labels).map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join("")}`;
     $("statusFilter").innerHTML = `<option value="">All Status</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option><option value="attention">Needs Attention</option><option value="duplicate">Duplicate</option><option value="completed">Completed</option>`;
   };
 
   Filters.applyFilters = function applyFilters(ctx) {
-    const { state, ymd, getClassInfo, summarizeApplicant, classifyRowStatus, getAttendanceSummary } = ctx;
+    const { state, ymd, getClassInfo, summarizeApplicant, classifyRowStatus, getAttendanceSummary, getApplicantMilestones } = ctx;
     const f = state.filters;
     return state.applicants.filter((app) => {
+      // Quick tab pre-filter
+      const qt = state.quickTab || "all";
+      if (qt === "needs_review" && !app.needs_admin_review) return false;
+      if (qt === "at_risk") {
+        const att = getAttendanceSummary(app);
+        if (att.pct == null || att.pct >= 75) return false;
+      }
+      if (qt === "waitlisted") {
+        const regStatus = String(app.registration_status || app.status || "").toUpperCase();
+        if (regStatus !== "WAITLISTED") return false;
+      }
+
+      if (state.mode === "review") {
+        const regStatus = String(app.registration_status || app.status || "").toUpperCase();
+        const needsReview = Boolean(app.needs_admin_review || app.retry_assignment || app.review_required);
+        const inQueue = regStatus === "REVIEW" || regStatus === "PENDING" || needsReview || (!app.class_option_id && regStatus !== "DUPLICATE" && regStatus !== "INACTIVE");
+        if (!inQueue) return false;
+      }
       const summary = summarizeApplicant(app);
       const fellowship = String(app.fellowship_code || app.fellowship || app.subgroup_id || "");
       const batch = String(app.batch_id || getClassInfo(app.class_option_id)?.batch_id || "");
@@ -31,7 +50,10 @@
       if (f.assignment === "assigned" && !app.class_option_id) return false;
       if (f.assignment === "unassigned" && app.class_option_id) return false;
       if (f.notif && summary.notificationState !== f.notif) return false;
-      if (f.milestone && !Boolean(app[f.milestone])) return false;
+      if (f.milestone) {
+        const ms = getApplicantMilestones(app);
+        if (!ms.includes(String(f.milestone || "").toUpperCase())) return false;
+      }
       if (f.attendance === "high" && (summary.attendancePct == null || summary.attendancePct < 75)) return false;
       if (f.attendance === "low" && (summary.attendancePct == null || summary.attendancePct >= 75)) return false;
       if (f.attendance === "none" && summary.attendancePct != null) return false;

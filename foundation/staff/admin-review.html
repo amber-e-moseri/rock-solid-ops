@@ -1,187 +1,19 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Rock Solid - Admin Review</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="../js/config.js"></script>
-  <script src="../js/config-helper.js"></script>
-  <script src="../js/toast.js"></script>
-  <link rel="stylesheet" href="../ui/premium-theme.css" />
-  <link rel="stylesheet" href="../ui/admin-shell.css" />
-  <link rel="stylesheet" href="../ui/components.css" />
-  <link rel="stylesheet" href="../ui/layout.css" />
-  <link rel="stylesheet" href="../ui/primitives.css" />
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
-
-    /* JS-generated summary cards (renderSummary injects into #summaryGrid) */
-    .summary-card  { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-raised); }
-    .summary-label { font-size: var(--fs-label); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
-    .summary-value { font-size: 26px; font-weight: 800; color: var(--color-text-primary); line-height: 1.1; margin-top: var(--space-1); }
-
-    /* JS-generated status badges (statusClass() → renderTable / renderCards) */
-    .status-chip          { display: inline-flex; padding: 2px var(--space-2); border-radius: var(--radius-full); font-size: var(--fs-badge); font-weight: 600; }
-    .status-pending       { background: var(--color-warning-bg); color: var(--color-warning-fg); }
-    .status-review        { background: #ffedd5; color: #9a3412; }
-    .status-duplicate     { background: var(--color-danger-bg); color: var(--color-danger-fg); }
-    .status-waitlisted    { background: #ede9fe; color: #5b21b6; }
-    .status-assigned      { background: var(--color-success-bg); color: var(--color-success-fg); }
-    .status-moodle-pending { background: var(--color-info-bg); color: var(--color-info-fg); }
-    .status-moodle-synced  { background: var(--color-success-bg); color: var(--color-success-fg); }
-    .status-moodle-failed  { background: var(--color-danger-bg); color: var(--color-danger-fg); }
-
-    /* JS-generated row "Open" button (renderTable emits class="fs-btn") */
-    .btn { display: inline-flex; align-items: center; gap: var(--space-1); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 500 var(--fs-meta)/1.4 inherit; background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; white-space: nowrap; }
-    .btn:hover { background: var(--color-surface-raised); }
-
-    /* Flash messages (showFlash) and empty-state rows (renderTable) */
-    .msg         { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-raised); font-size: var(--fs-body); }
-    .msg.error   { border-color: color-mix(in srgb, var(--color-danger-fg) 30%, transparent); background: var(--color-danger-bg); color: var(--color-danger-fg); }
-    .msg.success { border-color: color-mix(in srgb, var(--color-success-fg) 30%, transparent); background: var(--color-success-bg); color: var(--color-success-fg); }
-
-    /* JS-generated action button group (.actions used in renderTable cards) */
-    .actions { display: flex; gap: var(--space-1); flex-wrap: wrap; }
-
-    /* Mobile card view (renderCards injects .mobile-card into #mobileCards) */
-    .mobile-cards { display: none; gap: var(--space-2); padding-top: var(--space-2); }
-    .mobile-card  { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); background: var(--color-surface); }
-
-    /* Detail modal kv grid (renderDetail injects .kv-item into #detailKv) */
-    .kv { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
-    .kv-item    { background: var(--color-surface-raised); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); }
-    .kv-item .k { font-size: var(--fs-label); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-    .kv-item .v { font-size: var(--fs-body); font-weight: 600; word-break: break-word; margin-top: var(--space-1); }
-
-    /* Audit history (renderDetail injects .history-row into #auditHistory) */
-    .history-list { display: grid; gap: var(--space-2); }
-    .history-row  { padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-raised); font-size: var(--fs-meta); }
-
-    /* Modal field layout (static assignment selects in detail modal) */
-    .field       { display: grid; gap: var(--space-1); }
-    .field label { font-size: var(--fs-label); font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-
-    /* Labels in the action bar filter fields */
-    .filter-label { font-size: var(--fs-label); font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: var(--space-1); }
-    .filter-field { display: grid; }
-
-    /* Sticky table headers */
-    .fs-table th { position: sticky; top: 0; z-index: 1; }
-
-    /* Detail modal */
-    .modal-overlay      { position: fixed; inset: 0; background: rgba(24,16,40,.42); display: none; align-items: center; justify-content: center; padding: var(--space-4); z-index: 1200; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); max-width: 760px; width: 100%; max-height: 90vh; overflow: auto; padding: var(--space-4); display: grid; gap: var(--space-4); }
-
-    @media (max-width: 900px)  { .fs-table-wrap { display: none; } .mobile-cards { display: grid; } .kv { grid-template-columns: 1fr; } }
-  </style>
+  <title>Redirecting to Applicants</title>
+  <meta http-equiv="refresh" content="0;url=applicant-directory.html?tab=review" />
+  <script>
+    (function () {
+      const target = new URL('applicant-directory.html', window.location.href);
+      target.searchParams.set('tab', 'review');
+      window.location.replace(target.toString());
+    })();
+  </script>
 </head>
 <body>
-  <main class="main">
-    <div class="fs-page-header">
-      <h1 class="fs-page-title">Admin Review</h1>
-    </div>
-
-    <section class="fs-metric-grid" id="summaryGrid" aria-label="Review summaries" style="margin-bottom: var(--space-4);"></section>
-
-    <section id="dupSection" style="display:none;margin-bottom:var(--space-4);background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-4);">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
-        <h3 style="margin:0;font-size:var(--fs-section-title)">Duplicate Registrations <span id="dupBadge" class="status-chip status-duplicate" style="margin-left:8px;vertical-align:middle"></span></h3>
-      </div>
-      <div id="dupBody"></div>
-    </section>
-
-    <div class="fs-action-bar">
-      <div class="fs-action-bar-search">
-        <label class="filter-label" for="searchInput">Search</label>
-        <input class="fs-input" id="searchInput" type="search" placeholder="Name, email, phone, fellowship" />
-      </div>
-      <div class="fs-action-bar-filters">
-        <div class="filter-field">
-          <label class="filter-label" for="statusFilter">Status</label>
-          <select class="fs-select" id="statusFilter"></select>
-        </div>
-        <div class="filter-field">
-          <label class="filter-label" for="fellowshipFilter">Fellowship</label>
-          <select class="fs-select" id="fellowshipFilter"><option value="">All fellowships</option></select>
-        </div>
-        <div class="filter-field">
-          <label class="filter-label" for="subgroupFilter">Subgroup</label>
-          <select class="fs-select" id="subgroupFilter"><option value="">All subgroups</option></select>
-        </div>
-      </div>
-      <div class="fs-action-bar-actions">
-        <button id="refreshBtn" class="fs-btn fs-btn-secondary">Refresh</button>
-      </div>
-    </div>
-
-    <div id="flashArea" style="margin-bottom: var(--space-2);"></div>
-
-    <div class="fs-table-wrap">
-      <table class="fs-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Contact</th>
-            <th>Fellowship</th>
-            <th>Preferred Time</th>
-            <th>Status</th>
-            <th>Assigned Class</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="applicantTableBody"></tbody>
-      </table>
-    </div>
-    <div class="mobile-cards" id="mobileCards"></div>
-  </main>
-
-  <div class="modal-overlay" id="detailModal" aria-hidden="true">
-    <div class="modal">
-      <div class="fs-card-header">
-        <h3 id="detailTitle" class="fs-card-title">Applicant Detail</h3>
-        <button id="closeDetailBtn" class="fs-btn fs-btn-secondary">Close</button>
-      </div>
-
-      <div class="kv" id="detailKv"></div>
-
-      <div>
-        <h4 style="margin: 0 0 var(--space-2);">Audit History</h4>
-        <div class="history-list" id="auditHistory"></div>
-      </div>
-
-      <div>
-        <h4 style="margin: 0 0 var(--space-2);">Assignment</h4>
-        <div class="kv">
-          <div class="field">
-            <label for="assignBatch">Active Batch</label>
-            <select class="fs-select" id="assignBatch"></select>
-          </div>
-          <div class="field">
-            <label for="assignClass">Active Class Option</label>
-            <select class="fs-select" id="assignClass"></select>
-          </div>
-        </div>
-        <div id="assignInfo" class="msg" style="margin-top: var(--space-2);">Select batch and class option.</div>
-        <div class="actions" style="margin-top: var(--space-2);">
-          <button id="assignBtn" class="fs-btn fs-btn-primary">Assign Applicant</button>
-          <button data-mark="WAITLISTED" class="fs-btn fs-btn-secondary">Mark Waitlisted</button>
-          <button data-mark="DUPLICATE" class="fs-btn fs-btn-secondary">Mark Duplicate</button>
-          <button data-mark="REVIEW" class="fs-btn fs-btn-secondary">Mark Review</button>
-          <button id="resolveBtn" class="fs-btn fs-btn-secondary">Resolve Applicant</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="../js/admin-shell.js?v=20260518"></script>
-  <script src="../js/student-profile-drawer.js"></script>
-  <script type="module" src="../js/admin-review.js"></script>
+  <p>Redirecting to <a href="applicant-directory.html?tab=review">Applicants - Review Queue</a>...</p>
 </body>
 </html>
-
-

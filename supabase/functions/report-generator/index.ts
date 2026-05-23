@@ -59,7 +59,7 @@ async function requireAdminAccess(req: Request, serviceDb: ReturnType<typeof cre
   }
 
   const role = String(profile.role || "").toLowerCase();
-  if (role !== "admin" && role !== "superadmin") {
+  if (role !== "admin" && role !== "superadmin" && role !== "regional_secretary") {
     return { ok: false as const, status: 403, error: "Forbidden" };
   }
 

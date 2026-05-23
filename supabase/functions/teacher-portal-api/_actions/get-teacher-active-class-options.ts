@@ -14,7 +14,6 @@ export async function getTeacherActiveClassOptionsAction(ctx: ActionContext): Pr
           .select("class_option_id,teacher_id,day,class_time,fellowship_codes,active,enrollment_open,deleted_at")
           .eq("teacher_id", teacherId)
           .eq("active", true)
-          .eq("enrollment_open", true)
           .is("deleted_at", null)
           .order("day")
           .order("class_time"),

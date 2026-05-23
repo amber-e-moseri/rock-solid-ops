@@ -198,6 +198,7 @@
       filtered: [],
       editingCode: null,
       filters: { search: "", group: "", subgroup: "", active: "" },
+      groupToSubgroups: {},
     };
 
     function notify(msg, type = "info", ttl = 3600) {
@@ -206,11 +207,44 @@
 
     function setSubgroupOptions(group, selectId, selected = "") {
       const sel = $(selectId);
-      const list = group
-        ? (SUBGROUPS[group] || [])
-        : Object.values(SUBGROUPS).flat();
+      const dynamicAll = Object.values(state.groupToSubgroups || {}).flat();
+      const fallbackAll = Object.values(SUBGROUPS).flat();
+      const all = [...new Set([...dynamicAll, ...fallbackAll])];
+      const byGroup = state.groupToSubgroups?.[group] || SUBGROUPS[group] || [];
+      const list = group ? byGroup : all;
       sel.innerHTML = `<option value="">${selectId === "subgroupFilter" ? "All" : "Select subgroup"}</option>` +
         list.map((v) => `<option value="${v}" ${v === selected ? "selected" : ""}>${v}</option>`).join("");
+    }
+
+    function refreshFilterOptions() {
+      const groupSel = $("groupFilter");
+      const subgroupSel = $("subgroupFilter");
+      const prevGroup = groupSel.value || state.filters.group || "";
+      const prevSubgroup = subgroupSel.value || state.filters.subgroup || "";
+
+      const dynamicGroups = [...new Set(state.fellowships.map((r) => String(r.group_id || "").trim()).filter(Boolean))];
+      const fallbackGroups = Object.keys(SUBGROUPS);
+      const groups = [...new Set([...dynamicGroups, ...fallbackGroups])].sort();
+      groupSel.innerHTML =
+        `<option value="">All</option>${groups.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join("")}`;
+
+      if (prevGroup && groups.includes(prevGroup)) {
+        groupSel.value = prevGroup;
+        state.filters.group = prevGroup;
+      } else {
+        groupSel.value = "";
+        state.filters.group = "";
+      }
+
+      setSubgroupOptions(state.filters.group, "subgroupFilter");
+      const subgroupList = Array.from(subgroupSel.options).map((o) => o.value).filter(Boolean);
+      if (prevSubgroup && subgroupList.includes(prevSubgroup)) {
+        subgroupSel.value = prevSubgroup;
+        state.filters.subgroup = prevSubgroup;
+      } else {
+        subgroupSel.value = "";
+        state.filters.subgroup = "";
+      }
     }
 
     function statusBadge(active) {
@@ -270,6 +304,16 @@
         return;
       }
       state.fellowships = data || [];
+      state.groupToSubgroups = (state.fellowships || []).reduce((acc, r) => {
+        const g = String(r.group_id || "").trim();
+        const s = String(r.subgroup_id || "").trim();
+        if (!g || !s) return acc;
+        if (!acc[g]) acc[g] = [];
+        if (!acc[g].includes(s)) acc[g].push(s);
+        return acc;
+      }, {});
+      Object.keys(state.groupToSubgroups).forEach((g) => state.groupToSubgroups[g].sort());
+      refreshFilterOptions();
       applyFilters();
     }
 

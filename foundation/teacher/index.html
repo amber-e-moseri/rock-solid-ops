@@ -25,7 +25,7 @@
 <body class="fs-shell-mounted">
   <aside class="sidebar" id="sidebar" aria-label="Teacher Navigation">
     <div class="sb-logo">
-      <div class="sb-mark">RS</div>
+      <img src="https://rocksolidsuite.netlify.app/foundation/registration/canada_sr.png" alt="Rock Solid" style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0;" />
       <div>
         <div class="sb-name">Rock Solid</div>
         <div class="sb-sub">Teacher Portal</div>
@@ -36,7 +36,8 @@
 
     <div class="sb-footer">
       <div class="sb-name" id="teacherName">Teacher</div>
-      <div class="sb-sub"><span class="fs-badge fs-badge-info">Teacher</span></div>
+      <div class="sb-sub" id="teacherEmail">teacher@lwcanada.org</div>
+      <div class="sb-sub"><span class="fs-badge fs-badge-primary">Teacher</span></div>
     </div>
   </aside>
 
@@ -69,6 +70,7 @@
 
     const allowedRoles = new Set(["teacher", "admin", "superadmin", "subgroup_admin", "pastor", "principal", "regional_secretary"]);
     const sections = {
+      "dashboard":    { title: "Dashboard",    src: "./sections/teacher-home.html" },
       "attendance":   { title: "Attendance",   src: "./teacher-attendance.html" },
       "my-class":     { title: "My Class",     src: "./sections/my-class.html" },
       "roster":       { title: "Class Roster", src: "./roster.html" },
@@ -76,6 +78,7 @@
     };
 
     const navItems = [
+      { key: "dashboard", icon: "&#x1F4CA;", label: "Dashboard" },
       { key: "attendance", icon: "&#x2705;", label: "Attendance" },
       { key: "my-class", icon: "&#x1F465;", label: "My Class" },
       { key: "roster", icon: "&#x1F4CB;", label: "Class Roster" },
@@ -83,7 +86,7 @@
     ];
 
     let profile = null;
-    let sectionKey = new URLSearchParams(window.location.search).get("section") || "attendance";
+    let sectionKey = new URLSearchParams(window.location.search).get("section") || "dashboard";
     if (!sections[sectionKey]) sectionKey = "attendance";
 
     const sbNav = document.getElementById("sbNav");
@@ -144,6 +147,7 @@
 
       document.getElementById("profileName").textContent = profile.full_name || profile.email || "Teacher";
       document.getElementById("teacherName").textContent = profile.full_name || profile.email || "Teacher";
+      document.getElementById("teacherEmail").textContent = profile.email || "";
 
       const bellContainer = document.createElement("div");
       bellContainer.style.cssText = "position:relative;display:inline-flex;align-items:center;";

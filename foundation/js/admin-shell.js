@@ -14,9 +14,9 @@
 
   const THEME_KEY = "fs_admin_theme";
   const COLLAPSE_KEY = "fs_admin_sidebar_collapsed";
+  const REGIONAL_MODE_KEY = "fs_regional_secretary_mode";
   const Shell = (window.FSAdminShell = window.FSAdminShell || {});
   const OPERATIONAL_ROLES = ["regional_secretary", "principal", "subgroup_admin", "pastor", "admin", "superadmin"];
-  const DATA_EXPORT_ROLES = ["teacher", ...OPERATIONAL_ROLES];
   const SYSTEM_ADMIN_ROLES = ["admin", "superadmin"];
 
   const NAV_SECTIONS = [
@@ -31,8 +31,7 @@
       label: "Operations",
       items: [
         { key: "batch", label: "Batch Management", href: "batch-management.html", icon: "BM", roles: OPERATIONAL_ROLES },
-        { key: "registrations", label: "Admin Review", href: "admin-review.html", icon: "AR", roles: OPERATIONAL_ROLES },
-        { key: "applicants", label: "Applicant Dir.", href: "applicant-directory.html", icon: "AD", roles: OPERATIONAL_ROLES },
+        { key: "applicants", label: "Applicants", href: "applicant-directory.html", icon: "AD", roles: OPERATIONAL_ROLES },
         { key: "waitlist", label: "Waitlist", href: "waitlist.html", icon: "WL", roles: OPERATIONAL_ROLES },
         { key: "classeditor", label: "Class Editor", href: "class-editor.html", icon: "CE", roles: OPERATIONAL_ROLES }
       ]
@@ -42,23 +41,9 @@
       items: [
         {
           key: "reports",
-          label: "Reports",
+          label: "Reports & Exports",
           href: "reports.html",
           icon: "RP",
-          roles: OPERATIONAL_ROLES,
-        },
-        {
-          key: "dataexports",
-          label: "Data Exports",
-          href: "data-exports.html",
-          icon: "DE",
-          roles: DATA_EXPORT_ROLES,
-        },
-        {
-          key: "baptismreport",
-          label: "Baptism Report",
-          href: "baptism-report.html",
-          icon: "BR",
           roles: OPERATIONAL_ROLES,
         },
       ]
@@ -66,9 +51,7 @@
     {
       label: "Teaching",
       items: [
-        { key: "teachers", label: "Teachers", href: "teacher-management.html", icon: "TM", roles: OPERATIONAL_ROLES },
-        { key: "atrisk", label: "At Risk Students", href: "at-risk-students.html", icon: "AR", roles: OPERATIONAL_ROLES },
-        { key: "attendance", label: "Attendance", href: "TeacherAttendancePortal.html", icon: "AT" },
+        { key: "attendance", label: "Attendance", href: "../teacher/teacher-attendance.html", icon: "AT" },
         { key: "schedule", label: "Schedule", href: "teacher-schedule.html", icon: "SC" },
         { key: "progress", label: "Student Progress", href: "StudentProgressView.html", icon: "SP" }
       ]
@@ -76,8 +59,8 @@
     {
       label: "Comms",
       items: [
-        { key: "notifications", label: "Notifications", href: "notification-center.html", icon: "NT", roles: OPERATIONAL_ROLES },
-        { key: "email", label: "Email Campaigns", href: "email-campaigns.html", icon: "EM", roles: OPERATIONAL_ROLES }
+        { key: "notifications", label: "Notifications", href: "notification-center.html", icon: "NT", roles: SYSTEM_ADMIN_ROLES },
+        { key: "email", label: "Email Campaigns", href: "email-campaigns.html", icon: "EM", roles: SYSTEM_ADMIN_ROLES }
       ]
     },
     {
@@ -90,7 +73,8 @@
     {
       label: "System",
       items: [
-        { key: "fellowships", label: "Fellowships", href: "fellowship-management.html", icon: "FG", roles: OPERATIONAL_ROLES },
+        { key: "teachers", label: "Teachers", href: "teacher-management.html", icon: "TM", roles: OPERATIONAL_ROLES },
+        { key: "fellowships", label: "Fellowships", href: "fellowship-management.html", icon: "FG", roles: SYSTEM_ADMIN_ROLES },
         { key: "clickupmanagement", label: "ClickUp Management", href: "clickup-management.html", icon: "AM", roles: SYSTEM_ADMIN_ROLES },
         { key: "failedsyncs", label: "Failed Syncs", href: "failed-sync-retry-center.html", icon: "FS", roles: SYSTEM_ADMIN_ROLES },
         { key: "health", label: "System Health", href: "system-health.html", icon: "SH", roles: SYSTEM_ADMIN_ROLES },
@@ -105,7 +89,6 @@
     "dashboard",
     "portal",
     "batch",
-    "registrations",
     "applicants",
     "notifications",
     "email",
@@ -159,6 +142,35 @@
     }
   }
 
+  function getRegionalMode() {
+    try {
+      const saved = String(localStorage.getItem(REGIONAL_MODE_KEY) || "").toLowerCase();
+      return saved === "teacher" ? "teacher" : "admin";
+    } catch (_) {
+      return "admin";
+    }
+  }
+
+  function setRegionalMode(mode) {
+    const normalized = String(mode || "").toLowerCase() === "teacher" ? "teacher" : "admin";
+    try { localStorage.setItem(REGIONAL_MODE_KEY, normalized); } catch (_) {}
+    return normalized;
+  }
+
+  function effectiveRoleFromMode(role, mode) {
+    const raw = String(role || "").toLowerCase();
+    if (raw === "regional_secretary" && String(mode || "").toLowerCase() === "teacher") return "teacher";
+    return raw;
+  }
+
+  function clearRegionalTeacherScope() {
+    try { sessionStorage.removeItem("fs_teacher_mode_scope"); } catch (_) {}
+  }
+
+  function setRegionalTeacherScope(scope) {
+    try { sessionStorage.setItem("fs_teacher_mode_scope", JSON.stringify(scope || {})); } catch (_) {}
+  }
+
   function initCollapsedState() {
     let collapsed = false;
     try {
@@ -174,9 +186,9 @@
     if (p.includes("dashboards")) return "dashboard";
     if (p.includes("admin-portal")) return "portal";
     if (p.includes("batch-management")) return "batch";
-    if (p.includes("admin-review")) return "registrations";
     if (p.includes("applicant-directory")) return "applicants";
     if (p.includes("teacherattendanceportal")) return "attendance";
+    if (p.includes("teacher-attendance")) return "attendance";
     if (p.includes("teacher-schedule")) return "schedule";
     if (p.includes("studentprogressview")) return "progress";
     if (p.includes("notification-center")) return "notifications";
@@ -192,7 +204,6 @@
     if (p.includes("baptism-report")) return "baptismreport";
     if (p.includes("reports")) return "reports";
     if (p.includes("teacher-management")) return "teachers";
-    if (p.includes("at-risk-students")) return "atrisk";
     if (p.includes("admin-activity")) return "adminactivity";
     if (p.includes("role-audit")) return "roleaudit";
     if (p.includes("waitlist")) return "waitlist";
@@ -265,13 +276,21 @@
         role = String(profile?.role || "").toLowerCase();
       } catch (_) {}
     }
-    if (isTeacherBlockedPage(active, role)) {
+    const mode = role === "regional_secretary"
+      ? setRegionalMode(options.mode || getRegionalMode())
+      : "admin";
+    const effectiveRole = effectiveRoleFromMode(role, mode);
+    if (role !== "regional_secretary" || mode !== "teacher") clearRegionalTeacherScope();
+    if (isTeacherBlockedPage(active, effectiveRole)) {
       window.clearTimeout(mountFailSafeTimer);
       document.body.style.opacity = "1";
       renderDenied();
       return;
     }
-    const profileInitial = (profileName || "A").trim().charAt(0).toUpperCase();
+    const safeProfileName = typeof profileName === "string"
+      ? profileName
+      : (profileName == null ? "" : String(profileName));
+    const profileInitial = (safeProfileName || "A").trim().charAt(0).toUpperCase();
     const pageTitle = options.pageTitle || document.title || "Admin";
     const badgeCounts = options.badgeCounts || {};
 
@@ -287,7 +306,7 @@
         </div>
       </div>
       <nav class="sb-nav" aria-label="Admin navigation">
-        ${buildSidebarHTML(active, badgeCounts, role)}
+        ${buildSidebarHTML(active, badgeCounts, effectiveRole)}
       </nav>
       <div class="sb-footer">
         <a class="sb-link" href="${resolveLoginPath()}" id="fs-admin-logout">
@@ -301,11 +320,17 @@
     topbar.id = "fs-admin-topbar";
     topbar.innerHTML = `
       <div class="fs-topbar-left breadcrumb">
-        <span>Admin</span>
+        <span>${mode === "teacher" ? "Teacher" : "Admin"}</span>
         <span class="bc-sep">/</span>
         <span class="bc-now" id="fs-bc-now">${pageTitle}</span>
       </div>
       <div class="fs-topbar-right topbar-r">
+        ${role === "regional_secretary" ? `
+          <div id="fs-mode-switch" style="display:inline-flex;gap:6px;align-items:center;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2)">
+            <button class="btn-out" id="fs-mode-admin" type="button" style="min-width:88px;height:30px;${mode === "admin" ? "background:var(--brand);color:#fff;border-color:var(--brand);" : ""}">Admin Mode</button>
+            <button class="btn-out" id="fs-mode-teacher" type="button" style="min-width:96px;height:30px;${mode === "teacher" ? "background:var(--brand);color:#fff;border-color:var(--brand);" : ""}">Teacher Mode</button>
+          </div>
+        ` : ""}
         <span class="user-chip">
           <span class="user-av" id="fs-user-av">${profileInitial}</span>
           <span id="fs-user-name">${profileName}</span>
@@ -324,6 +349,7 @@
     document.body.prepend(sidebar);
     document.body.classList.add("fs-shell-mounted");
     document.body.classList.add("fs-force-light");
+    document.body.setAttribute("data-admin-mode", mode);
     window.clearTimeout(mountFailSafeTimer);
     document.body.style.opacity = "1";
 
@@ -366,6 +392,22 @@
       applyCollapsedState(next);
     });
 
+    const modeAdminBtn = document.getElementById("fs-mode-admin");
+    const modeTeacherBtn = document.getElementById("fs-mode-teacher");
+    function applyRegionalMode(nextMode) {
+      const normalized = setRegionalMode(nextMode);
+      const nextEffectiveRole = effectiveRoleFromMode(role, normalized);
+      if (isTeacherBlockedPage(active, nextEffectiveRole)) {
+        const p = window.location.pathname || "";
+        const attendancePath = p.includes("/foundation/") ? "/foundation/staff/TeacherAttendancePortal.html" : "/staff/TeacherAttendancePortal.html";
+        window.location.href = attendancePath;
+        return;
+      }
+      window.location.reload();
+    }
+    modeAdminBtn && modeAdminBtn.addEventListener("click", function () { applyRegionalMode("admin"); });
+    modeTeacherBtn && modeTeacherBtn.addEventListener("click", function () { applyRegionalMode("teacher"); });
+
     window.addEventListener("resize", function () {
       if (window.innerWidth <= 768) {
         document.body.classList.remove("fs-shell-collapsed");
@@ -386,6 +428,26 @@
         window.location.href = resolveLoginPath();
       }
     });
+
+    // Regional secretary teacher-mode scope: persist linked teacher identity for staff teacher pages.
+    (async function () {
+      try {
+        if (role !== "regional_secretary" || mode !== "teacher") return;
+        const { getCurrentProfile: getProf, getLinkedTeacherRecord } = await import("../auth/auth-client.js");
+        const prof = await getProf();
+        if (!prof?.email) return;
+        const teacherRec = await getLinkedTeacherRecord(prof.email);
+        if (!teacherRec) return;
+        setRegionalTeacherScope({
+          mode: "teacher",
+          role: "regional_secretary",
+          email: String(teacherRec.email || prof.email || "").trim().toLowerCase(),
+          teacherId: String(teacherRec.teacher_id || "").trim(),
+          fullName: String(teacherRec.full_name || "").trim(),
+          ts: new Date().toISOString(),
+        });
+      } catch (_) {}
+    })();
 
     // Notification bell — mounted after shell is in DOM
     (async function () {
@@ -411,6 +473,7 @@
         const { getLinkedTeacherRecord, getCurrentProfile: getProf } = await import("../auth/auth-client.js");
         const prof = await getProf();
         if (!prof?.email) return;
+        if (String(prof?.role || "").toLowerCase() === "regional_secretary") return;
         const teacherRec = await getLinkedTeacherRecord(prof.email);
         if (!teacherRec) return;
         const p = window.location.pathname || "";
@@ -436,8 +499,9 @@
   Shell.setProfile = function (name, initial) {
     const av = document.getElementById("fs-user-av");
     const nm = document.getElementById("fs-user-name");
-    if (av) av.textContent = initial || (name || "?").charAt(0).toUpperCase();
-    if (nm) nm.textContent = name || "";
+    const safeName = typeof name === "string" ? name : (name == null ? "" : String(name));
+    if (av) av.textContent = initial || (safeName || "?").charAt(0).toUpperCase();
+    if (nm) nm.textContent = safeName || "";
   };
 
   Shell.setPageTitle = function (title) {

@@ -98,7 +98,7 @@ tr:hover td{background:#faf9ff}
 <script type="module">
 import { supabase, requireAuth, isAdmin, isRegionalSecretary } from "../auth/auth-client.js";
 
-const auth = await requireAuth(["superadmin", "admin", "subgroup_admin", "pastor", "principal", "regional_secretary"]);
+const auth = await requireAuth(["superadmin", "admin"]);
 if (!auth || !(isAdmin(auth.profile?.role) || isRegionalSecretary(auth.profile?.role))) {
   window.location.href = "/foundation/auth/login.html";
 }
@@ -269,7 +269,6 @@ window.openDirectEmailModal = openDirectEmailModal;
   </script>
 </body>
 </html>
-
 
 
 

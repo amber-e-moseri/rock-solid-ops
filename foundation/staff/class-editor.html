@@ -53,6 +53,7 @@
           <input type="checkbox" id="activeOnly" checked /> Active only
         </label>
         <button id="newClassBtn" class="fs-btn fs-btn-primary">+ New Class</button>
+        <button id="massManageBtn" class="fs-btn">Mass Manage</button>
         <button id="refreshBtn" class="fs-btn fs-btn-secondary">Refresh</button>
       </div>
     </div>
@@ -95,6 +96,10 @@
           <label>Label Suffix</label>
           <input class="fs-input" id="nSuffix" type="text" placeholder="Optional" />
         </div>
+        <div class="form-field">
+          <label>Enrollment Closes (Expiry)</label>
+          <input class="fs-input" id="nExpiry" type="datetime-local" />
+        </div>
       </div>
       <div class="form-field" style="margin-bottom:var(--space-3)">
         <label>Fellowship Codes</label>
@@ -123,11 +128,33 @@
       <div id="newMsg" style="margin-top:var(--space-2)"></div>
     </div>
 
+    <!-- Mass Manage panel -->
+    <div id="massManagePanel" class="new-panel" style="display:none;margin-bottom:var(--space-4)">
+      <h2>Mass Manage Classes</h2>
+      <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;margin-bottom:var(--space-3)">
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-meta);font-weight:600;cursor:pointer">
+          <input type="checkbox" id="selectAllCheck" /> Select All
+        </label>
+        <span id="selectedCount" style="font-size:var(--fs-meta);font-weight:600;color:var(--color-text-muted)">0 classes selected</span>
+      </div>
+      <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center">
+        <button id="massActivateBtn" class="fs-btn btn-primary btn-sm" disabled>Activate</button>
+        <button id="massDeactivateBtn" class="fs-btn btn-danger btn-sm" disabled>Deactivate</button>
+        <button id="massSetExpiryBtn" class="fs-btn btn-sm" disabled>Set Expiry</button>
+        <div id="massExpirySection" style="display:none;align-items:center;gap:var(--space-2)">
+          <input type="datetime-local" id="massExpiryInput" class="fs-input" style="width:200px" />
+          <button id="massApplyExpiryBtn" class="fs-btn btn-primary btn-sm">Apply</button>
+        </div>
+      </div>
+      <div id="massMsg" style="margin-top:var(--space-2)"></div>
+    </div>
+
     <!-- Class options table -->
     <div class="fs-table-wrap">
       <table class="fs-table" id="classTable">
         <thead>
           <tr>
+            <th id="massCheckboxTh" style="display:none;width:32px"></th>
             <th>Class ID</th>
             <th>Teacher</th>
             <th>Group</th>
@@ -136,6 +163,7 @@
             <th>Time</th>
             <th>Active</th>
             <th>Enroll Open</th>
+            <th>Expires</th>
             <th>Slots</th>
             <th id="actionsHeader">Actions</th>
           </tr>
@@ -156,23 +184,50 @@
     const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
     const state = {
-      classes:      [],
-      teachers:     [],
-      fellowships:  [],
-      batches:      [],
-      slots:        {},
-      profile:      null,
-      canEdit:      false,
-      canSuperadmin:false,
-      openEditId:   null,
-      newFcCodes:   [],
-      editFcCodes:  {},
-      newClassMode: "shared",
+      classes:       [],
+      teachers:      [],
+      fellowships:   [],
+      batches:       [],
+      slots:         {},
+      profile:       null,
+      canEdit:       false,
+      canSuperadmin: false,
+      openEditId:    null,
+      newFcCodes:    [],
+      editFcCodes:   {},
+      newClassMode:  "shared",
+      massManageOpen: false,
+      selectedIds:   new Set(),
     };
 
     function showFlash(msg, type = "") {
       $("flashArea").innerHTML = msg ? `<div class="msg ${type}">${msg}</div>` : "";
       if (msg && type !== "error") setTimeout(() => { $("flashArea").innerHTML = ""; }, 5000);
+    }
+
+    function toDatetimeLocal(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      const p = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+
+    function fmtShortDate(iso) {
+      if (!iso) return "—";
+      return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    function editColspan() {
+      return 10 + (state.canEdit ? 1 : 0) + (state.massManageOpen ? 1 : 0);
+    }
+
+    function updateMassUI() {
+      const count = state.selectedIds.size;
+      const countEl = $("selectedCount");
+      if (countEl) countEl.textContent = `${count} ${count === 1 ? "class" : "classes"} selected`;
+      const off = count === 0;
+      [$("massActivateBtn"), $("massDeactivateBtn"), $("massSetExpiryBtn")].forEach((b) => { if (b) b.disabled = off; });
+      if (off && $("massExpirySection")) $("massExpirySection").style.display = "none";
     }
 
     function filteredClasses() {
@@ -264,7 +319,7 @@
         : "";
 
       return `<tr id="${panelId}">
-        <td colspan="10" class="edit-panel">
+        <td colspan="${editColspan()}" class="edit-panel">
           ${sharedNote}
           <div class="form-grid">
             <div class="form-field">
@@ -290,6 +345,10 @@
             <div class="form-field">
               <label>Confirmed Start Date</label>
               <input class="fs-input" id="estart-${esc(co.class_option_id)}" type="date" value="${esc(co.confirmed_start_date || "")}" />
+            </div>
+            <div class="form-field">
+              <label>Enrollment Closes (Expiry)</label>
+              <input class="fs-input" id="eexpiry-${esc(co.class_option_id)}" type="datetime-local" value="${esc(toDatetimeLocal(co.enrollment_closes_at))}" />
             </div>
           </div>
           <div class="form-field" style="margin-bottom:var(--space-3)">
@@ -320,7 +379,7 @@
       $("actionsHeader").style.display = canAct ? "" : "none";
 
       if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="10"><div class="msg">No class options found.</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${editColspan()}"><div class="msg">No class options found.</div></td></tr>`;
         return;
       }
 
@@ -330,6 +389,7 @@
         const fc        = (co.fellowship_codes || []).join(", ") || "-";
         const onlineTag = co.is_online === true ? ' <span class="fc-chip" style="font-size:10px;padding:1px 8px">ONLINE</span>' : "";
         html += `<tr id="row-${esc(co.class_option_id)}" style="${co.deleted_at ? "opacity:.5" : ""}">
+          ${state.massManageOpen ? `<td><input type="checkbox" class="mass-check" data-id="${esc(co.class_option_id)}" ${state.selectedIds.has(co.class_option_id) ? "checked" : ""} /></td>` : ""}
           <td style="font-size:12px;font-weight:600">${esc(co.class_option_id)}</td>
           <td style="font-size:12px">${esc(co.teacher_name || "-")}</td>
           <td style="font-size:12px">${esc(co.group_id || "-")}</td>
@@ -338,6 +398,7 @@
           <td style="font-size:12px">${esc(co.class_time || "-")}</td>
           <td style="font-size:12px">${co.active === false ? "No" : "Yes"}</td>
           <td style="font-size:12px">${co.enrollment_open === false ? "No" : "Yes"}</td>
+          <td style="font-size:12px">${esc(fmtShortDate(co.enrollment_closes_at))}</td>
           <td style="font-size:12px">${slotCount}</td>
           ${canAct ? `<td>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
@@ -427,24 +488,26 @@
       const enrollOpen = document.getElementById(`eenroll-${coId}`)?.checked;
       const isOnline   = document.getElementById(`eonline-${coId}`)?.checked === true;
       const newFc      = enforceCodesForOnlineMode(state.editFcCodes[coId] || [], isOnline);
+      const expiryEl   = document.getElementById(`eexpiry-${coId}`);
       const now        = new Date().toISOString();
       const actor      = state.profile?.email || null;
       const msgEl      = document.getElementById(`emsg-${coId}`);
 
       const updates = {
-        teacher_name:     teacher?.full_name || null,
-        teacher_id:       teacher?.teacher_id || null,
-        day:              newDay,
-        class_time:       newTime,
-        max_capacity:     newCap ? parseInt(newCap) : null,
-        label_suffix:     newSuffix,
-        confirmed_start_date: newStart || null,
-        active:           isActive,
-        enrollment_open:  enrollOpen,
-        is_online:        isOnline,
-        fellowship_codes: newFc,
-        updated_by:       actor,
-        updated_at:       now,
+        teacher_name:          teacher?.full_name || null,
+        teacher_id:            teacher?.teacher_id || null,
+        day:                   newDay,
+        class_time:            newTime,
+        max_capacity:          newCap ? parseInt(newCap) : null,
+        label_suffix:          newSuffix,
+        confirmed_start_date:  newStart || null,
+        enrollment_closes_at:  expiryEl?.value ? new Date(expiryEl.value).toISOString() : null,
+        active:                isActive,
+        enrollment_open:       enrollOpen,
+        is_online:             isOnline,
+        fellowship_codes:      newFc,
+        updated_by:            actor,
+        updated_at:            now,
       };
 
       const { error } = await supabase.from("class_options").update(updates).eq("class_option_id", coId);
@@ -510,6 +573,7 @@
       const capacity  = $("nCapacity")?.value ? parseInt($("nCapacity").value) : null;
       const batchId   = $("nBatch")?.value || null;
       const suffix    = $("nSuffix")?.value.trim() || null;
+      const expiryVal = $("nExpiry")?.value;
       const isOnline  = $("nIsOnline")?.checked === true;
       const active    = $("nActive")?.checked;
       const enrollO   = $("nEnrollOpen")?.checked;
@@ -528,23 +592,24 @@
 
       if (isOnline && fc.length > 1 && classMode === "separate") {
         const rows = fc.map((code) => ({
-          class_option_id:  generateSeparateClassId(code, teacherId, day, time),
-          teacher_id:       teacherId,
-          teacher_name:     teacher?.full_name || null,
+          class_option_id:       generateSeparateClassId(code, teacherId, day, time),
+          teacher_id:            teacherId,
+          teacher_name:          teacher?.full_name || null,
           day,
-          class_time:       time,
-          max_capacity:     capacity,
-          label_suffix:     suffix,
+          class_time:            time,
+          max_capacity:          capacity,
+          label_suffix:          suffix,
+          enrollment_closes_at:  expiryVal ? new Date(expiryVal).toISOString() : null,
           active,
-          enrollment_open:  enrollO,
-          is_online:        isOnline,
-          fellowship_codes: [code],
-          group_id:         teacher?.group_id || null,
-          subgroup_id:      teacher?.subgroup_id || null,
-          created_by:       actor,
-          updated_by:       actor,
-          created_at:       now,
-          updated_at:       now,
+          enrollment_open:       enrollO,
+          is_online:             isOnline,
+          fellowship_codes:      [code],
+          group_id:              teacher?.group_id || null,
+          subgroup_id:           teacher?.subgroup_id || null,
+          created_by:            actor,
+          updated_by:            actor,
+          created_at:            now,
+          updated_at:            now,
         }));
         const { error } = await supabase.from("class_options").insert(rows);
         if (error) { msgEl.innerHTML = `<div class="msg error">${esc(error.message)}</div>`; return; }
@@ -575,23 +640,24 @@
       } else {
         const classId = $("nClassId")?.value.trim() || generateSharedClassId(teacher?.subgroup_id || "SG", teacherId, day, time);
         const { error } = await supabase.from("class_options").insert({
-          class_option_id:  classId,
-          teacher_id:       teacherId,
-          teacher_name:     teacher?.full_name || null,
+          class_option_id:       classId,
+          teacher_id:            teacherId,
+          teacher_name:          teacher?.full_name || null,
           day,
-          class_time:       time,
-          max_capacity:     capacity,
-          label_suffix:     suffix,
+          class_time:            time,
+          max_capacity:          capacity,
+          label_suffix:          suffix,
+          enrollment_closes_at:  expiryVal ? new Date(expiryVal).toISOString() : null,
           active,
-          enrollment_open:  enrollO,
-          is_online:        isOnline,
-          fellowship_codes: fc,
-          group_id:         teacher?.group_id || null,
-          subgroup_id:      teacher?.subgroup_id || null,
-          created_by:       actor,
-          updated_by:       actor,
-          created_at:       now,
-          updated_at:       now,
+          enrollment_open:       enrollO,
+          is_online:             isOnline,
+          fellowship_codes:      fc,
+          group_id:              teacher?.group_id || null,
+          subgroup_id:           teacher?.subgroup_id || null,
+          created_by:            actor,
+          updated_by:            actor,
+          created_at:            now,
+          updated_at:            now,
         });
         if (error) { msgEl.innerHTML = `<div class="msg error">${esc(error.message)}</div>`; return; }
         if (batchId) {
@@ -806,10 +872,98 @@
       $("classTableBody").addEventListener("change", (e) => {
         const el = e.target;
         if (!(el instanceof HTMLInputElement)) return;
+        if (el.classList.contains("mass-check")) {
+          const id = el.dataset.id;
+          if (el.checked) state.selectedIds.add(id);
+          else state.selectedIds.delete(id);
+          updateMassUI();
+          return;
+        }
         if (!el.id.startsWith("eonline-")) return;
         const coId = el.id.replace("eonline-", "");
         state.editFcCodes[coId] = enforceCodesForOnlineMode(state.editFcCodes[coId] || [], el.checked);
         renderTable();
+      });
+
+      // Mass manage
+      $("massManageBtn").addEventListener("click", () => {
+        state.massManageOpen = !state.massManageOpen;
+        state.selectedIds = new Set();
+        $("massManagePanel").style.display = state.massManageOpen ? "" : "none";
+        const th = $("massCheckboxTh");
+        if (th) th.style.display = state.massManageOpen ? "" : "none";
+        renderTable();
+        updateMassUI();
+      });
+
+      $("selectAllCheck").addEventListener("change", (e) => {
+        const rows = filteredClasses();
+        if (e.target.checked) rows.forEach((c) => state.selectedIds.add(c.class_option_id));
+        else state.selectedIds.clear();
+        updateMassUI();
+        renderTable();
+      });
+
+      $("massActivateBtn").addEventListener("click", async () => {
+        if (!state.selectedIds.size) return;
+        const ids = [...state.selectedIds];
+        const { error } = await supabase.from("class_options")
+          .update({ active: true, enrollment_open: true })
+          .in("class_option_id", ids);
+        if (error) { $("massMsg").innerHTML = `<div class="msg error">${esc(error.message)}</div>`; return; }
+        await supabase.from("audit_logs").insert({
+          actor_email: state.profile?.email || null, action: "CLASS_MASS_ACTIVATE",
+          entity_type: "class_option", status: "SUCCESS",
+          details: { class_option_ids: ids, count: ids.length }, created_at: new Date().toISOString(),
+        });
+        showFlash(`${ids.length} class(es) activated.`, "success");
+        state.selectedIds = new Set();
+        await loadData();
+        updateMassUI();
+      });
+
+      $("massDeactivateBtn").addEventListener("click", async () => {
+        if (!state.selectedIds.size) return;
+        const ids = [...state.selectedIds];
+        const { error } = await supabase.from("class_options")
+          .update({ active: false, enrollment_open: false })
+          .in("class_option_id", ids);
+        if (error) { $("massMsg").innerHTML = `<div class="msg error">${esc(error.message)}</div>`; return; }
+        await supabase.from("audit_logs").insert({
+          actor_email: state.profile?.email || null, action: "CLASS_MASS_DEACTIVATE",
+          entity_type: "class_option", status: "SUCCESS",
+          details: { class_option_ids: ids, count: ids.length }, created_at: new Date().toISOString(),
+        });
+        showFlash(`${ids.length} class(es) deactivated.`, "success");
+        state.selectedIds = new Set();
+        await loadData();
+        updateMassUI();
+      });
+
+      $("massSetExpiryBtn").addEventListener("click", () => {
+        const s = $("massExpirySection");
+        s.style.display = s.style.display === "none" ? "inline-flex" : "none";
+      });
+
+      $("massApplyExpiryBtn").addEventListener("click", async () => {
+        if (!state.selectedIds.size) return;
+        const expiryVal = $("massExpiryInput")?.value;
+        const ids = [...state.selectedIds];
+        const { error } = await supabase.from("class_options")
+          .update({ enrollment_closes_at: expiryVal ? new Date(expiryVal).toISOString() : null })
+          .in("class_option_id", ids);
+        if (error) { $("massMsg").innerHTML = `<div class="msg error">${esc(error.message)}</div>`; return; }
+        await supabase.from("audit_logs").insert({
+          actor_email: state.profile?.email || null, action: "CLASS_MASS_SET_EXPIRY",
+          entity_type: "class_option", status: "SUCCESS",
+          details: { class_option_ids: ids, enrollment_closes_at: expiryVal ? new Date(expiryVal).toISOString() : null, count: ids.length },
+          created_at: new Date().toISOString(),
+        });
+        showFlash(`Expiry set for ${ids.length} class(es).`, "success");
+        state.selectedIds = new Set();
+        $("massExpirySection").style.display = "none";
+        await loadData();
+        updateMassUI();
       });
     }
 
@@ -822,13 +976,14 @@
       const auth = await requireAuth(["admin", "superadmin", "regional_secretary"]);
       if (!auth) return;
       state.profile = auth.profile;
-      state.canEdit = ["admin","superadmin"].includes((auth.profile?.role || "").toLowerCase());
+      state.canEdit = ["admin","superadmin","regional_secretary"].includes((auth.profile?.role || "").toLowerCase());
       state.canSuperadmin = (auth.profile?.role || "").toLowerCase() === "superadmin";
 
       window.FSAdminShell?.mount({ active: "classeditor", pageTitle: "Class Editor", role: auth.profile?.role });
 
       if (!state.canEdit) {
         $("newClassBtn").style.display = "none";
+        $("massManageBtn").style.display = "none";
         $("actionsHeader").style.display = "none";
       }
 

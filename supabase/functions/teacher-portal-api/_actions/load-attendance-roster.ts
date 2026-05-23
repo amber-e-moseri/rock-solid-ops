@@ -52,6 +52,7 @@ export async function loadAttendanceRosterAction(ctx: ActionContext): Promise<Re
       if (attendanceCountRes.error) throw new ApiError("INTERNAL_ERROR", "Failed to detect class submission history", 500);
       const isFirstSubmission = Number(attendanceCountRes.count || 0) === 0;
 
+      let confirmedStartDate: string | null = null;
       const classMetaRes = await withTimeout(
         db
           .from("class_options")
@@ -60,7 +61,24 @@ export async function loadAttendanceRosterAction(ctx: ActionContext): Promise<Re
           .maybeSingle(),
         "load class metadata for first submission",
       );
-      if (classMetaRes.error) throw new ApiError("INTERNAL_ERROR", "Failed to load class metadata", 500);
+      if (classMetaRes.error) {
+        const isMissingConfirmedStartColumn = String(classMetaRes.error?.code || "") === "42703" ||
+          String(classMetaRes.error?.message || "").toLowerCase().includes("confirmed_start_date");
+        if (!isMissingConfirmedStartColumn) {
+          throw new ApiError("INTERNAL_ERROR", "Failed to load class metadata", 500);
+        }
+        const classMetaFallbackRes = await withTimeout(
+          db
+            .from("class_options")
+            .select("class_option_id")
+            .eq("class_option_id", classOptionId)
+            .maybeSingle(),
+          "load class metadata fallback for first submission",
+        );
+        if (classMetaFallbackRes.error) throw new ApiError("INTERNAL_ERROR", "Failed to load class metadata", 500);
+      } else {
+        confirmedStartDate = classMetaRes.data?.confirmed_start_date || null;
+      }
 
       const slotRes = await withTimeout(
         db
@@ -95,7 +113,7 @@ export async function loadAttendanceRosterAction(ctx: ActionContext): Promise<Re
           firstSubmissionRequired: isFirstSubmission,
           firstSubmissionMeta: {
             classOptionId,
-            confirmedStartDate: classMetaRes.data?.confirmed_start_date || null,
+            confirmedStartDate,
             batchId: activeBatch?.batch_id || null,
             batchStartDate: activeBatch?.start_date || null,
           },

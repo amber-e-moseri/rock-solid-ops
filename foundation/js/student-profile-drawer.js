@@ -63,10 +63,11 @@
     display:flex;border-bottom:1px solid var(--color-border,#e5e7eb);flex-shrink:0;overflow-x:auto;
     scrollbar-width:none
   ">
-    <button class="fspd-tab" data-tab="overview"    style="padding:10px 18px;font-size:13px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;white-space:nowrap;color:var(--color-text-muted,#6b7280)">Overview</button>
     <button class="fspd-tab" data-tab="attendance"  style="padding:10px 18px;font-size:13px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;white-space:nowrap;color:var(--color-text-muted,#6b7280)">Attendance</button>
     <button class="fspd-tab" data-tab="milestones"  style="padding:10px 18px;font-size:13px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;white-space:nowrap;color:var(--color-text-muted,#6b7280)">Milestones</button>
+    <button class="fspd-tab" data-tab="overview"    style="padding:10px 18px;font-size:13px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;white-space:nowrap;color:var(--color-text-muted,#6b7280)">Overview</button>
     <button id="fspd-tab-moodle" class="fspd-tab" data-tab="moodle" style="padding:10px 18px;font-size:13px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;white-space:nowrap;color:var(--color-text-muted,#6b7280)">Moodle</button>
+    <button id="fspd-tab-graduation" class="fspd-tab" data-tab="graduation" style="padding:10px 18px;font-size:13px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;white-space:nowrap;color:var(--color-text-muted,#6b7280)">Graduation</button>
   </div>
 
   <!-- Body -->
@@ -141,11 +142,13 @@
     overlay.style.opacity = "1";
     overlay.style.pointerEvents = "auto";
 
-    // Hide Moodle tab for teachers
+    // Hide Moodle tab for teachers; hide Graduation tab for non-admin roles
     const moodleTab = document.getElementById("fspd-tab-moodle");
     if (moodleTab) moodleTab.style.display = isTeacher(_role) ? "none" : "";
+    const gradTab = document.getElementById("fspd-tab-graduation");
+    if (gradTab) gradTab.style.display = isAdminLike(_role) ? "" : "none";
 
-    activateTab("overview");
+    activateTab(options.initialTab || "attendance");
   }
 
   function close() {
@@ -170,6 +173,7 @@
       else if (name === "attendance")  await tabAttendance();
       else if (name === "milestones")  await tabMilestones();
       else if (name === "moodle")      await tabMoodle();
+      else if (name === "graduation")  await tabGraduation();
     } catch (err) {
       errMsg(`Failed to load ${name}: ${err?.message || err}`);
     }
@@ -184,11 +188,127 @@
     return data;
   }
 
+  async function resolveActiveClassOption(app) {
+    const direct = app?.class_option_id || null;
+    if (direct) return String(direct);
+
+    // Resolve linked student_id from applicant email when applicant.id != students.student_id
+    let linkedStudentId = null;
+    try {
+      if (app?.email) {
+        const { data: studentRows } = await _sb
+          .from("students")
+          .select("student_id,class_option_id")
+          .eq("email", app.email)
+          .limit(1);
+        const linked = studentRows?.[0];
+        if (linked?.class_option_id) return String(linked.class_option_id);
+        linkedStudentId = linked?.student_id || null;
+      }
+    } catch (_) {}
+
+    const lookupStudentId = linkedStudentId || _sid;
+
+    // Fallback 1: active roster row
+    try {
+      const { data: roster } = await _sb
+        .from("class_roster")
+        .select("class_option_id,status,updated_at")
+        .eq("student_id", lookupStudentId)
+        .eq("status", "Active")
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      const rosterClass = roster?.[0]?.class_option_id;
+      if (rosterClass) return String(rosterClass);
+    } catch (_) {}
+
+    // Fallback 2: latest attendance class
+    try {
+      const { data: att } = await _sb
+        .from("attendance_log")
+        .select("class_option_id,class_date,created_at")
+        .eq("student_id", lookupStudentId)
+        .not("class_option_id", "is", null)
+        .order("class_date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const attClass = att?.[0]?.class_option_id;
+      if (attClass) return String(attClass);
+    } catch (_) {}
+
+    return null;
+  }
+
+  async function fetchFocusSummary(app) {
+    let linkedStudentId = null;
+    try {
+      if (app?.email) {
+        const { data: studentRows } = await _sb
+          .from("students")
+          .select("student_id")
+          .eq("email", app.email)
+          .limit(1);
+        linkedStudentId = studentRows?.[0]?.student_id || null;
+      }
+    } catch (_) {}
+    const lookupStudentId = linkedStudentId || _sid;
+
+    let attendanceRows = [];
+    try {
+      const { data: rec } = await _sb
+        .from("attendance_records")
+        .select("present,class_date")
+        .eq("applicant_id", _sid)
+        .order("class_date", { ascending: false })
+        .limit(200);
+      if (rec?.length) {
+        attendanceRows = rec;
+      } else {
+        const { data: log } = await _sb
+          .from("attendance_log")
+          .select("present,class_date")
+          .eq("student_id", lookupStudentId)
+          .order("class_date", { ascending: false })
+          .limit(200);
+        attendanceRows = log || [];
+      }
+    } catch (_) {}
+
+    let milestoneRows = [];
+    try {
+      const { data } = await _sb
+        .from("student_milestone_status")
+        .select("status,completed")
+        .eq("applicant_id", _sid)
+        .limit(500);
+      milestoneRows = data || [];
+    } catch (_) {}
+
+    const attendanceTotal = attendanceRows.length;
+    const attendancePresent = attendanceRows.filter((r) => r.present === true || r.present === 1).length;
+    const attendancePct = attendanceTotal ? Math.round((attendancePresent / attendanceTotal) * 100) : 0;
+
+    const milestoneTotal = milestoneRows.length;
+    const milestoneDone = milestoneRows.filter((m) => m.status === "completed" || m.completed === true).length;
+    const milestonePct = milestoneTotal ? Math.round((milestoneDone / milestoneTotal) * 100) : 0;
+
+    return {
+      attendanceTotal,
+      attendancePresent,
+      attendancePct,
+      milestoneTotal,
+      milestoneDone,
+      milestonePct,
+    };
+  }
+
   /* ------------------------------------------------------------------
      Tab: Overview
   ------------------------------------------------------------------ */
   async function tabOverview() {
     const app = await fetchApplicant();
+    const activeClassOption = await resolveActiveClassOption(app);
+    const focus = await fetchFocusSummary(app);
 
     document.getElementById("fspd-name").textContent = app.full_name || "Student";
     document.getElementById("fspd-sub").textContent =
@@ -197,7 +317,7 @@
     const fields = [
       ["Fellowship",       app.fellowship_code || app.fellowship_name || "-"],
       ["Group / Subgroup", `${app.group_id || "-"} / ${app.subgroup_id || "-"}`],
-      ["Assigned Class",   app.class_option_id || "Not assigned"],
+      ["Assigned Class",   activeClassOption || "Not assigned"],
       ["Batch",            app.batch_id || "-"],
       ["Status",           app.registration_status || app.status || "-"],
       ["Preferred Time",   app.preferred_class_time || app.class_time || app.availability || "-"],
@@ -214,7 +334,28 @@
       );
     }
 
-    body().innerHTML = `<div class="fspd-kv">${
+    body().innerHTML = `
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:var(--color-text-muted,#6b7280);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:8px">At a glance</div>
+        <div class="fspd-stat-grid" style="margin-bottom:0">
+          <div class="fspd-stat">
+            <div class="lbl">Attendance</div>
+            <div class="val">${focus.attendancePct}%</div>
+            <div style="font-size:11px;color:var(--color-text-muted,#6b7280)">${focus.attendancePresent}/${focus.attendanceTotal} present</div>
+          </div>
+          <div class="fspd-stat">
+            <div class="lbl">Milestones</div>
+            <div class="val">${focus.milestonePct}%</div>
+            <div style="font-size:11px;color:var(--color-text-muted,#6b7280)">${focus.milestoneDone}/${focus.milestoneTotal} complete</div>
+          </div>
+          <div class="fspd-stat">
+            <div class="lbl">Active Class</div>
+            <div class="val" style="font-size:16px;line-height:1.2">${esc(activeClassOption || "None")}</div>
+            <div style="font-size:11px;color:var(--color-text-muted,#6b7280)">current placement</div>
+          </div>
+        </div>
+      </div>
+      <div class="fspd-kv">${
       fields.map(([k, v]) => `
         <div class="fspd-kv-item">
           <div class="k">${esc(k)}</div>
@@ -227,6 +368,7 @@
      Tab: Attendance
   ------------------------------------------------------------------ */
   async function tabAttendance() {
+    const app = await fetchApplicant();
     // Try attendance_records first, then attendance_log
     let rows = [];
     const col = "applicant_id";
@@ -277,6 +419,59 @@
             <span class="fspd-badge ${present ? "ok" : "bad"}">${present ? "Present" : "Absent"}</span>
           </div>`;
         }).join("")}
+      </div>
+
+      <!-- Makeup Queue section -->
+      <div id="fspd-makeup-section" style="margin-top:16px"></div>`;
+
+    // Async: load and render makeup queue below the attendance table
+    fetchMakeupQueue(app).then((html) => {
+      const el = document.getElementById("fspd-makeup-section");
+      if (el) el.innerHTML = html;
+    }).catch(() => {});
+  }
+
+  async function fetchMakeupQueue(app) {
+    // Bridge applicant → students.student_id via email
+    const { data: stuRows } = await _sb
+      .from("students").select("student_id").eq("email", app.email).limit(1);
+    const studentId = stuRows?.[0]?.student_id;
+    if (!studentId) return "";
+
+    const { data: makeups } = await _sb
+      .from("makeup_queue")
+      .select("*")
+      .eq("student_id", studentId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (!makeups?.length) return "";
+
+    const pending   = makeups.filter((m) => !m.makeup_completed).length;
+    const completed = makeups.filter((m) =>  m.makeup_completed).length;
+    const TODAY     = new Date().toISOString().slice(0, 10);
+
+    return `
+      <div style="border-top:1px solid var(--color-border,#e5e7eb);padding-top:12px;margin-top:4px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted,#6b7280);margin-bottom:8px">
+          Makeup Queue — ${pending} pending · ${completed} completed
+        </div>
+        <div style="display:grid;gap:6px">
+          ${makeups.map((m) => {
+            const overdue = !m.makeup_completed && m.deadline && m.deadline < TODAY;
+            const bg  = m.makeup_completed ? "#dcfce7" : overdue ? "#fee2e2" : "#fef9c3";
+            const fg  = m.makeup_completed ? "#166534" : overdue ? "#991b1b" : "#854d0e";
+            const lbl = m.makeup_completed ? "Completed" : overdue ? "Overdue" : "Pending";
+            return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--color-border,#e5e7eb);border-radius:8px;font-size:12px">
+              <div>
+                <span style="font-weight:700">Class ${esc(m.class_number)}</span>
+                ${m.deadline ? `<span style="color:var(--color-text-muted,#6b7280);margin-left:6px">Due ${esc(m.deadline)}</span>` : ""}
+                ${m.completed_date ? `<span style="color:#166534;margin-left:6px">Done ${esc(m.completed_date)}</span>` : ""}
+              </div>
+              <span style="display:inline-flex;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;background:${bg};color:${fg}">${lbl}</span>
+            </div>`;
+          }).join("")}
+        </div>
       </div>`;
   }
 
@@ -406,6 +601,81 @@
           if (!document.getElementById(DRAWER_ID)?.getAttribute("aria-hidden") === "true") return;
           tabMoodle().catch(() => {});
         }, 2500);
+      } catch (err) {
+        btn.textContent = "Failed";
+        btn.disabled = false;
+      }
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     Tab: Graduation eligibility
+  ------------------------------------------------------------------ */
+  async function tabGraduation() {
+    const app = await fetchApplicant();
+
+    const { data: ge, error } = await _sb
+      .from("graduation_eligibility")
+      .select("*")
+      .eq("applicant_id", _sid)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    const gates = [
+      { label: "Attendance (≥ 6 sessions)",      key: "gate1_attendance" },
+      { label: "Moodle course complete",          key: "gate2_moodle_complete" },
+      { label: "Core milestones met",             key: "gate3_milestones_met" },
+      { label: "Exam grade ≥ 70%",               key: "gate4_exam_passed" },
+    ];
+
+    const finalEligible = ge
+      ? (ge.override_eligible != null ? ge.override_eligible : ge.eligible)
+      : null;
+
+    const statusBadge = !ge
+      ? `<span style="display:inline-flex;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#f3f4f6;color:#6b7280">Not Evaluated</span>`
+      : ge.override_eligible != null
+        ? `<span style="display:inline-flex;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#ede9fe;color:#5b21b6">${ge.override_eligible ? "Eligible (Override)" : "Not Eligible (Override)"}</span>`
+        : finalEligible
+          ? `<span style="display:inline-flex;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#dcfce7;color:#166534">Eligible</span>`
+          : `<span style="display:inline-flex;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#fee2e2;color:#991b1b">Not Eligible</span>`;
+
+    body().innerHTML = `
+      <div style="display:grid;gap:12px">
+        <div style="background:var(--color-surface-raised,#f9fafb);border:1px solid var(--color-border,#e5e7eb);border-radius:10px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted,#6b7280)">Eligibility</div>
+            ${statusBadge}
+          </div>
+          ${gates.map((g) => {
+            const pass = ge?.[g.key] === true;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-border,#e5e7eb);font-size:13px">
+              <span>${esc(g.label)}</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:700;background:${pass ? "#dcfce7" : "#fee2e2"};color:${pass ? "#166534" : "#991b1b"}">${pass ? "✓" : "✗"}</span>
+            </div>`;
+          }).join("")}
+          ${ge?.override_reason ? `<div style="margin-top:10px;font-size:12px;color:var(--color-text-muted,#6b7280)">Override reason: ${esc(ge.override_reason)}</div>` : ""}
+          ${ge?.last_evaluated_at ? `<div style="margin-top:4px;font-size:11px;color:var(--color-text-muted,#6b7280)">Last evaluated: ${new Date(ge.last_evaluated_at).toLocaleDateString()}</div>` : ""}
+        </div>
+
+        ${isAdminLike(_role) ? `
+          <button id="fspd-grad-eval-btn" style="
+            padding:8px 14px;border-radius:8px;border:1px solid var(--color-primary,#4C2A92);
+            background:var(--color-primary,#4C2A92);color:#fff;font:600 13px/1.4 inherit;cursor:pointer
+          ">Re-evaluate Now</button>
+        ` : ""}
+      </div>`;
+
+    document.getElementById("fspd-grad-eval-btn")?.addEventListener("click", async () => {
+      const btn = document.getElementById("fspd-grad-eval-btn");
+      if (!btn) return;
+      btn.disabled = true;
+      btn.textContent = "Evaluating…";
+      try {
+        await _sb.rpc("evaluate_graduation_eligibility", { p_applicant_id: _sid });
+        btn.textContent = "Done ✓";
+        setTimeout(() => tabGraduation().catch(() => {}), 800);
       } catch (err) {
         btn.textContent = "Failed";
         btn.disabled = false;

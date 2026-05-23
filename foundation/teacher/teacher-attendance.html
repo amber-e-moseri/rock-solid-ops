@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rock Solid - Teacher Attendance</title>
+  <title>Rock Solid - Attendance Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../ui/premium-theme.css" />
   <style>
     :root { --line: color-mix(in srgb, var(--border) 90%, transparent); }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: "DM Sans", sans-serif; background: var(--bg); color: var(--text); }
+    body { margin: 0; font-family: "Manrope", sans-serif; background: var(--bg); color: var(--text); }
     .wrap { max-width: 980px; margin: 0 auto; padding: 14px; }
     .top {
       position: sticky; top: 8px; z-index: 30; border: 1px solid var(--line); border-radius: 16px; padding: 12px;
@@ -26,10 +26,11 @@
     .icon-btn { width: 42px; height: 42px; cursor: pointer; font-size: 18px; }
     .btn { padding: 10px 14px; font-weight: 700; cursor: pointer; }
     .btn.primary { background: var(--primary); color: #fff; border-color: color-mix(in srgb, var(--primary) 80%, black); }
-    .card { background: var(--fs-surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-top: 10px; box-shadow: var(--shadow-soft); }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 12px; box-shadow: 0 4px 20px rgba(76,42,146,.08); }
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
     label { display: block; margin-bottom: 4px; font-size: 11px; color: var(--fs-text-muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
-    input, select, textarea { width: 100%; padding: 10px; }
+    input, select, textarea { width: 100%; padding: 10px; min-height: 44px; }
+    select, input[type="date"], textarea { border-radius: 10px; border:1px solid var(--line); background:#fff; }
     .roster { display: grid; gap: 8px; }
     .student {
       border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: var(--surface-2);
@@ -38,18 +39,28 @@
     .student-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
     .name { font-weight: 800; }
     .meta { font-size: 12px; color: var(--fs-text-muted); }
-    .present-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+    .present-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; }
+    .present-toggle input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4C2A92; }
     .chips { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip {
       border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--soft-lavender) 75%, var(--fs-surface));
       color: var(--primary); font-size: 11px; font-weight: 700; padding: 6px 10px; cursor: pointer;
     }
     .chip.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .milestone-details { margin-top: 6px; border-top: 1px dashed var(--line); padding-top: 8px; }
+    .milestone-row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; font-size:12px; }
+    .milestone-meta { color: var(--fs-text-muted); font-size:11px; }
+    .fs-badge[data-milestone-code] { border:1px solid #d9dbe3; border-radius:999px; padding:7px 12px; font-size:11px; font-weight:700; background:#fff; color:#6f6881; cursor:pointer; }
+    .fs-badge.on[data-milestone-code] { background:#16a34a; color:#fff; border-color:#16a34a; }
+    .milestone-toggle { border:1px solid #d9dbe3; border-radius:999px; background:#fff; padding:7px 12px; cursor:pointer; font-weight:700; min-height: 34px; }
+    .milestone-toggle.on { background: color-mix(in srgb, #22c55e 18%, var(--surface-2)); border-color: color-mix(in srgb, #22c55e 45%, var(--line)); color:#166534; }
     .sticky-save {
       position: sticky; bottom: 10px; z-index: 35; margin-top: 10px;
       border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: color-mix(in srgb, var(--fs-surface) 90%, transparent); backdrop-filter: blur(8px);
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
     }
+    #saveBtn { width: 100%; max-width: 280px; background:#4C2A92; border-color:#4C2A92; min-height: 44px; font-weight:800; }
+    #saveBtn:hover { background:#3f2179; }
     .msg { margin-top: 8px; border-radius: 10px; padding: 9px 10px; font-size: 12px; border: 1px solid var(--line); }
     .ok { color: #166534; background: color-mix(in srgb, #22c55e 12%, var(--fs-surface)); border-color: color-mix(in srgb, #22c55e 35%, var(--fs-surface)); }
     .bad { color: #b42318; background: color-mix(in srgb, #ef4444 12%, var(--fs-surface)); border-color: color-mix(in srgb, #ef4444 34%, var(--fs-surface)); }
@@ -66,19 +77,38 @@
       border: 1px solid var(--line);
       border-radius: 14px;
       box-shadow: var(--shadow-soft);
-      padding: 14px;
+      padding: 18px;
       display: grid;
       gap: 10px;
     }
     .fs-modal-title { margin: 0; font-size: 20px; }
-    @media (max-width: 840px) { .grid { grid-template-columns: 1fr; } }
+    .count-badge { display:inline-flex; align-items:center; justify-content:center; min-width:28px; padding:3px 10px; border-radius:999px; background:#4C2A92; color:#fff; font-size:12px; font-weight:800; }
+    @media (max-width: 840px) { .grid { grid-template-columns: 1fr; } .sticky-save{flex-direction:column;align-items:stretch;} #saveBtn{max-width:none;} }
+    /* Page tabs */
+    .tab-bar { display:flex; gap:6px; margin-top:10px; }
+    .tab-btn { border:1px solid var(--line); border-radius:12px; background:var(--surface-2); color:var(--text); font:inherit; font-size:13px; font-weight:700; padding:8px 16px; cursor:pointer; transition:background .15s,border-color .15s; }
+    .tab-btn.active { background:#4C2A92; color:#fff; border-color:#4C2A92; }
+    /* Makeup queue */
+    .mq-badge { display:inline-flex; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:700; }
+    .mq-pending  { background:#fef9c3; color:#854d0e; }
+    .mq-overdue  { background:#fee2e2; color:#991b1b; }
+    .mq-complete { background:#dcfce7; color:#166534; }
+    .mq-overdue-text { color:#991b1b; font-weight:700; }
+    .mq-tbl { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
+    .mq-tbl th { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--fs-text-muted); padding:8px 10px; border-bottom:1px solid var(--line); text-align:left; background:transparent; }
+    .mq-tbl td { padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+    .mq-tbl tr:last-child td { border-bottom:0; }
+    .mq-actions { display:flex; gap:4px; flex-wrap:wrap; }
+    .btn-xs { padding:4px 10px; font-size:11px; font-weight:700; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); color:var(--text); cursor:pointer; }
+    .btn-xs.primary { background:#4C2A92; color:#fff; border-color:#4C2A92; }
+    .btn-xs.warn { background:#fffbeb; color:#854d0e; border-color:#f59e0b; }
   </style>
 </head>
 <body>
   <main class="wrap">
     <section class="top">
       <div>
-        <h1>Teacher Attendance</h1>
+        <h1>Attendance Portal</h1>
         <p>Assigned classes only, attendance and milestone updates in one flow</p>
       </div>
       <div style="display:flex;gap:8px">
@@ -89,37 +119,110 @@
 
     <section id="flash"></section>
 
-    <section class="card">
-      <div class="grid">
-        <div>
-          <label>Assigned Class</label>
-          <select id="classSelect"></select>
-        </div>
-        <div>
-          <label>Session</label>
-          <select id="sessionSelect">
-            <option>Class1</option><option>Class2</option><option>Class3</option><option>Class4</option><option>Class5</option><option>Class6</option><option>Class7</option>
-          </select>
-        </div>
-        <div>
-          <label>Date</label>
-          <input id="classDate" type="date" />
-        </div>
-      </div>
-    </section>
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabAttendance" data-tab="attendance">Attendance</button>
+      <button class="tab-btn" id="tabMakeup" data-tab="makeup">Makeup Queue</button>
+    </div>
 
-    <section class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <strong>Roster</strong>
-        <input id="searchInput" placeholder="Search student..." style="max-width:240px" />
-      </div>
-      <div id="roster" class="roster" style="margin-top:8px"></div>
-      <div class="sticky-save">
-        <div id="saveMeta" style="font-size:12px;color:var(--fs-text-muted)">No changes yet.</div>
-        <button id="saveBtn" class="fs-btn primary">Save Attendance</button>
-      </div>
-    </section>
+    <!-- Attendance pane -->
+    <div id="paneAttendance">
+      <section class="card">
+        <div class="grid">
+          <div>
+            <label>Assigned Class</label>
+            <select id="classSelect"></select>
+            <div id="classHelperText" style="display:none;margin-top:6px;font-size:12px;color:var(--fs-text-muted);">Please select a class to continue</div>
+          </div>
+          <div>
+            <label>Session</label>
+            <select id="sessionSelect"></select>
+          </div>
+          <div>
+            <label>Date</label>
+            <input id="classDate" type="date" />
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <strong>Roster <span id="studentCountBadge" class="count-badge">0</span></strong>
+          <input id="searchInput" placeholder="Search student..." style="max-width:240px" />
+        </div>
+        <div id="roster" class="roster" style="margin-top:8px"></div>
+        <div class="sticky-save">
+          <div id="saveMeta" style="font-size:12px;color:var(--fs-text-muted)">No changes yet.</div>
+          <button id="saveBtn" class="fs-btn primary">Save Attendance</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Makeup Queue pane -->
+    <div id="paneMakeup" style="display:none">
+      <section class="card" style="margin-top:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <div>
+            <strong>Makeup Queue</strong>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--fs-text-muted)">Pending makeups for students in your class</p>
+          </div>
+          <button class="btn" id="mqRefreshBtn" type="button">Refresh</button>
+        </div>
+        <div id="mqMetrics" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px"></div>
+        <div id="mqOverdue" style="display:none;border-radius:10px;padding:8px 10px;font-size:12px;border:1px solid var(--line);margin-bottom:8px;color:#b45309;background:color-mix(in srgb,#f59e0b 12%,var(--fs-surface));border-color:color-mix(in srgb,#f59e0b 35%,var(--fs-surface))"></div>
+        <div id="mqState" style="font-size:13px;color:var(--fs-text-muted)">Select a class to see makeups.</div>
+        <div style="overflow:auto;border-radius:10px;border:1px solid var(--line);display:none" id="mqTableWrap">
+          <table class="mq-tbl">
+            <thead><tr><th>Student</th><th>Class Missed</th><th>Deadline</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="mqBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <!-- Mark Complete modal -->
+  <div class="fs-modal-overlay" id="mqCompleteModal">
+    <div class="fs-modal">
+      <h2 class="fs-modal-title" id="mqCompleteTitle">Mark Makeup Complete</h2>
+      <input type="hidden" id="mqCompleteRowId" />
+      <input type="hidden" id="mqCompleteStudentId" />
+      <input type="hidden" id="mqCompleteClassNum" />
+      <input type="hidden" id="mqCompleteBatchId" />
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--fs-text-muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Completed date</label>
+        <input type="date" id="mqCompleteDate" style="width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text);font:inherit;padding:10px" />
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--fs-text-muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Notes (optional)</label>
+        <textarea id="mqCompleteNotes" rows="2" style="width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text);font:inherit;padding:10px;resize:vertical" placeholder="e.g. Attended Thursday session"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" id="mqCompleteCancelBtn" type="button">Cancel</button>
+        <button class="btn primary" id="mqCompleteSaveBtn" type="button">Mark Complete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Extend Deadline modal -->
+  <div class="fs-modal-overlay" id="mqExtendModal">
+    <div class="fs-modal">
+      <h2 class="fs-modal-title" id="mqExtendTitle">Extend Deadline</h2>
+      <input type="hidden" id="mqExtendRowId" />
+      <input type="hidden" id="mqExtendNotes" />
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--fs-text-muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">New deadline</label>
+        <input type="date" id="mqExtendDate" style="width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text);font:inherit;padding:10px" />
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--fs-text-muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Reason <span style="color:#ef4444">*</span></label>
+        <textarea id="mqExtendReason" rows="2" style="width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text);font:inherit;padding:10px;resize:vertical" placeholder="Required — briefly explain the extension"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" id="mqExtendCancelBtn" type="button">Cancel</button>
+        <button class="btn primary" id="mqExtendSaveBtn" type="button">Save Extension</button>
+      </div>
+    </div>
+  </div>
   <div id="firstSessionModalOverlay" class="fs-modal-overlay" aria-hidden="true">
     <div class="fs-modal">
       <h2 class="fs-modal-title">First Class Session</h2>
@@ -132,7 +235,10 @@
         <label for="firstActualStartDate">Actual start date</label>
         <input id="firstActualStartDate" type="date" />
       </div>
-      <button id="confirmFirstSessionBtn" class="fs-btn primary fs-btn fs-btn-primary">Confirm and Continue</button>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+        <button id="cancelFirstSessionBtn" class="fs-btn" type="button">Cancel</button>
+        <button id="confirmFirstSessionBtn" class="fs-btn fs-btn-primary" style="min-width:220px;" type="button">Confirm and Continue</button>
+      </div>
     </div>
   </div>
 
@@ -144,15 +250,13 @@ import { CONFIG, supabase } from "../auth/auth-client.js";
 import { requireAuth } from "../auth/auth-client.js";
 import { logout } from "../auth/logout.js";
 
-const MILESTONES = [
-  "Born Again",
-  "Filled with the Spirit",
-  "Partnership",
-  "Joined Cell",
-  "Serving Team Interest",
-  "Needs Follow-up",
-  "Foundation Completed"
-];
+const ALLOWED_MILESTONE_CODES = new Set([
+  "BORN_AGAIN",
+  "FILLED_WITH_SPIRIT",
+  "PARTNERSHIP",
+  "SERVING_TEAM_INTEREST",
+  "FOUNDATION_COMPLETED"
+]);
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;" }[c]));
 
@@ -167,7 +271,8 @@ const state = {
   selectedClass: "",
   search: "",
   firstSubmissionMeta: null,
-  firstSubmissionConfirmation: null
+  firstSubmissionConfirmation: null,
+  milestoneByStudent: new Map(),
 };
 
 function setTheme() {
@@ -212,9 +317,30 @@ async function invokeTeacherPortalAction(action, params = {}) {
   return json;
 }
 
-function milestoneIdFor(name) {
-  const found = state.milestoneDefs.find((m) => String(m.name || m.question || "").toLowerCase() === name.toLowerCase());
-  return found?.code || found?.id || found?.milestone_id || name;
+function normalizeMilestoneCode(raw) {
+  return String(raw || "").trim().toUpperCase();
+}
+
+function milestoneLabel(def) {
+  return String(def?.label || def?.title || def?.name || def?.code || "").trim();
+}
+
+function activeMilestoneDefs() {
+  return state.milestoneDefs.filter((m) => ALLOWED_MILESTONE_CODES.has(normalizeMilestoneCode(m.code)));
+}
+
+function upsertMilestoneState(studentId, milestoneCode, completed, updatedAt) {
+  const sid = String(studentId || "");
+  if (!sid) return;
+  const row = state.roster.find((r) => String(r.id) === sid);
+  if (!row) return;
+  const code = normalizeMilestoneCode(milestoneCode);
+  if (completed) row.milestones.add(code); else row.milestones.delete(code);
+  if (!state.milestoneByStudent.has(sid)) state.milestoneByStudent.set(sid, new Map());
+  state.milestoneByStudent.get(sid).set(code, {
+    completed: !!completed,
+    updatedAt: updatedAt || new Date().toISOString(),
+  });
 }
 
 function renderClassOptions() {
@@ -223,7 +349,7 @@ function renderClassOptions() {
     const cls = state.classes.find((c) => String(c.class_option_id || c.class_id || "") === String(classId || ""));
     return {
       value: classId,
-      label: `${classId || "-"} · ${a.day || cls?.day || "-"} ${a.time || cls?.class_time || cls?.time_slot || ""} · ${a.teacher_name || cls?.teacher_name || cls?.teacher_id || "-"}`
+      label: `${a.day || cls?.day || "-"} ${a.time || cls?.class_time || cls?.time_slot || ""} · ${Array.isArray(cls?.fellowship_codes) ? cls.fellowship_codes.join(", ") : (cls?.fellowship_code || cls?.subgroup_id || "-")}`
     };
   }).filter((x) => x.value);
   $("classSelect").innerHTML = rows.map((r) => `<option value="${esc(r.value)}">${esc(r.label)}</option>`).join("") || `<option value="">No assigned classes</option>`;
@@ -231,18 +357,39 @@ function renderClassOptions() {
   $("classSelect").value = state.selectedClass || "";
 }
 
+function renderSessionOptions() {
+  $("sessionSelect").innerHTML = Array.from({ length: 7 }).map((_, i) => {
+    const n = i + 1;
+    return `<option value="Class${n}">Session ${n}</option>`;
+  }).join("");
+}
+
 function hydrateRoster() {
-  const all = state.applicants.filter((a) => String(a.class_option_id || "") === String(state.selectedClass || ""));
+  const all = state.applicants.filter((a) => String(a.id || "") !== "");
+  state.milestoneByStudent = new Map();
   state.roster = all.map((a) => {
     const sm = state.studentMilestones.filter((m) => String(m.applicant_id || m.student_id || "") === String(a.id || ""));
-    const milestoneOn = new Set(sm.filter((m) => m.status === "completed" || m.completed === true || String(m.value || "").toLowerCase() === "yes").map((m) => String(m.milestone_code || m.milestone_name || m.name || m.milestone_id || "")));
+    const milestoneOn = new Set();
+    const statusMap = new Map();
+    sm.forEach((m) => {
+      const code = normalizeMilestoneCode(m.milestone_code || m.milestone_name || m.name || m.milestone_id || "");
+      if (!code) return;
+      const done = m.status === "completed" || m.completed === true || String(m.value || "").toLowerCase() === "yes";
+      if (done) milestoneOn.add(code);
+      statusMap.set(code, { completed: done, updatedAt: m.updated_at || m.completed_at || null });
+    });
+    state.milestoneByStudent.set(String(a.id), statusMap);
+    const classMeta = state.classes.find((c) => String(c.class_option_id || "") === String(state.selectedClass || ""));
     return {
       id: a.id,
       full_name: a.full_name || "Student",
       email: a.email || "",
       present: false,
       notes: "",
-      milestones: milestoneOn
+      milestones: milestoneOn,
+      batch_id: a.batch_id || classMeta?.batch_id || null,
+      group_id: a.group_id || classMeta?.group_id || null,
+      subgroup_id: a.subgroup_id || classMeta?.subgroup_id || null,
     };
   });
 }
@@ -253,12 +400,47 @@ function filteredRoster() {
   return state.roster.filter((s) => `${s.full_name} ${s.email}`.toLowerCase().includes(q));
 }
 
+async function toggleMilestone(studentId, milestoneCode) {
+  const sid = String(studentId || "");
+  const code = normalizeMilestoneCode(milestoneCode);
+  const row = state.roster.find((r) => String(r.id) === sid);
+  if (!row || !code) return;
+  const completed = !row.milestones.has(code);
+  try {
+    const res = await invokeTeacherPortalAction("updateStudentMilestone", {
+      applicant_id: sid,
+      milestone_code: code,
+      completed,
+    });
+    const updatedAt = res?.data?.updated_at || new Date().toISOString();
+    upsertMilestoneState(sid, code, completed, updatedAt);
+    flash(`${completed ? "Completed" : "Cleared"}: ${code}`, "ok");
+    renderRoster();
+  } catch (e) {
+    flash(`Milestone update failed: ${e?.message || e}`, "bad");
+  }
+}
+
 function renderRoster() {
   const rows = filteredRoster();
   $("roster").innerHTML = rows.map((s) => {
-    const chips = MILESTONES.map((m) => {
-      const on = s.milestones.has(m) || s.milestones.has(milestoneIdFor(m));
-      return `<button type="button" class="fs-badge ${on ? "on" : ""}" data-student="${esc(s.id)}" data-milestone="${esc(m)}">${esc(m)}</button>`;
+    const chips = activeMilestoneDefs().map((m) => {
+      const code = normalizeMilestoneCode(m.code);
+      const on = s.milestones.has(code);
+      return `<button type="button" class="fs-badge ${on ? "on" : ""}" data-student="${esc(s.id)}" data-milestone-code="${esc(code)}">${esc(milestoneLabel(m))}</button>`;
+    }).join("");
+    const details = activeMilestoneDefs().map((m) => {
+      const code = normalizeMilestoneCode(m.code);
+      const st = state.milestoneByStudent.get(String(s.id))?.get(code);
+      const done = !!st?.completed || s.milestones.has(code);
+      const when = st?.updatedAt ? new Date(st.updatedAt).toLocaleString() : "Never";
+      return `<div class="milestone-row">
+        <div>
+          <div>${done ? "✅" : "❌"} ${esc(milestoneLabel(m))}</div>
+          <div class="milestone-meta">Last updated: ${esc(when)}</div>
+        </div>
+        <button type="button" class="milestone-toggle ${done ? "on" : ""}" data-student="${esc(s.id)}" data-milestone-code="${esc(code)}">${done ? "Completed" : "Pending"}</button>
+      </div>`;
     }).join("");
     return `<article class="student">
       <div class="student-head">
@@ -267,10 +449,16 @@ function renderRoster() {
       </div>
       <textarea data-notes="${esc(s.id)}" placeholder="Notes...">${esc(s.notes)}</textarea>
       <div class="fs-badges">${chips}</div>
+      <details class="milestone-details">
+        <summary style="cursor:pointer;font-size:12px;font-weight:700;">Milestone status</summary>
+        ${details}
+      </details>
       <div style="margin-top:8px"><button type="button" class="fs-btn" data-profile="${esc(s.id)}" style="font-size:11px;padding:5px 10px">View Profile</button></div>
     </article>`;
   }).join("") || `<div class="msg warn">No students found for this class.</div>`;
   $("saveMeta").textContent = `${rows.length} students in current roster.`;
+  const studentCountBadge = $("studentCountBadge");
+  if (studentCountBadge) studentCountBadge.textContent = String(rows.length);
 
   document.querySelectorAll("[data-present]").forEach((el) => {
     el.addEventListener("change", () => {
@@ -284,13 +472,9 @@ function renderRoster() {
       if (row) row.notes = el.value;
     });
   });
-  document.querySelectorAll("[data-milestone]").forEach((el) => {
+  document.querySelectorAll("[data-milestone-code]").forEach((el) => {
     el.addEventListener("click", () => {
-      const row = state.roster.find((r) => String(r.id) === String(el.dataset.student));
-      const key = el.dataset.milestone;
-      if (!row) return;
-      if (row.milestones.has(key)) row.milestones.delete(key); else row.milestones.add(key);
-      renderRoster();
+      toggleMilestone(el.dataset.student, el.dataset.milestoneCode);
     });
   });
   document.querySelectorAll("[data-profile]").forEach((el) => {
@@ -301,20 +485,59 @@ function renderRoster() {
 async function loadData() {
   const profile = state.auth.profile;
   const teacherId = profile.user_id;
-  const [{ data: classes, error: cErr }, { data: applicants, error: pErr }, { data: mDefs }, { data: sMiles }] = await Promise.all([
+  const [{ data: classes, error: cErr }, defsRes, assignmentsResponse] = await Promise.all([
     supabase.from("class_options").select("*").limit(1000),
-    supabase.from("applicants").select("*").limit(5000),
-    supabase.from("milestone_definitions").select("*").limit(200),
-    supabase.from("student_milestone_status").select("*").limit(10000)
+    invokeTeacherPortalAction("getMilestoneDefinitions", {}),
+    invokeTeacherPortalAction("getTeacherActiveClassOptions", { teacherId }),
   ]);
-  const assignmentsResponse = await invokeTeacherPortalAction("getTeacherActiveClassOptions", { teacherId });
   state.assignments = assignmentsResponse?.data || [];
-  if (cErr || pErr) throw new Error(cErr?.message || pErr?.message);
+  state.milestoneDefs = (defsRes?.data || []).filter((m) => {
+    const code = normalizeMilestoneCode(m.code);
+    if (!ALLOWED_MILESTONE_CODES.has(code)) return false;
+    if (m.is_active === false || m.active === false) return false;
+    return true;
+  });
+  if (!state.milestoneDefs.length) {
+    throw new Error("No active milestone definitions found.");
+  }
+  if (cErr) throw new Error(cErr?.message);
   state.classes = classes || [];
-  state.applicants = applicants || [];
-  state.milestoneDefs = mDefs || [];
-  state.studentMilestones = sMiles || [];
   renderClassOptions();
+  await reloadRosterData();
+}
+
+async function reloadRosterData() {
+  if (!state.selectedClass) {
+    state.applicants = [];
+    state.studentMilestones = [];
+    state.roster = [];
+    renderRoster();
+    return;
+  }
+  const rosterRes = await invokeTeacherPortalAction("loadAttendanceRoster", { classOptionId: state.selectedClass });
+  const roster = rosterRes?.data?.roster || [];
+  const studentIds = [...new Set(roster.map((r) => String(r.id || r.studentId || "")).filter(Boolean))];
+  if (!studentIds.length) {
+    state.applicants = [];
+    state.studentMilestones = [];
+    state.roster = [];
+    renderRoster();
+    return;
+  }
+  const [{ data: students }, { data: sMiles }] = await Promise.all([
+    supabase.from("students").select("student_id,full_name,email,batch_id,group_id,subgroup_id").in("student_id", studentIds),
+    supabase.from("student_milestone_status").select("*").in("student_id", studentIds).limit(20000),
+  ]);
+  state.applicants = (students || []).map((s) => ({
+    id: s.student_id,
+    full_name: s.full_name,
+    email: s.email,
+    batch_id: s.batch_id,
+    group_id: s.group_id,
+    subgroup_id: s.subgroup_id,
+    class_option_id: state.selectedClass,
+  }));
+  state.studentMilestones = sMiles || [];
   hydrateRoster();
   renderRoster();
 }
@@ -339,48 +562,33 @@ async function saveAttendance() {
     setFirstSessionModalOpen(true);
     return;
   }
-  const now = new Date().toISOString();
   const classDate = $("classDate").value || todayYmd();
   const session = $("sessionSelect").value;
   const attendanceRows = state.roster.map((s) => ({
+    studentId: s.id,
     class_option_id: state.selectedClass,
-    applicant_id: s.id,
-    student_id: s.id,
+    class_number: session,
     class_date: classDate,
-    session_key: session,
-    present: !!s.present,
-    notes: s.notes || "",
-    teacher_id: state.auth.profile.user_id,
-    teacher_email: state.auth.profile.email,
-    created_at: now
+    attendanceStatus: s.present ? "Present" : "Absent",
+    notes: s.notes || ""
   }));
-  const { error: attErr } = await supabase
-    .from("attendance_records")
-    .upsert(attendanceRows, { onConflict: "student_id,class_option_id,class_number,class_date" });
-  if (attErr) { flash(`Attendance save failed: ${attErr.message}`, "bad"); return; }
-
-  const upserts = [];
-  state.roster.forEach((s) => {
-    MILESTONES.forEach((m) => {
-      const on = s.milestones.has(m) || s.milestones.has(milestoneIdFor(m));
-      upserts.push({
-        applicant_id: s.id,
-        student_id: s.id,
-        milestone_code: milestoneIdFor(m),
-        status: on ? "completed" : "pending",
-        completed_at: on ? now : null,
-        completed_by: on ? state.auth.profile.email : null,
-        updated_at: now,
-        updated_by: state.auth.profile.email
-      });
+  try {
+    await invokeTeacherPortalAction("submitTeacherAttendance", {
+      classOptionId: state.selectedClass,
+      classSession: session,
+      classDate,
+      records: attendanceRows,
+      allStudentIds: state.roster.map((s) => String(s.id)).filter(Boolean),
+      firstSubmissionMeta: state.firstSubmissionConfirmation || null,
     });
-  });
-  const { error: mErr } = await supabase.from("student_milestone_status").upsert(upserts, { onConflict: "applicant_id,milestone_code" });
-  if (mErr) { flash(`Milestone update issue: ${mErr.message}`, "warn"); }
+  } catch (e) {
+    flash(`Attendance save failed: ${e?.message || e}`, "bad");
+    return;
+  }
 
   await supabase.from("audit_logs").insert({
     action: "TEACHER_ATTENDANCE_SAVED",
-    entity_type: "attendance_records",
+    entity_type: "attendance_log",
     entity_id: `${state.selectedClass}:${classDate}:${session}`,
     actor_email: state.auth.profile.email,
     status: "SUCCESS",
@@ -391,19 +599,256 @@ async function saveAttendance() {
       roster_count: state.roster.length,
       first_submission_meta: state.firstSubmissionConfirmation || null
     },
-    created_at: now
+    created_at: new Date().toISOString()
   });
-  flash("Attendance and milestones saved.", "ok");
+  flash("Attendance saved.", "ok");
+
+  // Show pending makeup banner for this batch
+  try {
+    const batchId = state.roster[0]?.batch_id || state.applicants.find((a) => a.class_option_id === state.selectedClass)?.batch_id;
+    if (batchId) {
+      const { data: makeups } = await supabase
+        .from("makeup_queue")
+        .select("id, student_id, class_number, deadline, students(full_name)")
+        .eq("batch_id", batchId)
+        .eq("makeup_completed", false)
+        .order("deadline", { ascending: true });
+      if (makeups?.length) {
+        const TODAY = new Date().toISOString().slice(0, 10);
+        const overdueCount = makeups.filter((m) => m.deadline && m.deadline < TODAY).length;
+        const names = makeups.slice(0, 5).map((m) => {
+          const s = Array.isArray(m.students) ? m.students[0] : m.students;
+          return `${esc(s?.full_name || m.student_id)} (Class ${esc(m.class_number)})`;
+        }).join(", ");
+        const moreText = makeups.length > 5 ? ` and ${makeups.length - 5} more` : "";
+        const overdueText = overdueCount > 0 ? ` - <strong>${overdueCount} overdue</strong>` : "";
+        const el = document.createElement("div");
+        el.className = "msg warn";
+        el.style.marginTop = "8px";
+        el.innerHTML = `${makeups.length} student${makeups.length===1?"":"s"} in this batch have pending makeups${overdueText}: ${names}${moreText}`;
+        $("flash").appendChild(el);
+      }
+    }
+  } catch (_) { /* non-blocking */ }
 }
 
+// ── Makeup Queue ────────────────────────────────────────────────────────────
+const MQ_TODAY = () => new Date().toISOString().slice(0, 10);
+let _mqRows = [];
+
+function mqBadge(r) {
+  if (r.makeup_completed) return `<span class="mq-badge mq-complete">Completed</span>`;
+  if (r._overdue) return `<span class="mq-badge mq-overdue">Overdue</span>`;
+  return `<span class="mq-badge mq-pending">Pending</span>`;
+}
+
+function renderMqMetrics(rows) {
+  const today = MQ_TODAY();
+  const pending  = rows.filter((r) => !r.makeup_completed).length;
+  const overdue  = rows.filter((r) => r._overdue).length;
+  const complete = rows.filter((r) => r.makeup_completed).length;
+  $("mqMetrics").innerHTML = [
+    ["Pending", pending, overdue > 0 ? "color:#854d0e" : ""],
+    ["Overdue", overdue, overdue > 0 ? "color:#991b1b" : ""],
+    ["Completed", complete, "color:#166534"],
+  ].map(([lbl, val, style]) =>
+    `<div style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--fs-text-muted);text-transform:uppercase;letter-spacing:.05em">${esc(lbl)}</div>
+      <div style="font-size:24px;font-weight:800;margin-top:4px;${style}">${val}</div>
+    </div>`
+  ).join("");
+  const od = $("mqOverdue");
+  if (overdue > 0) {
+    od.style.display = "";
+    od.textContent = `${overdue} makeup${overdue === 1 ? "" : "s"} ${overdue === 1 ? "is" : "are"} overdue. Incomplete makeups may affect graduation eligibility.`;
+  } else {
+    od.style.display = "none";
+  }
+}
+
+function renderMqTable(rows) {
+  const today = MQ_TODAY();
+  const pending = rows.filter((r) => !r.makeup_completed);
+  const displayRows = pending.length ? pending : rows;
+
+  if (!displayRows.length) {
+    $("mqState").textContent = "No makeups found for this class.";
+    $("mqTableWrap").style.display = "none";
+    return;
+  }
+  $("mqState").textContent = "";
+  $("mqTableWrap").style.display = "";
+
+  $("mqBody").innerHTML = displayRows.map((r) => {
+    const overdueCls = r._overdue ? "mq-overdue-text" : "";
+    const deadlineText = r.deadline
+      ? `<span class="${overdueCls}">${esc(r.deadline)}</span>`
+      : "—";
+    const actions = !r.makeup_completed
+      ? `<div class="mq-actions">
+          <button class="btn-xs primary" data-mq-complete="${esc(r.id)}" data-mq-student="${esc(r.student_id)}" data-mq-class="${esc(r.class_number)}" data-mq-batch="${esc(r.batch_id)}" data-mq-name="${esc(r._name)}">Mark Complete</button>
+          <button class="btn-xs warn" data-mq-extend="${esc(r.id)}" data-mq-notes="${esc(r.notes || "")}" data-mq-name="${esc(r._name)}">Extend</button>
+        </div>`
+      : `<span style="font-size:12px;color:var(--fs-text-muted)">Done ${esc(r.completed_date || "")}</span>`;
+    return `<tr>
+      <td><div style="font-weight:600">${esc(r._name)}</div><div style="font-size:11px;color:var(--fs-text-muted)">${esc(r._email)}</div></td>
+      <td style="font-weight:600">Class ${esc(r.class_number)}</td>
+      <td style="font-size:12px">${deadlineText}</td>
+      <td>${mqBadge(r)}</td>
+      <td>${actions}</td>
+    </tr>`;
+  }).join("");
+
+  $("mqBody").querySelectorAll("[data-mq-complete]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      $("mqCompleteRowId").value = btn.dataset.mqComplete;
+      $("mqCompleteStudentId").value = btn.dataset.mqStudent;
+      $("mqCompleteClassNum").value = btn.dataset.mqClass;
+      $("mqCompleteBatchId").value = btn.dataset.mqBatch;
+      $("mqCompleteTitle").textContent = `Mark Complete — ${btn.dataset.mqName}`;
+      $("mqCompleteDate").value = MQ_TODAY();
+      $("mqCompleteNotes").value = "";
+      $("mqCompleteModal").classList.add("open");
+    });
+  });
+  $("mqBody").querySelectorAll("[data-mq-extend]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      $("mqExtendRowId").value = btn.dataset.mqExtend;
+      $("mqExtendNotes").value = btn.dataset.mqNotes || "";
+      $("mqExtendTitle").textContent = `Extend Deadline — ${btn.dataset.mqName}`;
+      $("mqExtendDate").value = "";
+      $("mqExtendReason").value = "";
+      $("mqExtendModal").classList.add("open");
+    });
+  });
+}
+
+async function loadMakeupQueue() {
+  if (!state.selectedClass) {
+    $("mqState").textContent = "Select a class above to see makeups.";
+    $("mqTableWrap").style.display = "none";
+    return;
+  }
+  $("mqState").textContent = "Loading…";
+  try {
+    const today = MQ_TODAY();
+    const cls = state.classes.find((c) => String(c.class_option_id || "") === String(state.selectedClass));
+    const batchId = cls?.batch_id || null;
+    let query = supabase
+      .from("makeup_queue")
+      .select("*, students(full_name, email)")
+      .eq("class_option_id", state.selectedClass)
+      .order("deadline", { ascending: true, nullsFirst: false })
+      .limit(500);
+    if (batchId) query = query.eq("batch_id", batchId);
+    const { data, error } = await query;
+    if (error) throw error;
+    _mqRows = (data || []).map((r) => {
+      const s = Array.isArray(r.students) ? r.students[0] : r.students;
+      return {
+        ...r,
+        _name: s?.full_name || "Unknown",
+        _email: s?.email || "",
+        _overdue: !r.makeup_completed && r.deadline && r.deadline < today,
+      };
+    });
+    renderMqMetrics(_mqRows);
+    renderMqTable(_mqRows);
+  } catch (e) {
+    $("mqState").textContent = `Failed to load makeups: ${String(e?.message || e)}`;
+    $("mqTableWrap").style.display = "none";
+  }
+}
+
+async function mqMarkComplete() {
+  const id = $("mqCompleteRowId").value;
+  const studentId = $("mqCompleteStudentId").value;
+  const classNum = $("mqCompleteClassNum").value;
+  const batchId = $("mqCompleteBatchId").value;
+  const date = $("mqCompleteDate").value;
+  const notes = ($("mqCompleteNotes").value || "").trim();
+  if (!date) { flash("Please select a completed date.", "warn"); return; }
+  const btn = $("mqCompleteSaveBtn");
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    const { error } = await supabase.from("makeup_queue")
+      .update({ makeup_completed: true, completed_date: date, notes: notes || null, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw error;
+    await supabase.from("attendance_log")
+      .update({ made_up: true, makeup_date: date })
+      .eq("student_id", studentId).eq("batch_id", batchId).eq("class_number", classNum).eq("present", false);
+    await supabase.from("audit_logs").insert({
+      action: "MAKEUP_COMPLETED", entity_type: "makeup_queue", entity_id: id,
+      status: "SUCCESS", details: { student_id: studentId, class_number: classNum, batch_id: batchId, completed_date: date, notes },
+    });
+    $("mqCompleteModal").classList.remove("open");
+    flash("Makeup marked complete.", "ok");
+    await loadMakeupQueue();
+  } catch (e) {
+    flash(`Failed: ${String(e?.message || e)}`, "bad");
+  } finally {
+    btn.disabled = false; btn.textContent = "Mark Complete";
+  }
+}
+
+async function mqExtendDeadline() {
+  const id = $("mqExtendRowId").value;
+  const newDate = $("mqExtendDate").value;
+  const reason = ($("mqExtendReason").value || "").trim();
+  const existing = $("mqExtendNotes").value || "";
+  if (!newDate) { flash("Please select a new deadline.", "warn"); return; }
+  if (!reason) { flash("A reason is required to extend the deadline.", "warn"); return; }
+  const btn = $("mqExtendSaveBtn");
+  btn.disabled = true; btn.textContent = "Saving…";
+  const updatedNotes = [existing, `Deadline extended: ${reason}`].filter(Boolean).join("\n");
+  try {
+    const { error } = await supabase.from("makeup_queue")
+      .update({ deadline: newDate, notes: updatedNotes, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw error;
+    await supabase.from("audit_logs").insert({
+      action: "MAKEUP_DEADLINE_EXTENDED", entity_type: "makeup_queue", entity_id: id,
+      status: "SUCCESS", details: { new_deadline: newDate, reason },
+    });
+    $("mqExtendModal").classList.remove("open");
+    flash("Deadline extended.", "ok");
+    await loadMakeupQueue();
+  } catch (e) {
+    flash(`Failed: ${String(e?.message || e)}`, "bad");
+  } finally {
+    btn.disabled = false; btn.textContent = "Save Extension";
+  }
+}
+
+function wireTabBar() {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const tab = btn.dataset.tab;
+      $("paneAttendance").style.display = tab === "attendance" ? "" : "none";
+      $("paneMakeup").style.display = tab === "makeup" ? "" : "none";
+      if (tab === "makeup") loadMakeupQueue();
+    });
+  });
+  $("mqRefreshBtn").addEventListener("click", loadMakeupQueue);
+  $("mqCompleteCancelBtn").addEventListener("click", () => $("mqCompleteModal").classList.remove("open"));
+  $("mqExtendCancelBtn").addEventListener("click", () => $("mqExtendModal").classList.remove("open"));
+  $("mqCompleteSaveBtn").addEventListener("click", mqMarkComplete);
+  $("mqExtendSaveBtn").addEventListener("click", mqExtendDeadline);
+}
+// ── End Makeup Queue ─────────────────────────────────────────────────────────
+
 function wire() {
-  
+
   $("logoutBtn").addEventListener("click", logout);
   $("classDate").value = todayYmd();
   $("classSelect").addEventListener("change", () => {
     state.selectedClass = $("classSelect").value;
-    hydrateRoster();
-    renderRoster();
+    const helper = $("classHelperText");
+    if (helper) helper.style.display = state.selectedClass ? "none" : "";
+    reloadRosterData();
     maybePromptFirstSubmissionMeta();
   });
   $("searchInput").addEventListener("input", (e) => {
@@ -429,6 +874,16 @@ function wire() {
     state.firstSubmissionConfirmation = { actualStartDate, sessionNumber };
     setFirstSessionModalOpen(false);
   });
+  $("cancelFirstSessionBtn").addEventListener("click", () => {
+    state.firstSubmissionMeta = null;
+    state.firstSubmissionConfirmation = null;
+    setFirstSessionModalOpen(false);
+    state.selectedClass = "";
+    $("classSelect").value = "";
+    const helper = $("classHelperText");
+    if (helper) helper.style.display = "";
+    reloadRosterData();
+  });
   $("saveBtn").addEventListener("click", saveAttendance);
 }
 
@@ -441,9 +896,11 @@ async function boot() {
   const auth = await requireAuth(["teacher", "principal", "admin", "superadmin"]);
   if (!auth) return;
   state.auth = auth;
-  window.FSStudentProfile?.init({ supabase, userRole: auth.profile?.role || "teacher" });
+  renderSessionOptions();
+  window.FSStudentProfile?.init({ supabase, userRole: "teacher" });
   await loadData();
   wire();
+  wireTabBar();
   await maybePromptFirstSubmissionMeta();
 }
 
@@ -451,5 +908,6 @@ boot().catch((e) => flash(`Failed to load attendance module: ${e.message || e}`,
 </script>
 </body>
 </html>
+
 
 

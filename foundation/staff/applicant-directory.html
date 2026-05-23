@@ -191,8 +191,8 @@
     <main class="main fs-content">
       <section class="page-toolbar">
         <div class="title">
-          <h2>Applicant Directory</h2>
-          <p>Operational visibility, class correction, and follow-up tracking</p>
+          <h2 id="pageTitle">Applicants</h2>
+          <p id="pageSubtitle">Operational visibility, class correction, and follow-up tracking</p>
         </div>
         <div class="searchbox"><input id="globalSearch" placeholder="Search name, email, phone" /></div>
         <div class="quick-filter">
@@ -205,6 +205,13 @@
       </section>
 
       <section class="kpi-grid fs-metric-grid" id="kpiGrid"></section>
+
+      <section class="card" id="quickTabSection" style="margin-top:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em">View</span>
+          <div id="quickTabStrip" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        </div>
+      </section>
 
       <section class="card">
         <div class="filter-row fs-action-bar">
@@ -244,6 +251,22 @@
           <button class="fs-btn fs-btn fs-btn-secondary" id="afSaveBtn">Save Preset</button>
           <select id="afPresetSelect" style="border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 12px;min-width:140px"><option value="">Load preset�</option></select>
         </div>
+      </section>
+      <section class="card" style="margin-top:10px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em">Mode</span>
+          <div id="modeTabs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+      </section>
+
+      <section class="card" id="studentsByBatchSection">
+        <div class="table-top">
+          <div>
+            <h3>Students by Batch</h3>
+            <p>Grouped list of visible students in each batch</p>
+          </div>
+        </div>
+        <div id="batchStudentsWrap" class="list"></div>
       </section>
 
       <section class="card table-card">
@@ -360,7 +383,7 @@
 <script src="../js/applicant-directory-filters.js"></script>
 <script src="../js/applicant-directory-drawer.js"></script>
 <script src="../js/applicant-directory-actions.js"></script>
-<script src="../js/applicant-directory.js"></script>
+<script type="module" src="../js/applicant-directory.js"></script>
 </body>
 </html>
 

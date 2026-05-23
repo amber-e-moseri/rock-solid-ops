@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Makeup Queue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <script src="../js/student-profile-drawer.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
+    .badge { display: inline-flex; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge-pending  { background: #fef9c3; color: #854d0e; }
+    .badge-overdue  { background: #fee2e2; color: #991b1b; }
+    .badge-complete { background: #dcfce7; color: #166534; }
+    .deadline-overdue { color: #991b1b; font-weight: 700; }
+    .msg { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-raised); font-size: var(--fs-body); }
+    .msg.error   { border-color: color-mix(in srgb,var(--color-danger-fg) 30%,transparent); background: var(--color-danger-bg); color: var(--color-danger-fg); }
+    .msg.success { border-color: color-mix(in srgb,var(--color-success-fg) 30%,transparent); background: var(--color-success-bg); color: var(--color-success-fg); }
+    .msg.warn    { border-color: color-mix(in srgb,#f59e0b 30%,transparent); background: #fffbeb; color: #854d0e; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(11,8,19,.45); z-index: 900; display: none; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); width: min(500px, 100%); box-shadow: var(--shadow-overlay); }
+    .modal h2 { margin: 0 0 var(--space-4); font-size: 16px; font-weight: 800; }
+    .form-row { margin-bottom: var(--space-3); }
+    .form-label { font-size: 11px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: var(--space-1); display: block; }
+    .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: var(--space-3); }
+    .tbl-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+    .btn-xs { padding: 3px 10px; font-size: 11px; font-weight: 600; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; white-space: nowrap; }
+    .btn-xs:hover { background: var(--color-surface-raised); }
+    .btn-xs.primary { background: var(--color-primary); color: var(--color-primary-fg); border-color: var(--color-primary); }
+    .btn-xs.warn    { background: #fffbeb; color: #854d0e; border-color: #f59e0b; }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="fs-page-header">
+      <div>
+        <h1 class="fs-page-title">Makeup Queue</h1>
+        <p class="fs-page-subtitle">Track and manage missed class makeup sessions</p>
+      </div>
+      <div class="fs-page-actions">
+        <button id="refreshBtn" class="fs-btn fs-btn-secondary" type="button">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <section class="fs-metric-grid" id="summaryGrid" style="margin-bottom:var(--space-4)"></section>
+
+    <!-- Overdue warning banner -->
+    <div id="overdueWarning" style="display:none;margin-bottom:var(--space-3)"></div>
+
+    <!-- Filters -->
+    <div class="fs-action-bar" style="margin-bottom:var(--space-3)">
+      <div class="fs-action-bar-search">
+        <input class="fs-input" id="searchInput" type="search" placeholder="Search student name or email…" />
+      </div>
+      <div class="fs-action-bar-filters">
+        <select class="fs-select" id="batchSelect"><option value="">— Select batch —</option></select>
+        <select class="fs-select" id="subgroupFilter"><option value="">All Subgroups</option></select>
+        <select class="fs-select" id="statusFilter">
+          <option value="">All</option>
+          <option value="pending">Pending</option>
+          <option value="overdue">Overdue</option>
+          <option value="complete">Completed</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="flashArea" style="margin-bottom:var(--space-2)"></div>
+
+    <div id="emptyState" class="msg" style="display:none">Select a batch to load the makeup queue.</div>
+
+    <div class="fs-table-wrap" id="tableWrap" style="display:none">
+      <table class="fs-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Fellowship / Subgroup</th>
+            <th>Class Missed</th>
+            <th>Type</th>
+            <th>Deadline</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Mark Complete modal -->
+  <div class="modal-overlay" id="completeModal">
+    <div class="modal">
+      <h2 id="completeModalTitle">Mark Makeup Complete</h2>
+      <input type="hidden" id="completeRowId" />
+      <input type="hidden" id="completeStudentId" />
+      <input type="hidden" id="completeClassNumber" />
+      <input type="hidden" id="completeBatchId" />
+      <div class="form-row">
+        <label class="form-label" for="completedDate">Completed date</label>
+        <input class="fs-input" type="date" id="completedDate" style="width:100%" />
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="completeNotes">Notes (optional)</label>
+        <textarea class="fs-input" id="completeNotes" rows="3" style="width:100%;resize:vertical"
+          placeholder="e.g. Attended Thursday class with Pastor X"></textarea>
+      </div>
+      <div class="btn-row">
+        <button id="completeCancelBtn" class="fs-btn fs-btn-secondary" type="button">Cancel</button>
+        <button id="completeSaveBtn"   class="fs-btn fs-btn-primary"   type="button">Mark Complete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Extend Deadline modal -->
+  <div class="modal-overlay" id="extendModal">
+    <div class="modal">
+      <h2 id="extendModalTitle">Extend Deadline</h2>
+      <input type="hidden" id="extendRowId" />
+      <input type="hidden" id="extendCurrentNotes" />
+      <div class="form-row">
+        <label class="form-label" for="newDeadline">New deadline</label>
+        <input class="fs-input" type="date" id="newDeadline" style="width:100%" />
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="extendReason">Reason <span style="color:#ef4444">*</span></label>
+        <textarea class="fs-input" id="extendReason" rows="2" style="width:100%;resize:vertical"
+          placeholder="Required — briefly explain the extension"></textarea>
+      </div>
+      <div class="btn-row">
+        <button id="extendCancelBtn" class="fs-btn fs-btn-secondary" type="button">Cancel</button>
+        <button id="extendSaveBtn"   class="fs-btn fs-btn-primary"   type="button">Save Extension</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/admin-shell.js?v=20260519"></script>
+  <script type="module">
+    import { supabase, requireAuth } from "../auth/auth-client.js";
+
+    const $   = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (m) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[m]));
+    const fmt = (v) => v ? new Date(v + "T00:00:00").toLocaleDateString("en-CA", { year:"numeric", month:"short", day:"numeric" }) : "—";
+    const normalizeSubgroup = (v) => String(v ?? "").trim().toLowerCase();
+
+    const TODAY = new Date().toISOString().slice(0, 10);
+
+    let _isAdmin = false;
+    let _allRows = [];
+    let _currentBatch = "";
+
+    async function boot() {
+      if (!window.FS_CONFIG?.SUPABASE_URL) {
+        document.body.insertAdjacentHTML("afterbegin",
+          `<div class="msg error" style="margin:12px">Not connected — create config.js from config.js.example.</div>`);
+        return;
+      }
+
+      const auth = await requireAuth([
+        "admin","superadmin","principal","subgroup_admin","pastor","regional_secretary","teacher"
+      ]);
+      if (!auth) return;
+
+      _isAdmin = ["admin","superadmin","principal","subgroup_admin","pastor"].includes(String(auth.role||"").toLowerCase());
+
+      // Mount shell with pending badge
+      const { count: pendingCount } = await supabase
+        .from("makeup_queue").select("id", { count: "exact", head: true })
+        .eq("makeup_completed", false);
+      FSAdminShell?.mount({ active: "makeup", role: auth.role, badgeCounts: { makeup: pendingCount || 0 } });
+
+      // Init student profile drawer
+      window.FSStudentProfile?.init({ supabase, userRole: auth.role });
+
+      await loadBatches();
+      wireUI();
+      $("emptyState").style.display = "";
+    }
+
+    async function loadBatches() {
+      const { data } = await supabase
+        .from("batches").select("batch_id,name,active").order("created_at", { ascending: false }).limit(50);
+      const sel = $("batchSelect");
+      (data || []).forEach((b) => {
+        const opt = document.createElement("option");
+        opt.value = b.batch_id;
+        opt.textContent = `${b.name || b.batch_id}${b.active ? "" : " (inactive)"}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function wireUI() {
+      $("batchSelect").addEventListener("change", () => {
+        _currentBatch = $("batchSelect").value;
+        if (_currentBatch) loadBatch(_currentBatch);
+        else {
+          $("emptyState").style.display = "";
+          $("tableWrap").style.display = "none";
+          $("overdueWarning").style.display = "none";
+          renderSummary([]);
+        }
+      });
+      $("searchInput").addEventListener("input", () => renderTable(filtered()));
+      $("subgroupFilter").addEventListener("change", () => renderTable(filtered()));
+      $("statusFilter").addEventListener("change", () => renderTable(filtered()));
+      $("refreshBtn").addEventListener("click", () => { if (_currentBatch) loadBatch(_currentBatch); });
+
+      // Mark Complete modal
+      $("completeCancelBtn").addEventListener("click", () => $("completeModal").classList.remove("open"));
+      $("completeSaveBtn").addEventListener("click", onMarkComplete);
+      $("completeModal").addEventListener("click", (e) => { if (e.target === $("completeModal")) $("completeModal").classList.remove("open"); });
+
+      // Extend Deadline modal
+      $("extendCancelBtn").addEventListener("click", () => $("extendModal").classList.remove("open"));
+      $("extendSaveBtn").addEventListener("click", onExtendDeadline);
+      $("extendModal").addEventListener("click", (e) => { if (e.target === $("extendModal")) $("extendModal").classList.remove("open"); });
+    }
+
+    async function loadBatch(batchId) {
+      $("emptyState").style.display = "none";
+      $("tableWrap").style.display = "";
+      $("tableBody").innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--color-text-muted)">Loading…</td></tr>`;
+      flash("");
+
+      const { data, error } = await supabase
+        .from("makeup_queue")
+        .select(`*, students(full_name, email, fellowship_code, subgroup_id)`)
+        .eq("batch_id", batchId)
+        .order("deadline", { ascending: true, nullsFirst: false })
+        .limit(2000);
+
+      if (error) {
+        $("tableBody").innerHTML = `<tr><td colspan="7"><div class="msg error">${esc(error.message)}</div></td></tr>`;
+        return;
+      }
+
+      _allRows = (data || []).map((r) => {
+        const s = Array.isArray(r.students) ? r.students[0] : r.students;
+        const subgroup = String(r.subgroup_id || s?.subgroup_id || "").trim();
+        return {
+          ...r,
+          _name: s?.full_name || "Unknown",
+          _email: s?.email || "",
+          _fellowship: s?.fellowship_code || "",
+          _subgroup: subgroup,
+          _subgroupKey: normalizeSubgroup(subgroup),
+          _overdue: !r.makeup_completed && r.deadline && r.deadline < TODAY,
+        };
+      });
+
+      // Populate subgroup filter
+      const subgroupMap = new Map();
+      _allRows.forEach((r) => {
+        if (!r._subgroupKey) return;
+        if (!subgroupMap.has(r._subgroupKey)) subgroupMap.set(r._subgroupKey, r._subgroup);
+      });
+      const subgroups = [...subgroupMap.entries()]
+        .sort((a, b) => a[1].localeCompare(b[1]));
+      const sgSel = $("subgroupFilter");
+      sgSel.innerHTML = '<option value="">All Subgroups</option>';
+      subgroups.forEach(([sgKey, sgLabel]) => {
+        const opt = document.createElement("option");
+        opt.value = sgKey;
+        opt.textContent = sgLabel;
+        sgSel.appendChild(opt);
+      });
+
+      renderSummary(_allRows);
+      renderOverdueWarning(_allRows);
+      renderTable(filtered());
+    }
+
+    function filtered() {
+      const q   = $("searchInput").value.trim().toLowerCase();
+      const sg  = normalizeSubgroup($("subgroupFilter").value);
+      const st  = $("statusFilter").value;
+      return _allRows.filter((r) => {
+        if (q  && !r._name.toLowerCase().includes(q) && !r._email.toLowerCase().includes(q)) return false;
+        if (sg && r._subgroupKey !== sg) return false;
+        if (st === "pending"  && (r.makeup_completed || r._overdue)) return false;
+        if (st === "overdue"  && !r._overdue) return false;
+        if (st === "complete" && !r.makeup_completed) return false;
+        return true;
+      });
+    }
+
+    function renderSummary(rows) {
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      const pending  = rows.filter((r) => !r.makeup_completed).length;
+      const overdue  = rows.filter((r) => r._overdue).length;
+      const thisWeek = rows.filter((r) => r.makeup_completed && r.completed_date >= weekAgo).length;
+      const total    = rows.length;
+      const rate     = total > 0 ? Math.round((rows.filter((r) => r.makeup_completed).length / total) * 100) : 0;
+      $("summaryGrid").innerHTML = [
+        ["Pending",        pending,  overdue > 0 ? "color:#854d0e" : ""],
+        ["Overdue",        overdue,  overdue > 0 ? "color:#991b1b" : ""],
+        ["Done This Week", thisWeek, ""],
+        ["Completion Rate",`${rate}%`, rate >= 80 ? "color:#166534" : ""],
+      ].map(([lbl, val, style]) => `
+        <div class="fs-metric-card">
+          <div class="fs-metric-label">${esc(lbl)}</div>
+          <div class="fs-metric-value" style="${style}">${val}</div>
+        </div>`).join("");
+    }
+
+    function renderOverdueWarning(rows) {
+      const cnt = rows.filter((r) => r._overdue).length;
+      const el = $("overdueWarning");
+      if (cnt > 0) {
+        el.style.display = "";
+        el.innerHTML = `<div class="msg warn">${cnt} makeup${cnt===1?"":"s"} ${cnt===1?"is":"are"} overdue. Students with incomplete makeups cannot satisfy Gate 1 for graduation.</div>`;
+      } else {
+        el.style.display = "none";
+      }
+    }
+
+    function rowBadge(r) {
+      if (r.makeup_completed) return `<span class="badge badge-complete">Completed</span>`;
+      if (r._overdue)         return `<span class="badge badge-overdue">Overdue</span>`;
+      return `<span class="badge badge-pending">Pending</span>`;
+    }
+
+    function renderTable(rows) {
+      if (!rows.length) {
+        $("tableBody").innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--color-text-muted)">No records match current filters.</td></tr>`;
+        return;
+      }
+
+      $("tableBody").innerHTML = rows.map((r) => {
+        const deadlineDisplay = r.deadline
+          ? `<span class="${r._overdue ? "deadline-overdue" : ""}">${fmt(r.deadline)}</span>`
+          : "—";
+
+        const adminActions = _isAdmin && !r.makeup_completed ? `
+          <button class="btn-xs primary" data-complete="${esc(r.id)}"
+            data-student="${esc(r.student_id)}" data-class="${esc(r.class_number)}"
+            data-batch="${esc(r.batch_id)}" data-name="${esc(r._name)}">Mark Complete</button>
+          <button class="btn-xs warn" data-extend="${esc(r.id)}"
+            data-notes="${esc(r.notes||"")}" data-name="${esc(r._name)}">Extend</button>
+        ` : "";
+
+        const profileAction = `<button class="btn-xs" data-profile="${esc(r._email)}"
+          title="View student profile">Profile</button>`;
+
+        return `<tr>
+          <td>
+            <div style="font-weight:600;font-size:13px">${esc(r._name)}</div>
+            <div style="font-size:11px;color:var(--color-text-muted)">${esc(r._email)}</div>
+          </td>
+          <td style="font-size:12px">
+            ${esc(r._fellowship || "—")}<br/>
+            <span style="color:var(--color-text-muted)">${esc(r._subgroup || "—")}</span>
+          </td>
+          <td style="font-weight:600">Class ${esc(r.class_number)}</td>
+          <td style="font-size:12px">${esc(r.makeup_type || "Standard")}</td>
+          <td style="font-size:12px">${deadlineDisplay}</td>
+          <td>${rowBadge(r)}</td>
+          <td>
+            <div class="tbl-actions">
+              ${adminActions}
+              ${profileAction}
+            </div>
+          </td>
+        </tr>`;
+      }).join("");
+
+      // Wire buttons
+      $("tableBody").querySelectorAll("[data-complete]").forEach((btn) => {
+        btn.addEventListener("click", () => openCompleteModal(btn.dataset));
+      });
+      $("tableBody").querySelectorAll("[data-extend]").forEach((btn) => {
+        btn.addEventListener("click", () => openExtendModal(btn.dataset));
+      });
+      $("tableBody").querySelectorAll("[data-profile]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          // Resolve applicant_id from email for profile drawer
+          const email = btn.dataset.profile;
+          if (!email) return;
+          const { data: apps } = await supabase
+            .from("applicants").select("id").eq("email", email).eq("batch_id", _currentBatch).limit(1);
+          const appId = apps?.[0]?.id;
+          if (appId) window.FSStudentProfile?.open(appId, { idType: "applicant" });
+        });
+      });
+    }
+
+    function openCompleteModal({ complete: id, student, class: cls, batch, name }) {
+      $("completeRowId").value   = id;
+      $("completeStudentId").value = student;
+      $("completeClassNumber").value = cls;
+      $("completeBatchId").value = batch;
+      $("completeModalTitle").textContent = `Mark Complete — ${name}`;
+      $("completedDate").value   = TODAY;
+      $("completeNotes").value   = "";
+      $("completeModal").classList.add("open");
+    }
+
+    function openExtendModal({ extend: id, notes, name }) {
+      $("extendRowId").value      = id;
+      $("extendCurrentNotes").value = notes || "";
+      $("extendModalTitle").textContent = `Extend Deadline — ${name}`;
+      $("newDeadline").value      = "";
+      $("extendReason").value     = "";
+      $("extendModal").classList.add("open");
+    }
+
+    async function onMarkComplete() {
+      const id          = $("completeRowId").value;
+      const studentId   = $("completeStudentId").value;
+      const classNumber = $("completeClassNumber").value;
+      const batchId     = $("completeBatchId").value;
+      const date        = $("completedDate").value;
+      const notes       = $("completeNotes").value.trim();
+
+      if (!date) { flash("Please select a completed date.", "error"); return; }
+
+      const btn = $("completeSaveBtn");
+      btn.disabled = true;
+      btn.textContent = "Saving…";
+
+      try {
+        // 1. Update makeup_queue
+        const { error: mqErr } = await supabase
+          .from("makeup_queue")
+          .update({ makeup_completed: true, completed_date: date, notes: notes || null, updated_at: new Date().toISOString() })
+          .eq("id", id);
+        if (mqErr) throw mqErr;
+
+        // 2. Update attendance_log — mark made_up = true
+        await supabase
+          .from("attendance_log")
+          .update({ made_up: true, makeup_date: date })
+          .eq("student_id", studentId)
+          .eq("batch_id", batchId)
+          .eq("class_number", classNumber)
+          .eq("present", false);
+
+        // 3. Re-evaluate graduation eligibility (Bridge: student → applicant via email)
+        const { data: stuRows } = await supabase
+          .from("students").select("email").eq("student_id", studentId).limit(1);
+        const email = stuRows?.[0]?.email;
+        if (email) {
+          const { data: appRows } = await supabase
+            .from("applicants").select("id").eq("email", email).eq("batch_id", batchId).limit(1);
+          const appId = appRows?.[0]?.id;
+          if (appId) {
+            await supabase.rpc("evaluate_graduation_eligibility", {
+              p_applicant_id: appId,
+              p_batch_id: batchId,
+            });
+          }
+        }
+
+        // 4. Audit log
+        await supabase.from("audit_logs").insert({
+          action: "MAKEUP_COMPLETED",
+          entity_type: "makeup_queue",
+          entity_id: id,
+          status: "SUCCESS",
+          details: { student_id: studentId, class_number: classNumber, batch_id: batchId, completed_date: date, notes },
+        });
+
+        $("completeModal").classList.remove("open");
+        flash("Makeup marked complete — graduation eligibility updated.", "success");
+        await loadBatch(_currentBatch);
+      } catch (err) {
+        flash(`Failed: ${err?.message || err}`, "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Mark Complete";
+      }
+    }
+
+    async function onExtendDeadline() {
+      const id      = $("extendRowId").value;
+      const newDate = $("newDeadline").value;
+      const reason  = $("extendReason").value.trim();
+      const existing = $("extendCurrentNotes").value;
+
+      if (!newDate) { flash("Please select a new deadline.", "error"); return; }
+      if (!reason)  { flash("A reason is required to extend the deadline.", "error"); return; }
+
+      const btn = $("extendSaveBtn");
+      btn.disabled = true;
+      btn.textContent = "Saving…";
+
+      const updatedNotes = [existing, `Deadline extended: ${reason}`].filter(Boolean).join("\n");
+
+      try {
+        const { error } = await supabase
+          .from("makeup_queue")
+          .update({ deadline: newDate, notes: updatedNotes, updated_at: new Date().toISOString() })
+          .eq("id", id);
+        if (error) throw error;
+
+        await supabase.from("audit_logs").insert({
+          action: "MAKEUP_DEADLINE_EXTENDED",
+          entity_type: "makeup_queue",
+          entity_id: id,
+          status: "SUCCESS",
+          details: { new_deadline: newDate, reason },
+        });
+
+        $("extendModal").classList.remove("open");
+        flash("Deadline extended.", "success");
+        await loadBatch(_currentBatch);
+      } catch (err) {
+        flash(`Failed: ${err?.message || err}`, "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Save Extension";
+      }
+    }
+
+    function flash(msg, type = "") {
+      $("flashArea").innerHTML = msg ? `<div class="msg ${type}">${esc(msg)}</div>` : "";
+    }
+
+    boot();
+  </script>
+</body>
+</html>
