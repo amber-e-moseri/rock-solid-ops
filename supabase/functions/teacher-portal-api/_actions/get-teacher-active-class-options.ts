@@ -11,7 +11,7 @@ export async function getTeacherActiveClassOptionsAction(ctx: ActionContext): Pr
       const { data, error } = await withTimeout(
         db
           .from("class_options")
-          .select("class_option_id,teacher_id,day,class_time,fellowship_codes,active,enrollment_open,deleted_at")
+          .select("class_option_id,teacher_id,day,class_time,fellowship_codes,group_id,subgroup_id,active,enrollment_open,deleted_at")
           .eq("teacher_id", teacherId)
           .eq("active", true)
           .is("deleted_at", null)
@@ -36,10 +36,16 @@ export async function getTeacherActiveClassOptionsAction(ctx: ActionContext): Pr
         const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
         return {
           classOptionId: r.class_option_id,
+          class_option_id: r.class_option_id,
           campus,
           fellowship: first,
+          fellowship_codes: codes,
           day: r.day || "",
+          class_time: t,
           time: `${h12}:${String(mm || 0).padStart(2, "0")} ${ap}`,
+          group_id: r.group_id || "",
+          subgroup_id: r.subgroup_id || "",
+          batch_id: r.batch_id || null,
           batch: "",
           enrolledCount: 0,
         };

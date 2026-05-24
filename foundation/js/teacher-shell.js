@@ -40,6 +40,7 @@
   function inferActiveKey() {
     const p = (window.location.pathname || "").toLowerCase();
     if (p.includes("attendance")) return "attendance";
+    if (p.includes("index")) return "my-class";
     if (p.includes("my-class")) return "my-class";
     if (p.includes("availability")) return "availability";
     return "";
@@ -52,6 +53,36 @@
     if (raw === "REJECTED") return "INACTIVE";
     if (raw === "SUSPENDEDCONFIRMED") return "SUSPENDED";
     return active === true ? "ACTIVE" : "INACTIVE";
+  }
+
+  async function resolveTeacherIdentity() {
+    try {
+      const auth = await import("../auth/auth-client.js");
+      const session = await auth.getSessionOrNull();
+      const profile = await auth.getCurrentProfile();
+      const email = String(profile?.email || session?.user?.email || "").trim();
+      const uid = String(profile?.user_id || session?.user?.id || "").trim();
+
+      let teacherName = "";
+      if (uid || email) {
+        let q = auth.supabase
+          .from("teachers")
+          .select("full_name,email,deleted_at")
+          .is("deleted_at", null)
+          .limit(1);
+        if (uid) q = q.eq("teacher_user_id", uid);
+        else q = q.eq("email", email);
+        const { data } = await q.maybeSingle();
+        teacherName = String(data?.full_name || "").trim();
+      }
+
+      const profileName = String(profile?.full_name || "").trim();
+      const metaName = String(session?.user?.user_metadata?.full_name || "").trim();
+      const fullName = teacherName || profileName || metaName || email || "Teacher";
+      return { fullName, email, supabase: auth.supabase };
+    } catch (_) {
+      return { fullName: "Teacher", email: "", supabase: null };
+    }
   }
 
   async function enforceTeacherAccess() {
@@ -140,10 +171,10 @@
     document.body.classList.add("fs-force-light");
     const active = opts.active || inferActiveKey();
     const links = [
-      { href: "../teacher/index.html?section=dashboard", icon: "📊", label: "Dashboard", key: "dashboard" },
-      { href: "../teacher/index.html?section=attendance", icon: "✅", label: "Attendance", key: "attendance" },
-      { href: "../teacher/index.html?section=my-class", icon: "👥", label: "My Class", key: "my-class" },
-      { href: "../teacher/index.html?section=availability", icon: "📅", label: "Availability", key: "availability" },
+      { href: "../teacher/index.html?section=dashboard", icon: "", label: "Dashboard", key: "dashboard" },
+      { href: "../teacher/index.html?section=attendance", icon: "", label: "Attendance", key: "attendance" },
+      { href: "../teacher/index.html?section=my-class", icon: "", label: "My Class", key: "my-class" },
+      { href: "../teacher/index.html?section=availability", icon: "", label: "Availability", key: "availability" },
     ];
 
     // Remove any accidental duplicate shells from previous buggy mounts.
@@ -166,11 +197,16 @@
               .map(
                 (l) =>
                   `<a class="fs-shell-link ${l.key === active ? "active" : ""}" href="${l.href}">
-                     <span class="fs-shell-link-icon">${l.icon}</span>
                      <span>${l.label}</span>
                    </a>`
               )
               .join("")}
+          </div>
+          <div class="fs-shell-footer" style="margin-top:auto;padding-top:10px;padding-bottom:16px;border-top:1px solid color-mix(in srgb, var(--border) 70%, transparent);">
+            <div id="fsShellTeacherName" style="font-weight:700;font-size:14px;line-height:1.25;color:#fff;">Teacher</div>
+            <div id="fsShellTeacherEmail" style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px;word-break:break-word;">&nbsp;</div>
+            <div style="margin-top:8px;"><span class="fs-badge fs-badge-primary">Teacher</span></div>
+            <button id="fsShellSignOutBtn" type="button" class="fs-btn fs-btn-secondary" style="width:100%;margin-top:10px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;">Sign Out</button>
           </div>
           <button id="fs-theme-toggle" class="fs-shell-theme-btn" aria-label="Toggle theme" style="display:none">T</button>
         </div>
@@ -182,6 +218,23 @@
     if (themeBtn) themeBtn.style.display = "none";
 
     initTheme();
+    resolveTeacherIdentity().then(({ fullName, email, supabase }) => {
+      const nameEl = document.getElementById("fsShellTeacherName");
+      const emailEl = document.getElementById("fsShellTeacherEmail");
+      const signOutBtn = document.getElementById("fsShellSignOutBtn");
+      if (nameEl) nameEl.textContent = fullName || "Teacher";
+      if (emailEl) emailEl.textContent = email || "";
+      if (signOutBtn) {
+        signOutBtn.addEventListener("mouseenter", () => { signOutBtn.style.background = "rgba(255,255,255,0.1)"; });
+        signOutBtn.addEventListener("mouseleave", () => { signOutBtn.style.background = "transparent"; });
+        signOutBtn.addEventListener("click", async () => {
+          try {
+            await supabase?.auth?.signOut();
+          } catch (_) {}
+          window.location.href = "/foundation/auth/login.html";
+        });
+      }
+    });
     if (opts.enforceAccess !== false) {
       enforceTeacherAccess();
     }

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -36,11 +36,42 @@
       border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: var(--surface-2);
       display: grid; gap: 8px;
     }
-    .student-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+    .student-head {
+      width: 100%;
+      min-height: 60px;
+      border: 0;
+      background: transparent;
+      padding: 6px 4px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      text-align: left;
+      cursor: pointer;
+    }
+    .student-head-main { display:flex; align-items:flex-start; gap:10px; min-width:0; }
+    .student-chevron { font-size: 14px; line-height: 1; color: var(--fs-text-muted); transform: rotate(0deg); transition: transform .2s ease; margin-top: 2px; }
+    .student-head[aria-expanded="true"] .student-chevron { transform: rotate(90deg); }
+    .student-head-right { flex-shrink: 0; display:flex; align-items:center; }
     .name { font-weight: 800; }
     .meta { font-size: 12px; color: var(--fs-text-muted); }
     .present-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; }
     .present-toggle input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4C2A92; }
+    .student-panel {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height .2s ease, opacity .2s ease;
+      border-top: 1px dashed transparent;
+    }
+    .student-panel.open {
+      max-height: 500px;
+      opacity: 1;
+      border-top-color: var(--line);
+      padding-top: 8px;
+    }
+    .student-fellowship { font-size: 12px; color: var(--fs-text-muted); margin-bottom: 6px; }
+    .milestone-icons { display:flex; gap:8px; flex-wrap:wrap; font-size:14px; margin-bottom:8px; }
     .chips { display: flex; gap: 6px; flex-wrap: wrap; }
     .chip {
       border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--soft-lavender) 75%, var(--fs-surface));
@@ -134,7 +165,7 @@
             <div id="classHelperText" style="display:none;margin-top:6px;font-size:12px;color:var(--fs-text-muted);">Please select a class to continue</div>
           </div>
           <div>
-            <label>Session</label>
+            <label>Class</label>
             <select id="sessionSelect"></select>
           </div>
           <div>
@@ -215,7 +246,7 @@
       </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--fs-text-muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px">Reason <span style="color:#ef4444">*</span></label>
-        <textarea id="mqExtendReason" rows="2" style="width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text);font:inherit;padding:10px;resize:vertical" placeholder="Required — briefly explain the extension"></textarea>
+        <textarea id="mqExtendReason" rows="2" style="width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text);font:inherit;padding:10px;resize:vertical" placeholder="Required Ã¢â‚¬â€ briefly explain the extension"></textarea>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn" id="mqExtendCancelBtn" type="button">Cancel</button>
@@ -225,10 +256,10 @@
   </div>
   <div id="firstSessionModalOverlay" class="fs-modal-overlay" aria-hidden="true">
     <div class="fs-modal">
-      <h2 class="fs-modal-title">First Class Session</h2>
+      <h2 class="fs-modal-title">First Class</h2>
       <p class="meta">If you started late, confirm your actual start date so we don't flag earlier weeks as missing.</p>
       <div class="field-wrap">
-        <label for="firstSessionNumber">Session number</label>
+        <label for="firstSessionNumber">Class Number</label>
         <input id="firstSessionNumber" type="number" min="1" step="1" value="1" />
       </div>
       <div class="field-wrap">
@@ -272,7 +303,9 @@ const state = {
   search: "",
   firstSubmissionMeta: null,
   firstSubmissionConfirmation: null,
+  batchStartByClass: {},
   milestoneByStudent: new Map(),
+  expandedStudents: new Set(),
 };
 
 function setTheme() {
@@ -283,6 +316,40 @@ function setTheme() {
 }
 function flash(msg, type = "ok") { $("flash").innerHTML = msg ? `<div class="msg ${type}">${esc(msg)}</div>` : ""; }
 function todayYmd() { return new Date().toISOString().slice(0, 10); }
+function formatClassTime(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  const m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return s;
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return s;
+  const ap = hh >= 12 ? "PM" : "AM";
+  const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+  return `${h12}:${String(mm).padStart(2, "0")} ${ap}`;
+}
+function weekdayIndex(dayName) {
+  const d = String(dayName || "").trim().toLowerCase();
+  const map = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+  return map[d];
+}
+function firstClassDateFromBatch(batchStartDate, classDayName) {
+  const start = String(batchStartDate || "").trim();
+  const classDow = weekdayIndex(classDayName);
+  if (!start || classDow == null) return null;
+  const date = new Date(`${start}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  const delta = (classDow - date.getDay() + 7) % 7;
+  date.setDate(date.getDate() + delta);
+  return date;
+}
+function sessionDateLabel(sessionNumber, batchStartDate, classDayName) {
+  const first = firstClassDateFromBatch(batchStartDate, classDayName);
+  if (!first) return "";
+  const d = new Date(first);
+  d.setDate(d.getDate() + ((Number(sessionNumber) - 1) * 7));
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 function setFirstSessionModalOpen(open) {
   const overlay = $("firstSessionModalOverlay");
   if (!overlay) return;
@@ -347,9 +414,18 @@ function renderClassOptions() {
   const rows = state.assignments.map((a) => {
     const classId = a.class_option_id || a.class_id || a.classOptionId;
     const cls = state.classes.find((c) => String(c.class_option_id || c.class_id || "") === String(classId || ""));
+    const day = a.day || cls?.day || "-";
+    const classTimeRaw = a.class_time || a.time_slot || a.time || cls?.class_time || cls?.time_slot || "";
+    const classTime = formatClassTime(classTimeRaw);
+    const fellowships = Array.isArray(a.fellowship_codes)
+      ? a.fellowship_codes
+      : (Array.isArray(cls?.fellowship_codes) ? cls.fellowship_codes : []);
+    const fellowshipText = fellowships.length
+      ? fellowships.join(", ")
+      : (a.fellowship || cls?.fellowship_code || cls?.subgroup_id || "-");
     return {
       value: classId,
-      label: `${a.day || cls?.day || "-"} ${a.time || cls?.class_time || cls?.time_slot || ""} · ${Array.isArray(cls?.fellowship_codes) ? cls.fellowship_codes.join(", ") : (cls?.fellowship_code || cls?.subgroup_id || "-")}`
+      label: `${day} ${classTime} Â· ${fellowshipText}`
     };
   }).filter((x) => x.value);
   $("classSelect").innerHTML = rows.map((r) => `<option value="${esc(r.value)}">${esc(r.label)}</option>`).join("") || `<option value="">No assigned classes</option>`;
@@ -360,13 +436,15 @@ function renderClassOptions() {
 function renderSessionOptions() {
   $("sessionSelect").innerHTML = Array.from({ length: 7 }).map((_, i) => {
     const n = i + 1;
-    return `<option value="Class${n}">Session ${n}</option>`;
+    const label = `Class ${n}`;
+    return `<option value="Class${n}">${label}</option>`;
   }).join("");
 }
 
 function hydrateRoster() {
   const all = state.applicants.filter((a) => String(a.id || "") !== "");
   state.milestoneByStudent = new Map();
+  state.expandedStudents = new Set();
   state.roster = all.map((a) => {
     const sm = state.studentMilestones.filter((m) => String(m.applicant_id || m.student_id || "") === String(a.id || ""));
     const milestoneOn = new Set();
@@ -423,11 +501,18 @@ async function toggleMilestone(studentId, milestoneCode) {
 
 function renderRoster() {
   const rows = filteredRoster();
+  if (rows.length === 1 && state.expandedStudents.size === 0) state.expandedStudents.add(String(rows[0].id));
   $("roster").innerHTML = rows.map((s) => {
     const chips = activeMilestoneDefs().map((m) => {
       const code = normalizeMilestoneCode(m.code);
       const on = s.milestones.has(code);
       return `<button type="button" class="fs-badge ${on ? "on" : ""}" data-student="${esc(s.id)}" data-milestone-code="${esc(code)}">${esc(milestoneLabel(m))}</button>`;
+    }).join("");
+    const iconSummary = activeMilestoneDefs().map((m) => {
+      const code = normalizeMilestoneCode(m.code);
+      const st = state.milestoneByStudent.get(String(s.id))?.get(code);
+      const done = !!st?.completed || s.milestones.has(code);
+      return `<span title="${esc(milestoneLabel(m))}">${done ? "&#9989;" : "&#x2B1C;"}</span>`;
     }).join("");
     const details = activeMilestoneDefs().map((m) => {
       const code = normalizeMilestoneCode(m.code);
@@ -436,30 +521,51 @@ function renderRoster() {
       const when = st?.updatedAt ? new Date(st.updatedAt).toLocaleString() : "Never";
       return `<div class="milestone-row">
         <div>
-          <div>${done ? "✅" : "❌"} ${esc(milestoneLabel(m))}</div>
+          <div>${done ? "&#9989;" : "&#x2B1C;"} ${esc(milestoneLabel(m))}</div>
           <div class="milestone-meta">Last updated: ${esc(when)}</div>
         </div>
         <button type="button" class="milestone-toggle ${done ? "on" : ""}" data-student="${esc(s.id)}" data-milestone-code="${esc(code)}">${done ? "Completed" : "Pending"}</button>
       </div>`;
     }).join("");
+    const expanded = state.expandedStudents.has(String(s.id));
     return `<article class="student">
-      <div class="student-head">
-        <div><div class="name">${esc(s.full_name)}</div><div class="meta">${esc(s.email || "-")}</div></div>
-        <label class="present-toggle"><input type="checkbox" data-present="${esc(s.id)}" ${s.present ? "checked" : ""} /> Present</label>
+      <button type="button" class="student-head" data-expand="${esc(s.id)}" aria-expanded="${expanded ? "true" : "false"}">
+        <span class="student-head-main">
+          <span class="student-chevron">&#9654;</span>
+          <span><span class="name">${esc(s.full_name)}</span><br /><span class="meta">${esc(s.email || "-")}</span></span>
+        </span>
+        <span class="student-head-right"><label class="present-toggle"><input type="checkbox" data-present="${esc(s.id)}" ${s.present ? "checked" : ""} /> Present</label></span>
+      </button>
+      <div class="student-panel ${expanded ? "open" : ""}" data-panel="${esc(s.id)}">
+        <div class="student-fellowship">Fellowship: ${esc(s.fellowship_code || "-")} · Group: ${esc(s.subgroup_id || "-")}</div>
+        <div class="milestone-icons">${iconSummary}</div>
+        <textarea data-notes="${esc(s.id)}" placeholder="Notes...">${esc(s.notes)}</textarea>
+        <div class="fs-badges" style="margin-top:8px">${chips}</div>
+        <details class="milestone-details">
+          <summary style="cursor:pointer;font-size:12px;font-weight:700;">Milestone status</summary>
+          ${details}
+        </details>
+        <div style="margin-top:8px"><button type="button" class="fs-btn" data-profile="${esc(s.id)}" style="font-size:11px;padding:5px 10px">View Full Profile</button></div>
       </div>
-      <textarea data-notes="${esc(s.id)}" placeholder="Notes...">${esc(s.notes)}</textarea>
-      <div class="fs-badges">${chips}</div>
-      <details class="milestone-details">
-        <summary style="cursor:pointer;font-size:12px;font-weight:700;">Milestone status</summary>
-        ${details}
-      </details>
-      <div style="margin-top:8px"><button type="button" class="fs-btn" data-profile="${esc(s.id)}" style="font-size:11px;padding:5px 10px">View Profile</button></div>
     </article>`;
   }).join("") || `<div class="msg warn">No students found for this class.</div>`;
   $("saveMeta").textContent = `${rows.length} students in current roster.`;
   const studentCountBadge = $("studentCountBadge");
   if (studentCountBadge) studentCountBadge.textContent = String(rows.length);
 
+  document.querySelectorAll("[data-expand]").forEach((el) => {
+    el.addEventListener("click", (ev) => {
+      if (ev.target && ev.target.closest("[data-present]")) return;
+      const sid = String(el.getAttribute("data-expand") || "");
+      if (!sid) return;
+      if (state.expandedStudents.has(sid)) state.expandedStudents.delete(sid);
+      else state.expandedStudents.add(sid);
+      const expanded = state.expandedStudents.has(sid);
+      el.setAttribute("aria-expanded", expanded ? "true" : "false");
+      const panel = document.querySelector(`[data-panel="${CSS.escape(sid)}"]`);
+      if (panel) panel.classList.toggle("open", expanded);
+    });
+  });
   document.querySelectorAll("[data-present]").forEach((el) => {
     el.addEventListener("change", () => {
       const row = state.roster.find((r) => String(r.id) === String(el.dataset.present));
@@ -515,6 +621,10 @@ async function reloadRosterData() {
     return;
   }
   const rosterRes = await invokeTeacherPortalAction("loadAttendanceRoster", { classOptionId: state.selectedClass });
+  const classKey = String(state.selectedClass || "");
+  const batchStartDate = String(rosterRes?.data?.batchStartDate || rosterRes?.data?.firstSubmissionMeta?.batchStartDate || "").trim();
+  if (classKey) state.batchStartByClass[classKey] = batchStartDate;
+  renderSessionOptions();
   const roster = rosterRes?.data?.roster || [];
   const studentIds = [...new Set(roster.map((r) => String(r.id || r.studentId || "")).filter(Boolean))];
   if (!studentIds.length) {
@@ -558,7 +668,7 @@ async function maybePromptFirstSubmissionMeta() {
 async function saveAttendance() {
   if (!state.selectedClass) { flash("Please select a class.", "warn"); return; }
   if (state.firstSubmissionMeta && !state.firstSubmissionConfirmation) {
-    flash("Please confirm first class session details before submitting.", "warn");
+    flash("Please confirm first class details before submitting.", "warn");
     setFirstSessionModalOpen(true);
     return;
   }
@@ -632,7 +742,7 @@ async function saveAttendance() {
   } catch (_) { /* non-blocking */ }
 }
 
-// ── Makeup Queue ────────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Makeup Queue Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 const MQ_TODAY = () => new Date().toISOString().slice(0, 10);
 let _mqRows = [];
 
@@ -683,7 +793,7 @@ function renderMqTable(rows) {
     const overdueCls = r._overdue ? "mq-overdue-text" : "";
     const deadlineText = r.deadline
       ? `<span class="${overdueCls}">${esc(r.deadline)}</span>`
-      : "—";
+      : "Ã¢â‚¬â€";
     const actions = !r.makeup_completed
       ? `<div class="mq-actions">
           <button class="btn-xs primary" data-mq-complete="${esc(r.id)}" data-mq-student="${esc(r.student_id)}" data-mq-class="${esc(r.class_number)}" data-mq-batch="${esc(r.batch_id)}" data-mq-name="${esc(r._name)}">Mark Complete</button>
@@ -705,7 +815,7 @@ function renderMqTable(rows) {
       $("mqCompleteStudentId").value = btn.dataset.mqStudent;
       $("mqCompleteClassNum").value = btn.dataset.mqClass;
       $("mqCompleteBatchId").value = btn.dataset.mqBatch;
-      $("mqCompleteTitle").textContent = `Mark Complete — ${btn.dataset.mqName}`;
+      $("mqCompleteTitle").textContent = `Mark Complete Ã¢â‚¬â€ ${btn.dataset.mqName}`;
       $("mqCompleteDate").value = MQ_TODAY();
       $("mqCompleteNotes").value = "";
       $("mqCompleteModal").classList.add("open");
@@ -715,7 +825,7 @@ function renderMqTable(rows) {
     btn.addEventListener("click", () => {
       $("mqExtendRowId").value = btn.dataset.mqExtend;
       $("mqExtendNotes").value = btn.dataset.mqNotes || "";
-      $("mqExtendTitle").textContent = `Extend Deadline — ${btn.dataset.mqName}`;
+      $("mqExtendTitle").textContent = `Extend Deadline Ã¢â‚¬â€ ${btn.dataset.mqName}`;
       $("mqExtendDate").value = "";
       $("mqExtendReason").value = "";
       $("mqExtendModal").classList.add("open");
@@ -729,7 +839,7 @@ async function loadMakeupQueue() {
     $("mqTableWrap").style.display = "none";
     return;
   }
-  $("mqState").textContent = "Loading…";
+  $("mqState").textContent = "LoadingÃ¢â‚¬Â¦";
   try {
     const today = MQ_TODAY();
     const cls = state.classes.find((c) => String(c.class_option_id || "") === String(state.selectedClass));
@@ -769,7 +879,7 @@ async function mqMarkComplete() {
   const notes = ($("mqCompleteNotes").value || "").trim();
   if (!date) { flash("Please select a completed date.", "warn"); return; }
   const btn = $("mqCompleteSaveBtn");
-  btn.disabled = true; btn.textContent = "Saving…";
+  btn.disabled = true; btn.textContent = "SavingÃ¢â‚¬Â¦";
   try {
     const { error } = await supabase.from("makeup_queue")
       .update({ makeup_completed: true, completed_date: date, notes: notes || null, updated_at: new Date().toISOString() })
@@ -800,7 +910,7 @@ async function mqExtendDeadline() {
   if (!newDate) { flash("Please select a new deadline.", "warn"); return; }
   if (!reason) { flash("A reason is required to extend the deadline.", "warn"); return; }
   const btn = $("mqExtendSaveBtn");
-  btn.disabled = true; btn.textContent = "Saving…";
+  btn.disabled = true; btn.textContent = "SavingÃ¢â‚¬Â¦";
   const updatedNotes = [existing, `Deadline extended: ${reason}`].filter(Boolean).join("\n");
   try {
     const { error } = await supabase.from("makeup_queue")
@@ -838,7 +948,7 @@ function wireTabBar() {
   $("mqCompleteSaveBtn").addEventListener("click", mqMarkComplete);
   $("mqExtendSaveBtn").addEventListener("click", mqExtendDeadline);
 }
-// ── End Makeup Queue ─────────────────────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ End Makeup Queue Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 function wire() {
 
@@ -860,7 +970,7 @@ function wire() {
     const actualStartDate = String($("firstActualStartDate").value || "").trim();
     const minDate = String(state.firstSubmissionMeta?.batchStartDate || "").trim();
     if (!Number.isInteger(sessionNumber) || sessionNumber < 1) {
-      flash("Session number must be 1 or greater.", "warn");
+      flash("Class number must be 1 or greater.", "warn");
       return;
     }
     if (!actualStartDate) {
@@ -896,7 +1006,6 @@ async function boot() {
   const auth = await requireAuth(["teacher", "principal", "admin", "superadmin"]);
   if (!auth) return;
   state.auth = auth;
-  renderSessionOptions();
   window.FSStudentProfile?.init({ supabase, userRole: "teacher" });
   await loadData();
   wire();
@@ -908,6 +1017,4 @@ boot().catch((e) => flash(`Failed to load attendance module: ${e.message || e}`,
 </script>
 </body>
 </html>
-
-
 

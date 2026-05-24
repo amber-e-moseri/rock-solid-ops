@@ -18,6 +18,106 @@ export type AssignResult = {
 type AnyClient = any;
 type AnyCtx = Record<string, any>;
 
+function buildApplicantFullName(applicant: Record<string, any>): string {
+  const full = String(applicant?.full_name || "").trim();
+  if (full) return full;
+  const joined = [applicant?.first_name, applicant?.last_name]
+    .map((v) => String(v || "").trim())
+    .filter(Boolean)
+    .join(" ");
+  return joined || "Student";
+}
+
+async function upsertApplicantIntoStudents(
+  db: AnyClient,
+  applicantId: string,
+  classOptionId: string | null,
+  batchId: string | null,
+): Promise<void> {
+  if (!classOptionId) return;
+
+  const { data: applicant, error: applicantErr } = await db
+    .from("applicants")
+    .select("id,full_name,first_name,last_name,email,phone,group_id,subgroup_id,fellowship_code,batch_id,class_option_id")
+    .eq("id", applicantId)
+    .maybeSingle();
+  if (applicantErr || !applicant) {
+    if (applicantErr) throw applicantErr;
+    return;
+  }
+
+  const { data: classRow, error: classErr } = await db
+    .from("class_options")
+    .select("class_option_id,teacher_id,teacher_name")
+    .eq("class_option_id", classOptionId)
+    .maybeSingle();
+  if (classErr) throw classErr;
+
+  let teacherName = String(classRow?.teacher_name || "").trim();
+  if (!teacherName && classRow?.teacher_id) {
+    const { data: teacherRow, error: teacherErr } = await db
+      .from("teachers")
+      .select("teacher_id,full_name")
+      .eq("teacher_id", classRow.teacher_id)
+      .maybeSingle();
+    if (teacherErr) throw teacherErr;
+    teacherName = String(teacherRow?.full_name || "").trim();
+  }
+
+  const payload = {
+    student_id: String(applicant.id),
+    full_name: buildApplicantFullName(applicant),
+    email: String(applicant.email || "").trim(),
+    phone: applicant.phone ?? null,
+    group_id: String(applicant.group_id || "").trim(),
+    subgroup_id: String(applicant.subgroup_id || "").trim(),
+    fellowship_code: String(applicant.fellowship_code || "").trim() || null,
+    batch_id: String(batchId || applicant.batch_id || "").trim() || null,
+    class_option_id: String(classOptionId || applicant.class_option_id || "").trim() || null,
+    teacher_id: String(classRow?.teacher_id || "").trim() || null,
+    teacher_name: teacherName || null,
+    status: "Active",
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existing, error: existingErr } = await db
+    .from("students")
+    .select("student_id")
+    .eq("email", payload.email)
+    .maybeSingle();
+  if (existingErr && String(existingErr.code || "") !== "PGRST116") throw existingErr;
+
+  const rowForUpsert = existing?.student_id
+    ? { ...payload, student_id: String(existing.student_id) }
+    : { ...payload, created_at: new Date().toISOString() };
+
+  const { error: upsertErr } = await db
+    .from("students")
+    .upsert(rowForUpsert, { onConflict: "email" });
+  if (upsertErr) throw upsertErr;
+
+  const resolvedStudentId = String(rowForUpsert.student_id || payload.student_id || "").trim();
+  const resolvedClassOptionId = String(payload.class_option_id || "").trim();
+  if (resolvedStudentId && resolvedClassOptionId) {
+    const rosterRow = {
+      id: crypto.randomUUID(),
+      student_id: resolvedStudentId,
+      class_option_id: resolvedClassOptionId,
+      batch_id: payload.batch_id,
+      group_id: payload.group_id || null,
+      subgroup_id: payload.subgroup_id || null,
+      status: "Active",
+      enrolled_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const { error: rosterUpsertErr } = await db
+      .from("class_roster")
+      .upsert(rosterRow, { onConflict: "student_id,class_option_id" });
+    if (rosterUpsertErr) throw rosterUpsertErr;
+  }
+}
+
 async function resolveActiveBatchId(db: AnyClient): Promise<string> {
   const { data: activeBatch, error: batchErr } = await db
     .from("batches")
@@ -138,6 +238,10 @@ async function assignForRegistration(applicantId: string, db: AnyClient, ctx: An
       : registrationStatus === "REVIEW"
       ? "Review"
       : "Pending";
+
+  if (registrationStatus === "ASSIGNED" && class_option_id) {
+    await upsertApplicantIntoStudents(db, applicantId, class_option_id, batch_id);
+  }
 
   return {
     status: registrationStatus,
@@ -312,6 +416,8 @@ async function assignForPhase2(applicantId: string, db: AnyClient, ctx: AnyCtx):
     .update({ current_enrolment: best.current_enrolment + 1 })
     .eq("class_slot_id", best.class_slot_id);
 
+  await upsertApplicantIntoStudents(db, applicantId, best.class_option_id, best.batch_id);
+
   return {
     status: "ASSIGNED",
     classId: best.class_option_id,
@@ -330,4 +436,3 @@ export async function assignApplicant(applicantId: string, supabaseClient: AnyCl
   }
   return assignForRegistration(applicantId, supabaseClient, auditContext);
 }
-

@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="../ui/admin-shell.css" />
   <link rel="stylesheet" href="../ui/primitives.css" />
   <style>
-    body { font-family: "Manrope", system-ui, sans-serif; }
+    body { font-family: "Manrope", system-ui, sans-serif; background: var(--fs-bg, #f5f5f7); }
 
     /* KPI row */
     .kpi-row {
@@ -25,7 +25,7 @@
     .kpi-card {
       border: 1px solid var(--color-border, var(--border));
       background: var(--color-surface, var(--surface, #fff));
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 16px 18px;
       box-shadow: var(--shadow-soft, 0 1px 4px rgba(0,0,0,.06));
     }
@@ -44,12 +44,12 @@
       color: var(--color-text-muted, var(--color-text-muted));
     }
     .kpi-card.kpi-warn .kpi-value  { color: #c07400; }
-    .kpi-card.kpi-danger .kpi-value { color: #b53030; }
+    .kpi-card.kpi-danger .kpi-value { color: #C8102E; }
     .kpi-stamp { margin-top: 8px; font-size: 11px; color: var(--fs-text-muted); }
 
     .kpi-good { color: #15803d !important; }
     .kpi-watch { color: #b45309 !important; }
-    .kpi-action { color: #b91c1c !important; }
+    .kpi-action { color: #C8102E !important; }
 
     /* Two-column chart row */
     .chart-row {
@@ -71,7 +71,7 @@
     /* Side-by-side ops row */
     .ops-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 16px;
       margin-bottom: 16px;
     }
@@ -145,7 +145,7 @@
       .funnel-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 520px) {
-      .kpi-row { grid-template-columns: 1fr; }
+      .kpi-row { grid-template-columns: repeat(2, 1fr); }
       .batch-switcher { grid-template-columns: 1fr; }
       .funnel-grid { grid-template-columns: 1fr; }
     }
@@ -205,6 +205,16 @@
         <div class="kpi-label fs-metric-label">Duplicates</div>
         <div class="kpi-stamp" data-stamp="kpiDuplicates">as of -</div>
       </article>
+      <article class="kpi-card">
+        <div class="kpi-value" id="kpiActiveCertifiedTeachers">-</div>
+        <div class="kpi-label">Active/Certified Teachers</div>
+        <div class="kpi-stamp" data-stamp="kpiActiveCertifiedTeachers">as of -</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-value" id="kpiCurrentlyTeaching">-</div>
+        <div class="kpi-label">Currently Teaching</div>
+        <div class="kpi-stamp" data-stamp="kpiCurrentlyTeaching">as of -</div>
+      </article>
       <article class="kpi-card kpi-warn">
         <div class="kpi-value" id="kpiStale">-</div>
         <div class="kpi-label">Stale Reviews (&gt;48 h)</div>
@@ -256,6 +266,34 @@
       </section>
     </div>
 
+    <div class="ops-row">
+      <section class="card ops-card">
+        <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h4 style="margin:0;">Registration Funnel</h4>
+          <span id="funnelAsOf" class="kpi-stamp">as of -</span>
+        </div>
+        <div id="funnelGrid" class="funnel-grid"></div>
+      </section>
+      <section class="card ops-card">
+        <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h4 style="margin:0;">Moodle Sync Health</h4>
+          <span id="moodleAsOf2" class="kpi-stamp">as of -</span>
+        </div>
+        <div id="moodleSyncHealthGrid2" class="funnel-grid"></div>
+        <div id="moodleSyncMeta2" style="margin-top:10px;font-size:12px;color:var(--fs-text-muted);">Loading...</div>
+      </section>
+      <section class="card ops-card">
+        <h4 style="margin:0 0 10px;">Quick Actions</h4>
+        <div style="display:grid;gap:8px;">
+          <a class="fs-btn fs-btn-secondary fs-btn-sm" href="email-campaigns.html">Send announcement to all students</a>
+          <button id="retryFailedEmailsBtn" class="fs-btn fs-btn-secondary fs-btn-sm">Retry all failed emails</button>
+          <button id="retryFailedSyncsBtn2" class="fs-btn fs-btn-secondary fs-btn-sm">Retry all failed Moodle syncs</button>
+          <a class="fs-btn fs-btn-secondary fs-btn-sm" href="audit-log.html">View audit log</a>
+          <button id="exportStudentsBtn" class="fs-btn fs-btn-secondary fs-btn-sm">Export student list (CSV)</button>
+        </div>
+      </section>
+    </div>
+
     <!-- Row 2: bar chart + doughnut -->
     <div class="chart-row">
       <section class="card chart-card">
@@ -283,6 +321,27 @@
       </div>
     </section>
 
+    <section class="card" style="margin-bottom:16px;">
+      <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h3 style="margin:0;font-size:14px;font-weight:800;">Communications</h3>
+        <span id="commsAsOf" class="kpi-stamp">as of -</span>
+      </div>
+      <div class="funnel-grid" style="margin-bottom:12px;">
+        <div class="funnel-step"><div class="label">Emails sent today</div><div class="count" id="emailsSentToday">0</div></div>
+        <div class="funnel-step"><div class="label">Emails sent this week</div><div class="count" id="emailsSentWeek">0</div></div>
+        <div class="funnel-step"><div class="label">Failed (24h)</div><div class="count kpi-action" id="emailsFailed24h">0</div></div>
+        <div class="funnel-step"><div class="label">Pending emails</div><div class="count kpi-watch" id="emailsPending">0</div></div>
+        <div class="funnel-step"><div class="label">Notifications pending</div><div class="count" id="notifPending">0</div></div>
+      </div>
+      <div class="fs-table-wrap">
+        <table class="fs-table">
+          <thead><tr><th>Recipient</th><th>Template</th><th>Status</th><th>Sent</th><th>Action</th></tr></thead>
+          <tbody id="recentEmailsRows"><tr><td colspan="5">Loading...</td></tr></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--fs-text-muted);" id="notifWeekMeta">Loading...</div>
+    </section>
+
     <!-- Row 4: class capacity -->
     <section class="card" style="margin-bottom:16px;">
       <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Class Capacity</h3>
@@ -291,7 +350,7 @@
         <table class="fs-table">
           <thead>
             <tr>
-              <th>Day</th><th>Time</th><th>Teacher</th><th>Fellowship</th><th>Enrolled</th>
+              <th>Class</th><th>Teacher</th><th>Enrolled</th><th>Status</th>
             </tr>
           </thead>
           <tbody id="capacityRows"></tbody>
@@ -442,7 +501,7 @@
     }
 
     async function loadRegistrationSummary() {
-      setState("regChartState", "Loading-"); hide("regChartWrap"); destroyChart("reg");
+      setState("regChartState", "Loading..."); hide("regChartWrap"); destroyChart("reg");
       const { data, error } = await supabase.rpc("get_registration_summary", getParams());
       if (error) { if (isMissingTable(error)) missingItems.add("get_registration_summary RPC"); setState("regChartState", error.message || "Could not load registration summary."); return; }
       const rows = data || [];
@@ -464,7 +523,7 @@
     }
 
     async function loadFellowshipBreakdown() {
-      setState("fellowshipChartState", "Loading-"); hide("fellowshipChartWrap"); destroyChart("fellowship");
+      setState("fellowshipChartState", "Loading..."); hide("fellowshipChartWrap"); destroyChart("fellowship");
       const { data, error } = await supabase.rpc("get_fellowship_breakdown", getParams());
       if (error) { if (isMissingTable(error)) missingItems.add("get_fellowship_breakdown RPC"); setState("fellowshipChartState", error.message || "Could not load fellowship data."); return; }
       const rows = data || [];
@@ -474,7 +533,7 @@
     }
 
     async function loadWeeklyTrend() {
-      setState("weeklyChartState", "Loading-"); hide("weeklyChartWrap"); destroyChart("weekly");
+      setState("weeklyChartState", "Loading..."); hide("weeklyChartWrap"); destroyChart("weekly");
       const { data, error } = await supabase.rpc("get_registrations_by_week", getParams());
       if (error) { if (isMissingTable(error)) missingItems.add("get_registrations_by_week RPC"); setState("weeklyChartState", error.message || "Could not load weekly data."); return; }
       const rows = (data || []).slice(-12);
@@ -484,12 +543,18 @@
     }
 
     async function loadCapacity() {
-      setState("capacityState", "Loading-"); hide("capacityWrap");
+      setState("capacityState", "Loading..."); hide("capacityWrap");
       const { data, error } = await supabase.rpc("get_capacity_summary", getParams());
       if (error) { if (isMissingTable(error)) missingItems.add("get_capacity_summary RPC"); setState("capacityState", error.message || "Could not load capacity data."); return; }
       const rows = data || [];
       if (!rows.length) { setState("capacityState", "No class data."); return; }
-      $("capacityRows").innerHTML = rows.map((r) => `<tr><td>${r.day || "-"}</td><td>${r.class_time || "-"}</td><td>${r.teacher_name || r.teacher || "-"}</td><td>${r.fellowship || "-"}</td><td>${Number(r.enrolled_count || 0).toLocaleString()}</td></tr>`).join("");
+      $("capacityRows").innerHTML = rows.map((r) => {
+        const classLabel = `${r.day || "-"} ${r.class_time || "-"} · ${r.fellowship || "-"}`;
+        const enrolled = Number(r.enrolled_count || 0);
+        const max = Number(r.max_capacity || 0);
+        const isFull = max > 0 && enrolled >= max;
+        return `<tr><td>${classLabel}</td><td>${r.teacher_name || r.teacher || "-"}</td><td>${enrolled.toLocaleString()}</td><td>${isFull ? '<span class="fs-badge fs-badge-warning">Full</span>' : '<span class="fs-badge fs-badge-success">Active</span>'}</td></tr>`;
+      }).join("");
       _exportState.capacity = rows;
       hide("capacityState"); show("capacityWrap");
     }
@@ -565,10 +630,14 @@
           { label:"FAILED", value:counts.FAILED, cls:"kpi-action" },
           { label:"PROCESSING", value:counts.PROCESSING, cls:"kpi-good" },
         ].map((x) => `<div class="funnel-step"><div class="label">${x.label}</div><div class="count ${x.cls}">${x.value.toLocaleString()}</div></div>`).join("");
+        $("moodleSyncHealthGrid2").innerHTML = $("moodleSyncHealthGrid").innerHTML;
         $("moodleSyncMeta").textContent = `Last successful sync: ${fmtTime(lastSuccess)}`;
+        $("moodleSyncMeta2").textContent = `Last successful sync: ${fmtTime(lastSuccess)}`;
         setAsOf("moodleAsOf", _lastRefreshTs);
+        setAsOf("moodleAsOf2", _lastRefreshTs);
       } catch (e) {
         $("moodleSyncMeta").textContent = `Unavailable: ${String(e?.message || e)}`;
+        $("moodleSyncMeta2").textContent = `Unavailable: ${String(e?.message || e)}`;
       }
     }
 
@@ -576,7 +645,7 @@
       const btn = $("retryFailedSyncsBtn");
       btn.disabled = true;
       const old = btn.textContent;
-      btn.textContent = "Retrying-";
+      btn.textContent = "Retrying...";
       try {
         const { data: sess } = await supabase.auth.getSession();
         const token = sess?.session?.access_token;
@@ -597,7 +666,7 @@
     }
 
     async function loadEscalationSummary() {
-      setState("escalationState", "Loading-"); hide("escalationList");
+      setState("escalationState", "Loading..."); hide("escalationList");
       const { data, error } = await supabase.rpc("get_escalation_details", { p_subgroups: _scope.subgroups || null, p_limit: 50 });
       if (error) { if (isMissingTable(error)) missingItems.add("get_escalation_details RPC"); setState("escalationState", error.message || "Could not load escalation data."); return; }
       const rows = data || [];
@@ -608,7 +677,7 @@
     }
 
     async function loadRecent() {
-      setState("recentState", "Loading-"); hide("recentWrap");
+      setState("recentState", "Loading..."); hide("recentWrap");
       const { data, error } = await supabase.from("applicants").select("*").order("created_at", { ascending: false }).limit(20);
       if (error) { if (isMissingTable(error)) missingItems.add("applicants"); setState("recentState", error.message || "Could not load recent registrations."); return; }
       $("recentRows").innerHTML = (data || []).map((row) => `<tr><td>${fmtTime(row.created_at || row.submitted_at)}</td><td>${row.full_name || row.name || "-"}</td><td>${row.email || "-"}</td><td>${row.fellowship_code || row.group_id || "-"}${row.subgroup_id ? ` / ${row.subgroup_id}` : ""}</td><td>${row.batch_id || "-"}</td><td>${statusBadge(row.registration_status || row.status)}</td><td>${row.availability_status || row.availability_outcome || "-"}</td></tr>`).join("") || `<tr><td colspan="7">No recent registrations found.</td></tr>`;
@@ -625,6 +694,110 @@
       }
     }
 
+    async function loadKpiTeacherCounts() {
+      try {
+        const [a, b] = await Promise.all([
+          supabase.rpc("get_active_certified_teachers_count"),
+          supabase.rpc("get_currently_teaching_count", { p_batch_id: _batchId || null }),
+        ]);
+        const active = Number(a?.data?.[0]?.count ?? a?.data ?? 0);
+        const teaching = Number(b?.data?.[0]?.count ?? b?.data ?? 0);
+        $("kpiActiveCertifiedTeachers").textContent = Number.isFinite(active) ? active.toLocaleString() : "0";
+        $("kpiCurrentlyTeaching").textContent = Number.isFinite(teaching) ? teaching.toLocaleString() : "0";
+      } catch (_) {
+        $("kpiActiveCertifiedTeachers").textContent = "0";
+        $("kpiCurrentlyTeaching").textContent = "0";
+      } finally {
+        setKpiStamp("kpiActiveCertifiedTeachers", _lastRefreshTs);
+        setKpiStamp("kpiCurrentlyTeaching", _lastRefreshTs);
+      }
+    }
+
+    async function loadRegistrationFunnel() {
+      try {
+        const { data, error } = await supabase.rpc("get_registration_funnel", { p_batch_id: _batchId || null });
+        if (error) throw error;
+        const row = data?.[0] || {};
+        const steps = [
+          { label: "Registered", count: Number(row.registered_count || 0) },
+          { label: "Reviewed", count: Number(row.reviewed_count || 0) },
+          { label: "Assigned", count: Number(row.assigned_count || 0) },
+          { label: "Waitlisted", count: Number(row.waitlisted_count || 0) },
+          { label: "Duplicate", count: Number(row.duplicate_count || 0) },
+        ];
+        $("funnelGrid").innerHTML = steps.map((s, i) => {
+          const prev = i === 0 ? s.count : steps[i - 1].count;
+          const pct = prev > 0 ? Math.round((s.count * 100) / prev) : 0;
+          return `<div class="funnel-step"><div class="label">${s.label}</div><div class="count">${s.count.toLocaleString()}</div><div class="pct">${i === 0 ? "100%" : `${pct}%`}</div></div>`;
+        }).join("");
+        setAsOf("funnelAsOf", row.calculated_at || _lastRefreshTs);
+      } catch (e) {
+        $("funnelGrid").innerHTML = `<div class="state">Unavailable: ${String(e?.message || e)}</div>`;
+      }
+    }
+
+    async function loadCommunications() {
+      try {
+        const [{ data: queue, error: qErr }, { data: notifs, error: nErr }] = await Promise.all([
+          supabase.from("email_queue").select("id,recipient_name,recipient_email,template,status,sent_at,created_at").order("created_at", { ascending: false }).limit(200),
+          supabase.from("scheduled_notifications").select("id,status,created_at,sent_at").limit(1000),
+        ]);
+        if (qErr) throw qErr;
+        if (nErr) throw nErr;
+        const now = Date.now();
+        const rows = queue || [];
+        const sentToday = rows.filter((r) => r.sent_at && (now - new Date(r.sent_at).getTime()) <= 24 * 60 * 60 * 1000).length;
+        const sentWeek = rows.filter((r) => r.sent_at && (now - new Date(r.sent_at).getTime()) <= 7 * 24 * 60 * 60 * 1000).length;
+        const failed24h = rows.filter((r) => String(r.status || "").toLowerCase() === "failed" && (now - new Date(r.created_at || r.sent_at || 0).getTime()) <= 24 * 60 * 60 * 1000).length;
+        const pending = rows.filter((r) => String(r.status || "").toLowerCase() === "pending").length;
+        const notifPending = (notifs || []).filter((n) => String(n.status || "").toLowerCase() === "pending").length;
+        const notifSentWeek = (notifs || []).filter((n) => n.sent_at && (now - new Date(n.sent_at).getTime()) <= 7 * 24 * 60 * 60 * 1000).length;
+
+        $("emailsSentToday").textContent = String(sentToday);
+        $("emailsSentWeek").textContent = String(sentWeek);
+        $("emailsFailed24h").textContent = String(failed24h);
+        $("emailsPending").textContent = String(pending);
+        $("notifPending").textContent = String(notifPending);
+        $("notifWeekMeta").textContent = `Notifications sent this week: ${notifSentWeek}`;
+        setAsOf("commsAsOf", _lastRefreshTs);
+
+        $("recentEmailsRows").innerHTML = rows.slice(0, 10).map((r) => {
+          const st = String(r.status || "Unknown");
+          const badgeCls = st.toLowerCase() === "sent" ? "fs-badge-success" : st.toLowerCase() === "failed" ? "fs-badge-danger" : "fs-badge-warning";
+          const retry = st.toLowerCase() === "failed" ? `<button class="fs-btn fs-btn-secondary fs-btn-sm" data-retry-email="${r.id}">Retry</button>` : "-";
+          return `<tr><td>${(r.recipient_name || "-")}<br /><span style="font-size:11px;color:var(--fs-text-muted)">${r.recipient_email || "-"}</span></td><td>${r.template || "-"}</td><td><span class="fs-badge ${badgeCls}">${st}</span></td><td>${relativeMinutes(r.sent_at || r.created_at)}</td><td>${retry}</td></tr>`;
+        }).join("") || `<tr><td colspan="5">No email activity.</td></tr>`;
+        document.querySelectorAll("[data-retry-email]").forEach((btn) => btn.addEventListener("click", () => retryOneEmail(btn.getAttribute("data-retry-email"))));
+      } catch (e) {
+        $("recentEmailsRows").innerHTML = `<tr><td colspan="5">Unavailable: ${String(e?.message || e)}</td></tr>`;
+      }
+    }
+
+    async function retryOneEmail(id) {
+      if (!id) return;
+      await supabase.from("email_queue").update({ status: "Pending", retry_count: 0, updated_at: new Date().toISOString() }).eq("id", id);
+      await loadCommunications();
+    }
+
+    async function retryAllFailedEmails() {
+      await supabase.from("email_queue").update({ status: "Pending", updated_at: new Date().toISOString() }).eq("status", "Failed");
+      await loadCommunications();
+    }
+
+    function exportStudentListCsv() {
+      const rows = _exportState.capacity || [];
+      const header = ["Class", "Teacher", "Enrolled"];
+      const body = rows.map((r) => [`${r.day || "-"} ${r.class_time || "-"} · ${r.fellowship || "-"}`, r.teacher_name || r.teacher || "-", Number(r.enrolled_count || 0)]);
+      const lines = [header, ...body].map((arr) => arr.map((v) => `"${String(v ?? "").replaceAll('"', '""')}"`).join(","));
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "students_by_class.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
     function renderMigrationNotes() {
       const items = [...missingItems];
       $("migrationNotes").innerHTML = items.length ? items.map((i) => `<li>Missing: ${i}</li>`).join("") : "<li>No missing-table migrations detected.</li>";
@@ -636,6 +809,9 @@
       await Promise.all([
         loadRegistrationSummary(), loadFellowshipBreakdown(), loadWeeklyTrend(), loadCapacity(), loadStaleQueue(),
         loadAttendanceHealth().catch(() => {}), loadMilestoneSummary().catch(() => {}), loadMoodleSyncHealth().catch(() => {}),
+        loadRegistrationFunnel().catch(() => {}),
+        loadCommunications().catch(() => {}),
+        loadKpiTeacherCounts().catch(() => {}),
         isRegionalSecretary(_scope.profile?.role) ? Promise.resolve() : loadEscalationSummary(), loadRecent(), loadActivityFeed()
       ]);
       _exportState.kpis = {
@@ -645,7 +821,7 @@
         duplicates: $("kpiDuplicates")?.textContent || "0",
         stale_reviews: $("kpiStale")?.textContent || "0",
       };
-      $("lastRefreshed").textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      $("lastRefreshed").textContent = `Last updated ${relativeMinutes(_lastRefreshTs)}`;
       renderMigrationNotes();
     }
 
@@ -664,8 +840,11 @@
       $("batchFilter").addEventListener("change", (e) => { _batchId = e.target.value || null; refresh(); });
       $("refreshBtn").addEventListener("click", refresh);
       $("retryFailedSyncsBtn").addEventListener("click", retryAllFailedSyncs);
+      $("retryFailedSyncsBtn2")?.addEventListener("click", retryAllFailedSyncs);
+      $("retryFailedEmailsBtn")?.addEventListener("click", retryAllFailedEmails);
+      $("exportStudentsBtn")?.addEventListener("click", exportStudentListCsv);
       if (_activityTimer) clearInterval(_activityTimer);
-      _activityTimer = setInterval(loadActivityFeed, 60000);
+      _activityTimer = setInterval(refresh, 60000);
       await refresh();
     }
     init();

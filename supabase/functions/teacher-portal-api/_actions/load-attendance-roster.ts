@@ -108,6 +108,8 @@ export async function loadAttendanceRosterAction(ctx: ActionContext): Promise<Re
         data: {
           roster,
           fellowships: (fellowships || []).map((f) => ({ code: f.fellowship_code, name: f.campus_name })),
+          batchId: activeBatch?.batch_id || null,
+          batchStartDate: activeBatch?.start_date || null,
           alreadySubmitted: false,
           previousSubmissionSummary: "",
           firstSubmissionRequired: isFirstSubmission,

@@ -7,19 +7,57 @@
   <link rel="stylesheet" href="../ui/tokens.css" />
   <link rel="stylesheet" href="../ui/primitives.css" />
   <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
   <style>
     html, body { margin: 0; min-height: 100%; }
-    body { font-family: "Manrope", system-ui, -apple-system, sans-serif; }
+    body { font-family: "Manrope", system-ui, -apple-system, sans-serif; background: var(--bg, #f5f5f7); }
     .main { padding: 0 !important; }
-    .teacher-frame { width: 100%; height: calc(100vh - 56px); border: none; display: block; background: var(--color-surface); }
-    .teacher-loading {
-      height: calc(100vh - 56px);
-      display: grid;
-      place-items: center;
-      color: var(--color-text-secondary);
-      font-size: var(--fs-body);
-      background: var(--color-bg);
-    }
+    .teacher-frame { width: 100%; height: calc(100vh - 56px); border: none; display: block; background: var(--bg, #f5f5f7); }
+    .teacher-loading { height: calc(100vh - 56px); display: grid; place-items: center; color: var(--color-text-secondary); font-size: var(--fs-body); background: var(--bg, #f5f5f7); }
+
+    .myclass-host { padding: 16px; background: var(--bg, #f5f5f7); min-height: calc(100vh - 56px); }
+    .roster-wrap { max-width: 980px; margin: 0 auto; }
+    .toolbar { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:12px 0; }
+    .field { display:grid; gap:4px; }
+    .field label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--fs-text-muted); }
+    .summary { margin: 10px 0; border:1px solid var(--border); border-radius:12px; background:#fff; padding:10px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+    .summary-card { border:1px solid var(--border); border-radius:10px; background:var(--surface-2); padding:9px 10px; }
+    .summary-card .k { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--fs-text-muted); font-weight:700; }
+    .summary-card .v { margin-top:3px; font-size:20px; font-weight:800; }
+    .chips { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 12px; }
+    .chip { border:1px solid var(--border); border-radius:999px; background:var(--surface-2); color:var(--text); padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; }
+    .chip.active { background:#4C2A92; border-color:#4C2A92; color:#fff; }
+    .state { padding:14px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); color:var(--fs-text-muted); font-size:13px; }
+
+    .roster-cards { display:grid; gap:8px; margin-top: 8px; }
+    .student { border:1px solid var(--border); border-radius:14px; background:var(--surface-2); padding:10px; }
+    .student.row-amber { background:#fff8e1; }
+    .student.row-red { background:#fff5f5; }
+    .student-head { width:100%; min-height:60px; border:0; background:transparent; padding:6px 4px; display:flex; justify-content:space-between; gap:10px; align-items:center; text-align:left; cursor:pointer; }
+    .student-head-main { display:flex; align-items:flex-start; gap:10px; min-width:0; }
+    .student-chevron { font-size:14px; color:var(--fs-text-muted); transform:rotate(0deg); transition: transform .2s ease; margin-top:2px; }
+    .student-head[aria-expanded="true"] .student-chevron { transform: rotate(90deg); }
+    .student-head-right { flex-shrink:0; display:flex; align-items:center; }
+    .student-name { font-weight:800; }
+    .student-email { font-size:12px; color:var(--fs-text-muted); }
+    .present-toggle { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:800; }
+    .present-toggle input[type="checkbox"] { width:20px; height:20px; accent-color:#4C2A92; }
+
+    .student-panel { max-height:0; opacity:0; overflow:hidden; transition:max-height .2s ease, opacity .2s ease; border-top:1px dashed transparent; }
+    .student-panel.open { max-height:500px; opacity:1; border-top-color:var(--border); padding-top:8px; }
+    .student-fellowship { font-size:12px; color:var(--fs-text-muted); margin-bottom:6px; }
+    .risk-badge { display:inline-block; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:8px; }
+    .risk-amber { background:#fef3c7; color:#92400e; }
+    .risk-red { background:#fee2e2; color:#991b1b; }
+    .milestones-line { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; font-size:14px; }
+    .detail-line { font-size:12px; color:var(--fs-text-muted); margin-top:6px; }
+    .student-actions { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
+    .msg { margin:8px 0; border-radius:10px; padding:9px 12px; font-size:13px; border:1px solid var(--border); }
+    .msg-ok { color:#166534; background:color-mix(in srgb, #22c55e 10%, white); border-color:color-mix(in srgb, #22c55e 30%, white); }
+    .msg-bad { color:#b42318; background:color-mix(in srgb, #ef4444 10%, white); border-color:color-mix(in srgb, #ef4444 28%, white); }
+
+    @media (max-width: 980px) { .summary { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 640px) { .toolbar { flex-direction:column; align-items:stretch; } .summary { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body class="fs-shell-mounted">
@@ -31,9 +69,7 @@
         <div class="sb-sub">Teacher Portal</div>
       </div>
     </div>
-
     <nav class="sb-nav" id="sbNav"></nav>
-
     <div class="sb-footer">
       <div class="sb-name" id="teacherName">Teacher</div>
       <div class="sb-sub" id="teacherEmail">teacher@lwcanada.org</div>
@@ -47,7 +83,7 @@
       <div class="breadcrumb">
         <span>Rock Solid</span>
         <span class="bc-sep">/</span>
-        <span class="bc-now" id="sectionTitle">Attendance</span>
+        <span class="bc-now" id="sectionTitle">My Class</span>
       </div>
     </div>
     <div class="topbar-r">
@@ -59,35 +95,60 @@
   <main class="main">
     <div id="loading" class="teacher-loading" aria-live="polite">Loading teacher portal...</div>
     <iframe id="teacherFrame" class="teacher-frame" title="Teacher Section" hidden></iframe>
+    <section id="myClassHost" class="myclass-host" hidden>
+      <div class="roster-wrap">
+        <div id="flash"></div>
+        <p id="classLabel" style="margin:0 0 8px;color:var(--fs-text-muted);">Select a class to view the roster.</p>
+        <div class="toolbar">
+          <div class="field"><label for="classSelect">Class</label><select id="classSelect"><option value="">Loading...</option></select></div>
+          <div class="field"><label for="searchInput">Search</label><input id="searchInput" type="search" placeholder="Name or email..." style="min-width:220px;" /></div>
+          <div class="field"><label for="riskFilter">Filter</label><select id="riskFilter"><option value="all">All</option><option value="at_risk">At Risk (2+ missed)</option><option value="flagged">Flagged</option><option value="missing_milestones">Missing Milestones</option></select></div>
+          <div style="align-self:flex-end;display:flex;gap:8px;"><button id="refreshBtn" class="fs-btn fs-btn-primary">Refresh</button><button id="exportBtn" class="fs-btn fs-btn-secondary">Export CSV</button></div>
+        </div>
+
+        <div class="chips" id="filterChips"><button class="chip active" data-filter="all" type="button">All</button><button class="chip" data-filter="at_risk" type="button">At Risk</button><button class="chip" data-filter="flagged" type="button">Flagged</button><button class="chip" data-filter="missing_milestones" type="button">Missing Milestones</button></div>
+
+        <section class="summary">
+          <div class="summary-card"><div class="k">Total Students</div><div class="v" id="sumTotal">0</div></div>
+          <div class="summary-card"><div class="k">At Risk (2+ missed)</div><div class="v" id="sumRisk">0</div></div>
+          <div class="summary-card"><div class="k">Flagged</div><div class="v" id="sumFlagged">0</div></div>
+          <div class="summary-card"><div class="k">Average Attendance</div><div class="v" id="sumAvg">0%</div></div>
+        </section>
+
+        <div id="pageState" class="state" style="display:none;"></div>
+        <div id="rosterCards" class="roster-cards"></div>
+      </div>
+    </section>
   </main>
   <div class="s-ov" id="overlay" aria-hidden="true"></div>
 
   <script src="../js/config.js"></script>
   <script src="../js/config-helper.js"></script>
+  <script src="../js/student-profile-drawer.js"></script>
   <script type="module">
     import { getSessionOrNull, getCurrentProfile, isRoleAllowed, supabase } from "../auth/auth-client.js";
     import { NotificationBell } from "../ui/notification-bell.js";
 
     const allowedRoles = new Set(["teacher", "admin", "superadmin", "subgroup_admin", "pastor", "principal", "regional_secretary"]);
+    const MILESTONES = ["BORN_AGAIN", "FILLED_WITH_SPIRIT", "PARTNERSHIP", "SERVING_TEAM_INTEREST", "FOUNDATION_COMPLETED"];
     const sections = {
-      "dashboard":    { title: "Dashboard",    src: "./sections/teacher-home.html" },
-      "attendance":   { title: "Attendance",   src: "./teacher-attendance.html" },
-      "my-class":     { title: "My Class",     src: "./sections/my-class.html" },
-      "roster":       { title: "Class Roster", src: "./roster.html" },
+      "dashboard": { title: "Dashboard", src: "./sections/teacher-home.html" },
+      "attendance": { title: "Attendance", src: "./teacher-attendance.html" },
+      "my-class": { title: "My Class", src: "" },
       "availability": { title: "Availability", src: "./teacher-availability.html" },
     };
-
     const navItems = [
-      { key: "dashboard", icon: "&#x1F4CA;", label: "Dashboard" },
-      { key: "attendance", icon: "&#x2705;", label: "Attendance" },
-      { key: "my-class", icon: "&#x1F465;", label: "My Class" },
-      { key: "roster", icon: "&#x1F4CB;", label: "Class Roster" },
-      { key: "availability", icon: "&#x1F4C5;", label: "Availability" },
+      { key: "dashboard", icon: "", label: "Dashboard" },
+      { key: "attendance", icon: "", label: "Attendance" },
+      { key: "my-class", icon: "", label: "My Class" },
+      { key: "availability", icon: "", label: "Availability" },
     ];
 
     let profile = null;
-    let sectionKey = new URLSearchParams(window.location.search).get("section") || "dashboard";
-    if (!sections[sectionKey]) sectionKey = "attendance";
+    let sectionKey = new URLSearchParams(window.location.search).get("section") || "my-class";
+    if (!sections[sectionKey]) sectionKey = "my-class";
+
+    const rosterState = { classes: [], selectedClass: "", selectedFilter: "all", roster: [], viewRows: [], expandedIds: new Set() };
 
     const sbNav = document.getElementById("sbNav");
     const sectionTitle = document.getElementById("sectionTitle");
@@ -96,21 +157,31 @@
     const sidebar = document.getElementById("sidebar");
     const overlay = document.getElementById("overlay");
     const ham = document.getElementById("ham");
+    const myClassHost = document.getElementById("myClassHost");
 
-    function closeMobileNav() {
-      sidebar.classList.remove("open");
-      overlay.classList.remove("show");
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+    function closeMobileNav() { sidebar.classList.remove("open"); overlay.classList.remove("show"); }
+    function milestoneLabel(code) { return String(code || "").split("_").map((p) => p.charAt(0) + p.slice(1).toLowerCase()).join(" "); }
+    function formatTime(raw) {
+      const s = String(raw || "").trim();
+      const m = s.match(/^(\d{1,2}):(\d{2})/);
+      if (!m) return s;
+      const hh = Number(m[1]); const mm = Number(m[2]);
+      const ap = hh >= 12 ? "PM" : "AM";
+      const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+      return `${h12}:${String(mm).padStart(2, "0")} ${ap}`;
     }
+    function flash(msg, type = "ok") { $("flash").innerHTML = msg ? `<div class="msg msg-${type}">${esc(msg)}</div>` : ""; if (msg) setTimeout(() => { $("flash").innerHTML = ""; }, 3500); }
+    function showState(msg) { const el = $("pageState"); el.textContent = msg; el.style.display = msg ? "block" : "none"; }
+    async function invokeTeacherPortalAction(action, params = {}) { const { data, error } = await supabase.functions.invoke("teacher-portal-api", { body: { action, params } }); if (error) throw error; if (data?.ok === false) throw new Error(data?.error || "Teacher API request failed"); return data; }
 
     function renderNav() {
       sbNav.innerHTML = navItems.map((item) => {
         const active = item.key === sectionKey ? "active" : "";
-        return `<a class="sb-link ${active}" href="?section=${encodeURIComponent(item.key)}" data-section="${item.key}">
-          <span class="sb-icon">${item.icon}</span>
-          <span>${item.label}</span>
-        </a>`;
+        return `<a class="sb-link ${active}" href="?section=${encodeURIComponent(item.key)}" data-section="${item.key}"><span class="sb-icon"></span><span>${item.label}</span></a>`;
       }).join("");
-
       sbNav.querySelectorAll("a[data-section]").forEach((el) => {
         el.addEventListener("click", (event) => {
           event.preventDefault();
@@ -123,95 +194,327 @@
     }
 
     function switchSection(nextKey) {
-      if (!sections[nextKey]) return;
       sectionKey = nextKey;
       sectionTitle.textContent = sections[nextKey].title;
       renderNav();
-      history.replaceState({}, "", `?section=${encodeURIComponent(nextKey)}`);
-      teacherFrame.src = `${sections[nextKey].src}?email=${encodeURIComponent(profile?.email || "")}`;
+      history.pushState({}, "", `?section=${encodeURIComponent(nextKey)}`);
+      if (nextKey === "my-class") {
+        teacherFrame.hidden = true;
+        teacherFrame.style.display = "none";
+        myClassHost.hidden = false;
+        loadClasses().catch((err) => showState("Failed to load roster: " + (err?.message || err)));
+      } else {
+        myClassHost.hidden = true;
+        teacherFrame.hidden = false;
+        teacherFrame.style.display = "block";
+        teacherFrame.src = `${sections[nextKey].src}?email=${encodeURIComponent(profile?.email || "")}`;
+      }
+    }
+
+    window.addEventListener("popstate", () => {
+      const nextSection = new URLSearchParams(window.location.search).get("section") || "my-class";
+      switchSection(sections[nextSection] ? nextSection : "my-class");
+    });
+
+    function setFilterUI(filter) {
+      rosterState.selectedFilter = filter;
+      $("riskFilter").value = filter;
+      document.querySelectorAll("#filterChips .chip").forEach((chip) => chip.classList.toggle("active", chip.dataset.filter === filter));
+    }
+    function currentClassMeta() { return rosterState.classes.find((c) => String(c.class_option_id || c.classOptionId || "") === String(rosterState.selectedClass || "")) || null; }
+
+    function summarize() {
+      const total = rosterState.roster.length;
+      const risk = rosterState.roster.filter((r) => r.missed >= 2).length;
+      const flagged = rosterState.roster.filter((r) => r.flagged).length;
+      const avg = total ? Math.round(rosterState.roster.reduce((acc, r) => acc + (r.total ? (r.attended / r.total) * 100 : 0), 0) / total) : 0;
+      $("sumTotal").textContent = String(total);
+      $("sumRisk").textContent = String(risk);
+      $("sumFlagged").textContent = String(flagged);
+      $("sumAvg").textContent = `${avg}%`;
+    }
+
+    function filterRoster(rows) {
+      const q = String($("searchInput").value || "").trim().toLowerCase();
+      return rows.filter((r) => {
+        const matchSearch = !q || `${r.full_name} ${r.email}`.toLowerCase().includes(q);
+        if (!matchSearch) return false;
+        if (rosterState.selectedFilter === "at_risk") return r.missed >= 2;
+        if (rosterState.selectedFilter === "flagged") return !!r.flagged;
+        if (rosterState.selectedFilter === "missing_milestones") return r.missingMilestones > 0;
+        return true;
+      });
+    }
+
+    function renderRiskBadge(row) {
+      if (row.missed >= 3) return '<span class="risk-badge risk-red">High Risk</span>';
+      if (row.missed >= 2) return '<span class="risk-badge risk-amber">At Risk</span>';
+      return "";
+    }
+
+    function renderRows() {
+      rosterState.viewRows = filterRoster(rosterState.roster);
+      const rows = rosterState.viewRows;
+      const cardsWrap = $("rosterCards");
+      if (!rows.length) { cardsWrap.innerHTML = `<div class="state">No students found.</div>`; return; }
+      if (rows.length === 1 && rosterState.expandedIds.size === 0) rosterState.expandedIds.add(String(rows[0].student_id));
+
+      cardsWrap.innerHTML = rows.map((r) => {
+        const sid = String(r.student_id || "");
+        const expanded = rosterState.expandedIds.has(sid);
+        const milestones = MILESTONES.map((m) => `<span title="${esc(milestoneLabel(m))}">${r.milestones[m] ? "✅" : "⬜"}</span>`).join(" ");
+        const breakdown = `Attended ${r.attended} / ${r.total} · Missed ${r.missed}`;
+        const lastAttend = r.last_attended_date ? new Date(r.last_attended_date).toLocaleDateString() : "Never";
+        return `<article class="student ${r.missed >= 3 ? "row-red" : r.missed >= 2 ? "row-amber" : ""}">
+          <button type="button" class="student-head" data-expand="${esc(sid)}" aria-expanded="${expanded ? "true" : "false"}">
+            <span class="student-head-main">
+              <span class="student-chevron">&#9654;</span>
+              <span>
+                <span class="student-name">${esc(r.full_name)}</span><br />
+                <span class="student-email">${esc(r.email || "-")}</span>
+              </span>
+            </span>
+            <span class="student-head-right">
+              <span class="student-email">${esc(r.fellowship_code || "-")} · ${esc(r.subgroup_id || "-")}</span>
+              ${renderRiskBadge(r)}
+            </span>
+          </button>
+          <div class="detail-line">${esc(`${r.attended}/${r.total} classes`)}</div>
+          <div class="student-panel ${expanded ? "open" : ""}" data-panel="${esc(sid)}">
+            <div class="detail-line">${esc(breakdown)}</div>
+            <div class="detail-line">Last attended: ${esc(lastAttend)}</div>
+            <div class="milestones-line">${milestones}</div>
+            <div class="student-actions">
+              ${r.flagged ? `<button class="fs-btn fs-btn-secondary" style="background:#dcfce7;border-color:#86efac;color:#166534;" disabled>Flagged ✓</button>` : `<button class="fs-btn fs-btn-secondary js-flag" data-applicant-id="${esc(r.applicant_id)}" data-student-name="${esc(r.full_name)}">Flag for follow-up</button>`}
+              <button class="fs-btn fs-btn-secondary" data-profile="${esc(sid)}">View Full Profile</button>
+            </div>
+          </div>
+        </article>`;
+      }).join("");
+
+      document.querySelectorAll("[data-expand]").forEach((el) => {
+        el.addEventListener("click", () => {
+          const sid = String(el.getAttribute("data-expand") || "");
+          if (!sid) return;
+          if (rosterState.expandedIds.has(sid)) rosterState.expandedIds.delete(sid); else rosterState.expandedIds.add(sid);
+          const expanded = rosterState.expandedIds.has(sid);
+          el.setAttribute("aria-expanded", expanded ? "true" : "false");
+          const panel = document.querySelector(`[data-panel="${CSS.escape(sid)}"]`);
+          if (panel) panel.classList.toggle("open", expanded);
+        });
+      });
+      document.querySelectorAll("[data-profile]").forEach((btn) => btn.addEventListener("click", () => window.FSStudentProfile?.open(btn.getAttribute("data-profile"))));
+      document.querySelectorAll(".js-flag").forEach((btn) => btn.addEventListener("click", () => flagStudent(btn)));
+    }
+
+    async function flagStudent(btn) {
+      const applicantId = String(btn.dataset.applicantId || "").trim();
+      const studentName = String(btn.dataset.studentName || "Student");
+      if (!applicantId) return;
+      btn.disabled = true; btn.textContent = "Flagging...";
+      try {
+        const { error: updateErr } = await supabase.from("applicants").update({ needs_admin_review: true }).eq("id", applicantId);
+        if (updateErr) throw updateErr;
+        const { error: auditErr } = await supabase.from("audit_logs").insert({ action: "TEACHER_FLAGGED_STUDENT", entity_type: "applicant", entity_id: applicantId, actor_email: profile?.email || null, status: "SUCCESS", details: { class_option_id: rosterState.selectedClass, student_name: studentName }, created_at: new Date().toISOString() });
+        if (auditErr) throw auditErr;
+        const row = rosterState.roster.find((r) => String(r.applicant_id) === applicantId);
+        if (row) row.flagged = true;
+        summarize(); renderRows(); flash("Student flagged for admin review", "ok");
+      } catch (e) {
+        flash(`Failed to flag student: ${String(e?.message || e)}`, "bad");
+        btn.disabled = false;
+        btn.textContent = "Flag for follow-up";
+      }
+    }
+
+    function exportCsv() {
+      const rows = rosterState.viewRows.length ? rosterState.viewRows : filterRoster(rosterState.roster);
+      const header = ["Name", "Email", "Fellowship", "Classes Attended", "Classes Missed", ...MILESTONES.map(milestoneLabel), "Flagged"];
+      const body = rows.map((r) => [r.full_name || "", r.email || "", r.fellowship_code || "", r.attended, r.missed, ...MILESTONES.map((m) => (r.milestones[m] ? "✓" : "✗")), r.flagged ? "Yes" : "No"]);
+      const lines = [header, ...body].map((arr) => arr.map((v) => `"${String(v ?? "").replaceAll('"', '""')}"`).join(","));
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "class-roster.csv"; document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    async function loadClasses() {
+      showState("Loading classes...");
+      const classRes = await invokeTeacherPortalAction("getClassOptionsForTeacher", { teacherId: profile?.user_id || null });
+      rosterState.classes = Array.isArray(classRes?.data) ? classRes.data : [];
+      if (!rosterState.classes.length) { showState("No class options found."); return; }
+      $("classSelect").innerHTML = rosterState.classes.map((c) => {
+        const id = c.class_option_id || c.classOptionId || c.class_id;
+        const day = String(c.day || "-").trim();
+        const time = formatTime(c.class_time || c.time || c.time_slot || "");
+        const fellowships = Array.isArray(c.fellowship_codes) ? c.fellowship_codes.filter(Boolean) : [];
+        const fellowshipText = fellowships.length ? fellowships.join(", ") : (c.fellowship || "-");
+        return `<option value="${esc(id)}">${esc(`${day} ${time} · ${fellowshipText}`.trim())}</option>`;
+      }).join("");
+      rosterState.selectedClass = String($("classSelect").value || "");
+      await loadRoster(rosterState.selectedClass);
+    }
+
+    async function loadRoster(classOptionId) {
+      if (!classOptionId) return;
+      rosterState.selectedClass = String(classOptionId);
+      showState("Loading roster...");
+
+      const classMeta = currentClassMeta();
+      const day = String(classMeta?.day || "").trim();
+      const time = formatTime(classMeta?.class_time || classMeta?.time || "");
+      const fellowshipText = Array.isArray(classMeta?.fellowship_codes) && classMeta.fellowship_codes.length ? classMeta.fellowship_codes.join(", ") : "-";
+      $("classLabel").textContent = `${day} ${time} · ${fellowshipText}`.trim();
+
+      const [applicantsRes, milestonesRes] = await Promise.all([
+        invokeTeacherPortalAction("getApplicantsForClass", { classOptionId }),
+        invokeTeacherPortalAction("getStudentMilestonesForClass", { classOptionId }),
+      ]);
+
+      const applicants = Array.isArray(applicantsRes?.data) ? applicantsRes.data : [];
+      const { data: studentsRows } = await supabase.from("students").select("student_id,full_name,email,fellowship_code,class_option_id,batch_id,subgroup_id").eq("class_option_id", classOptionId).is("deleted_at", null).limit(5000);
+      const students = studentsRows || [];
+      const byStudentId = new Map(students.map((s) => [String(s.student_id), s]));
+      const byEmail = new Map(students.map((s) => [String(s.email || "").toLowerCase(), s]));
+
+      const merged = applicants.map((a) => {
+        const sidCandidate = String(a.student_id || a.id || "").trim();
+        const student = byStudentId.get(sidCandidate) || byEmail.get(String(a.email || "").toLowerCase()) || null;
+        return {
+          applicant_id: String(a.id || ""),
+          student_id: String(student?.student_id || sidCandidate || ""),
+          full_name: String(student?.full_name || a.full_name || `${a.first_name || ""} ${a.last_name || ""}`.trim() || "Student"),
+          email: String(student?.email || a.email || ""),
+          fellowship_code: String(student?.fellowship_code || a.fellowship_code || "-"),
+          subgroup_id: String(student?.subgroup_id || a.subgroup_id || "-"),
+          batch_id: String(student?.batch_id || a.batch_id || classMeta?.batch_id || ""),
+          flagged: !!a.needs_admin_review,
+          milestones: Object.fromEntries(MILESTONES.map((m) => [m, false])),
+          attended: 0,
+          total: 0,
+          missed: 0,
+          missingMilestones: MILESTONES.length,
+          last_attended_date: null,
+        };
+      });
+
+      const byStudent = new Map(merged.map((r) => [String(r.student_id), r]));
+      let milestoneRows = Array.isArray(milestonesRes?.data) ? milestonesRes.data : [];
+      if (!milestoneRows.length) {
+        const studentIds = merged.map((r) => r.student_id).filter(Boolean);
+        if (studentIds.length) {
+          const { data: fallbackMs } = await supabase.from("student_milestone_status").select("student_id,milestone_code,completed,status").in("student_id", studentIds).in("milestone_code", MILESTONES);
+          milestoneRows = fallbackMs || [];
+        }
+      }
+      milestoneRows.forEach((m) => {
+        const sid = String(m.student_id || m.applicant_id || "");
+        const code = String(m.milestone_code || m.code || "").trim().toUpperCase();
+        if (!sid || !MILESTONES.includes(code)) return;
+        const row = byStudent.get(sid);
+        if (row) row.milestones[code] = m.completed === true || String(m.status || "").toLowerCase() === "completed";
+      });
+
+      const batchId = classMeta?.batch_id || merged.find((r) => r.batch_id)?.batch_id || "";
+      const { data: attendanceRows } = batchId
+        ? await supabase.from("attendance_log").select("student_id,present,class_date").eq("class_option_id", classOptionId).eq("batch_id", batchId).limit(20000)
+        : await supabase.from("attendance_log").select("student_id,present,class_date").eq("class_option_id", classOptionId).limit(20000);
+
+      const attByStudent = new Map();
+      (attendanceRows || []).forEach((r) => {
+        const sid = String(r.student_id || "");
+        if (!sid) return;
+        if (!attByStudent.has(sid)) attByStudent.set(sid, { total: 0, attended: 0, lastDate: null });
+        const agg = attByStudent.get(sid);
+        agg.total += 1;
+        if (r.present === true) {
+          agg.attended += 1;
+          if (!agg.lastDate || String(r.class_date || "") > String(agg.lastDate || "")) agg.lastDate = r.class_date;
+        }
+      });
+
+      merged.forEach((r) => {
+        const agg = attByStudent.get(String(r.student_id)) || { total: 0, attended: 0, lastDate: null };
+        r.total = agg.total;
+        r.attended = agg.attended;
+        r.missed = Math.max(0, agg.total - agg.attended);
+        r.last_attended_date = agg.lastDate;
+        r.missingMilestones = MILESTONES.filter((m) => !r.milestones[m]).length;
+      });
+
+      rosterState.roster = merged;
+      summarize();
+      showState("");
+      renderRows();
+    }
+
+    async function resolveSidebarIdentity(session, prof) {
+      const email = String(prof?.email || session?.user?.email || "").trim();
+      const uid = String(prof?.user_id || session?.user?.id || "").trim();
+      let teacherName = "";
+      if (uid || email) {
+        let q = supabase.from("teachers").select("full_name,email,deleted_at").is("deleted_at", null).limit(1);
+        if (uid) q = q.eq("teacher_user_id", uid); else q = q.eq("email", email);
+        const { data } = await q.maybeSingle();
+        teacherName = String(data?.full_name || "").trim();
+      }
+      const profileName = String(prof?.full_name || "").trim();
+      const metaName = String(session?.user?.user_metadata?.full_name || "").trim();
+      const fullName = teacherName || profileName || metaName || email || "Teacher";
+      return { fullName, email };
     }
 
     async function boot() {
       const session = await getSessionOrNull();
-      if (!session) {
-        window.location.replace("../auth/login.html");
-        return;
-      }
+      if (!session) { window.location.replace("../auth/login.html"); return; }
 
       profile = await getCurrentProfile();
       const role = String(profile?.role || "").toLowerCase();
-      if (!profile || !isRoleAllowed(role, allowedRoles)) {
-        window.location.replace("../auth/login.html?error=unauthorized");
-        return;
-      }
+      if (!profile || !isRoleAllowed(role, allowedRoles)) { window.location.replace("../auth/login.html?error=unauthorized"); return; }
 
-      document.getElementById("profileName").textContent = profile.full_name || profile.email || "Teacher";
-      document.getElementById("teacherName").textContent = profile.full_name || profile.email || "Teacher";
-      document.getElementById("teacherEmail").textContent = profile.email || "";
+      const identity = await resolveSidebarIdentity(session, profile);
+      $("profileName").textContent = identity.fullName || "Teacher";
+      $("teacherName").textContent = identity.fullName || "Teacher";
+      $("teacherEmail").textContent = identity.email || "";
 
       const bellContainer = document.createElement("div");
       bellContainer.style.cssText = "position:relative;display:inline-flex;align-items:center;";
-      const topbar = document.querySelector(".topbar-r") || document.querySelector(".topbar, .header, [class*='topbar'], [class*='header']");
+      const topbar = document.querySelector(".topbar-r");
       if (topbar) topbar.appendChild(bellContainer);
-      if (supabase && profile) {
-        new NotificationBell({ supabase, profile, container: bellContainer });
-      }
+      if (supabase && profile) new NotificationBell({ supabase, profile, container: bellContainer });
 
-      // Show "← Admin" chip in the topbar for non-teacher staff visiting via portal chooser
-      if (role !== "teacher") {
-        const p = window.location.pathname || "";
-        const adminPath = p.includes("/foundation/") ? "/foundation/staff/admin-dashboard.html" : "/staff/admin-dashboard.html";
-        const topbarR = document.querySelector(".topbar-r");
-        if (topbarR) {
-          const chip = document.createElement("a");
-          chip.href = adminPath;
-          chip.title = "Return to Admin Portal";
-          chip.style.cssText = "display:inline-flex;align-items:center;gap:4px;padding:4px 12px;background:#f0ebff;color:#4C2A92;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;border:1px solid #d4c5ff;flex-shrink:0;";
-          chip.textContent = "← Admin";
-          topbarR.insertBefore(chip, topbarR.firstChild);
-        }
-        // Update sidebar footer role badge
-        const sbSub = document.querySelector(".sb-footer .sb-sub");
-        if (sbSub) {
-          const label = role.charAt(0).toUpperCase() + role.slice(1).replace(/_/g, " ");
-          sbSub.innerHTML = `<span class="fs-badge fs-badge-info">${label}</span>`;
-        }
-      }
-
-      document.getElementById("btnOut").addEventListener("click", async () => {
-        try { await supabase.auth.signOut() } catch { /* ignore */ }
-        window.location.replace("../auth/login.html");
-      });
-
-      ham.addEventListener("click", () => {
-        sidebar.classList.add("open");
-        overlay.classList.add("show");
-      });
+      $("btnOut").addEventListener("click", async () => { try { await supabase.auth.signOut(); } catch {} window.location.replace("../auth/login.html"); });
+      ham.addEventListener("click", () => { sidebar.classList.add("open"); overlay.classList.add("show"); });
       overlay.addEventListener("click", closeMobileNav);
+
+      $("refreshBtn").addEventListener("click", () => loadRoster($("classSelect").value));
+      $("exportBtn").addEventListener("click", exportCsv);
+      $("searchInput").addEventListener("input", renderRows);
+      $("classSelect").addEventListener("change", (e) => loadRoster(e.target.value));
+      $("riskFilter").addEventListener("change", (e) => { setFilterUI(String(e.target.value || "all")); renderRows(); });
+      document.querySelectorAll("#filterChips .chip").forEach((chip) => chip.addEventListener("click", () => { setFilterUI(chip.dataset.filter || "all"); renderRows(); }));
+
+      window.FSStudentProfile?.init({ supabase, userRole: String(profile?.role || "teacher").toLowerCase() });
 
       renderNav();
       sectionTitle.textContent = sections[sectionKey].title;
       teacherFrame.hidden = false;
-      teacherFrame.style.display = 'block';
+      teacherFrame.style.display = "block";
       loading.hidden = true;
-      loading.style.display = 'none';
+      loading.style.display = "none";
       switchSection(sectionKey);
     }
 
-    // Fallback: if boot doesn't show frame within 3s, show it anyway
     setTimeout(() => {
-      if (document.getElementById('teacherFrame').hidden) {
-        document.getElementById('teacherFrame').hidden = false;
-        document.getElementById('teacherFrame').style.display = 'block';
-        document.getElementById('loading').hidden = true;
-        document.getElementById('loading').style.display = 'none';
+      if (teacherFrame.hidden) {
+        teacherFrame.hidden = false;
+        teacherFrame.style.display = "block";
+        loading.hidden = true;
+        loading.style.display = "none";
       }
     }, 3000);
 
     boot().catch((err) => {
-      console.error('BOOT CATCH:', err.message, err.stack);
+      console.error("BOOT CATCH:", err.message, err.stack);
     });
   </script>
 </body>
 </html>
-
