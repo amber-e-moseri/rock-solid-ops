@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Messages</title>
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <style>
+    body { margin: 0; font-family: "Manrope", sans-serif; }
+    .grid { display:grid; grid-template-columns:320px 1fr; gap:12px; min-height:65vh; }
+    .card { border:1px solid var(--color-border); border-radius:12px; background:#fff; }
+    .panel { padding:12px; }
+    .conv { display:block; width:100%; text-align:left; border:1px solid var(--color-border); background:#fff; border-radius:10px; padding:10px; margin-bottom:8px; cursor:pointer; }
+    .conv.active { border-color:#4C2A92; background:#f7f3ff; }
+    .conv-top { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+    .conv-meta, .conv-body { font-size:12px; color:var(--color-text-muted); margin-top:4px; }
+    .badge { min-width:20px; text-align:center; border-radius:999px; font-size:11px; font-weight:700; background:#4C2A92; color:#fff; padding:2px 6px; }
+    .messages { height:420px; overflow:auto; padding:12px; border-top:1px solid var(--color-border); border-bottom:1px solid var(--color-border); background:#fafafc; }
+    .bubble { background:#fff; border:1px solid var(--color-border); border-radius:10px; padding:10px; margin-bottom:8px; }
+    .bubble.mine { border-color:#b8a1ea; background:#f7f3ff; }
+    .bubble .meta { font-size:11px; color:var(--color-text-muted); margin-bottom:4px; }
+    .empty { color:var(--color-text-muted); font-size:13px; padding:8px; }
+    .composer { display:grid; gap:8px; padding:12px; }
+    .msg.error { color:#991b1b; background:#fff1f2; border:1px solid #fecaca; border-radius:8px; padding:8px; font-size:13px; }
+    .scope-badge { display:inline-flex; align-items:center; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:700; background:#ede9fe; color:#4C2A92; }
+    .modal-ov { position:fixed; inset:0; background:rgba(17, 24, 39, .45); display:none; align-items:center; justify-content:center; padding:14px; z-index:1000; }
+    .modal-ov.open { display:flex; }
+    .modal-card { width:min(760px, 96vw); max-height:92vh; overflow:auto; border:1px solid var(--color-border); border-radius:14px; background:#fff; padding:16px; }
+    .modal-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; }
+    .step { border:1px solid var(--color-border); border-radius:10px; padding:12px; margin-bottom:10px; }
+    .step h3 { margin:0 0 8px; font-size:14px; }
+    .opt-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .search-results { border:1px solid var(--color-border); border-radius:10px; max-height:200px; overflow:auto; background:#fff; }
+    .search-row { display:flex; justify-content:space-between; gap:8px; width:100%; text-align:left; border:0; border-bottom:1px solid var(--color-border); background:#fff; padding:9px 10px; cursor:pointer; }
+    .search-row:last-child { border-bottom:0; }
+    .chip-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .chip { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 10px; background:#ede9fe; color:#4C2A92; font-size:12px; font-weight:700; }
+    .chip button { border:0; background:transparent; cursor:pointer; color:inherit; font-size:13px; line-height:1; padding:0; }
+    @media (max-width: 760px) { .opt-grid { grid-template-columns:1fr; } }
+    @media (max-width: 980px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main class="fs-page fs-wrap-xl">
+    <section class="hero">
+      <h1 class="hero-title">Messages</h1>
+      <p class="hero-sub">In-app messaging between teachers and staff by jurisdiction.</p>
+    </section>
+
+    <section class="grid">
+      <aside class="card panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+          <strong>Conversations</strong>
+          <button id="composeBtn" class="fs-btn fs-btn-secondary fs-btn-sm" type="button">New</button>
+        </div>
+        <div id="conversationList"></div>
+      </aside>
+
+      <section class="card">
+        <div id="messagesBody" class="messages"></div>
+        <div class="composer">
+          <input id="subjectInput" class="fs-input" placeholder="Subject (new conversation)" />
+          <input id="recipientInput" class="fs-input" placeholder="Recipient user IDs (comma-separated)" style="display:none" />
+          <textarea id="messageInput" class="fs-input" rows="4" placeholder="Type your message..."></textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <div id="msgStatus"></div>
+            <button id="sendBtn" class="fs-btn fs-btn-primary" type="button">Send</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <div id="composeModal" class="modal-ov" aria-hidden="true">
+    <section class="modal-card">
+      <div class="modal-head">
+        <h2 style="margin:0;font-size:20px;">New Message</h2>
+        <button id="composeCloseBtn" class="fs-btn fs-btn-secondary fs-btn-sm" type="button">Close</button>
+      </div>
+      <div class="step">
+        <h3>Step 1 - Who to message</h3>
+        <div class="opt-grid" id="scopeOptions"></div>
+        <div id="scopeExtras" style="margin-top:8px;display:grid;gap:8px;"></div>
+      </div>
+      <div class="step" id="searchStep">
+        <h3>Step 2 - Search</h3>
+        <input id="recipientSearchInput" class="fs-input" placeholder="Search by name or email" />
+        <div id="recipientSearchResults" class="search-results" style="margin-top:8px;"></div>
+        <div id="selectedRecipients" class="chip-row"></div>
+      </div>
+      <div class="step">
+        <h3>Step 3 - Message</h3>
+        <input id="modalSubjectInput" class="fs-input" placeholder="Subject (optional)" />
+        <textarea id="modalMessageInput" class="fs-input" rows="4" placeholder="Type your message..." style="margin-top:8px;"></textarea>
+        <div id="composeStatus" class="msg" style="margin-top:8px;"></div>
+        <button id="modalSendBtn" class="fs-btn fs-btn-primary" type="button" style="width:100%;margin-top:8px;">Send</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module">
+    window.FSAdminShell?.mount({ active: "messages", title: "Rock Solid Admin" });
+  </script>
+  <script type="module" src="../js/messages-page.js"></script>
+</body>
+</html>

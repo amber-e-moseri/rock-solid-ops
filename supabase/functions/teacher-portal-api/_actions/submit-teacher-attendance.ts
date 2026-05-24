@@ -16,7 +16,7 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
 
       const classSessions = classSession
         .split(",")
-        .map((s) => String(s || "").trim())
+        .map((s) => String(s || "").replace(/^Class/i, "").trim())
         .filter(Boolean);
       if (!classSessions.length) throw new ApiError("INVALID_PAYLOAD", "classSession is required", 400);
       const firstSubmissionMeta = params.firstSubmissionMeta && typeof params.firstSubmissionMeta === "object"

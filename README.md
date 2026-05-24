@@ -139,7 +139,7 @@ Rules:
 
 Located at `foundation/staff/`, using `admin-shell.js`.
 
-Key pages include: `admin-dashboard.html`, `admin-review.html`, `applicant-directory.html`, `batch-management.html`, `class-editor.html`, `teacher-management.html`, `waitlist.html`, `notification-center.html`, `failed-sync-retry-center.html`, `system-health.html`, `audit-log.html`, `reports.html`, `dashboards.html`.
+Key pages include: `admin-dashboard.html`, `admin-review.html`, `applicant-directory.html`, `batch-management.html`, `class-editor.html`, `teacher-management.html`, `waitlist.html`, `notification-center.html`, `messages.html`, `failed-sync-retry-center.html`, `system-health.html`, `audit-log.html`, `reports.html`, `dashboards.html`.
 
 ### 3. Teacher Portal
 
@@ -150,6 +150,7 @@ Located at `foundation/teacher/`, using `teacher-shell.js`.
 - Roster/class view
 - Attendance submission via `teacher-attendance.html`
 - Milestone updates
+- In-app messaging section via `index.html?section=messages`
 
 Teacher actions are routed through `teacher-portal-api`.
 
@@ -235,6 +236,22 @@ Roles in `profiles.role` include: `superadmin`, `admin`, `regional_secretary`, `
 
 Note: current access is primarily role-based; regional data scoping is not globally enforced in every flow by default.
 
+### 18. In-App Messaging (Phase 1)
+
+- Edge function: `messaging-api`
+- Actions: `sendMessage`, `listMessages`, `listConversations`, `markRead`
+- DB tables: `message_conversations`, `message_participants`, `message_messages`
+- Migration: `202605240200_phase1_in_app_messaging.sql`
+- Staff UI: `foundation/staff/messages.html`
+- Teacher UI: `foundation/teacher/sections/teacher-messages.html` (routed from teacher portal section)
+- Email notification: queues new-message alerts into `email_queue` using `template_key = direct_message`
+- Jurisdiction scope model:
+  - `teacher`: class-linked scope (derived from assigned class options)
+  - `subgroup_admin`: subgroup scope
+  - `pastor`: fellowship/group scope
+  - `regional_secretary`: Canada-wide scope
+  - `admin/superadmin`: full scope
+
 ---
 
 ## Edge Functions Reference
@@ -244,6 +261,7 @@ Note: current access is primarily role-based; regional data scoping is not globa
 | `registration-processor` | On-demand | Canonical registration intake |
 | `admin-api` | On-demand | Admin API router |
 | `teacher-portal-api` | On-demand | Teacher API router |
+| `messaging-api` | On-demand | In-app messaging API router |
 | `phase2-processor` | On-demand | Assignment processing (legacy/consolidation path) |
 | `moodle-sync` | On-demand | Moodle enrollment |
 | `moodle-grade-sync` | Cron | Moodle grade pull |
@@ -299,6 +317,11 @@ Teacher availability: PENDING | APPROVED | REJECTED | RESET
 4. Run `supabase db push`
 5. Run `supabase functions deploy`
 6. Confirm `ALLOWED_ORIGINS`
+
+Messaging Phase 1 deploy commands:
+
+1. `supabase db push --include-all`
+2. `supabase functions deploy messaging-api`
 
 ### Post-deploy checks
 

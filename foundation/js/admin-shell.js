@@ -60,6 +60,8 @@
     {
       label: "Comms",
       items: [
+        { key: "help", label: "Help Guide", href: "help-guide.html", icon: "?", roles: OPERATIONAL_ROLES },
+        { key: "messages", label: "Messages", href: "messages.html", icon: "MS", roles: OPERATIONAL_ROLES },
         { key: "notifications", label: "Notifications", href: "notification-center.html", icon: "NT", roles: SYSTEM_ADMIN_ROLES },
         { key: "email", label: "Email Campaigns", href: "email-campaigns.html", icon: "EM", roles: SYSTEM_ADMIN_ROLES }
       ]
@@ -103,7 +105,7 @@
     "adminactivity",
     "roleaudit",
   ]);
-  const TEACHER_KEYS = new Set(["attendance", "schedule", "progress"]);
+  const TEACHER_KEYS = new Set(["attendance", "schedule", "progress", "help"]);
 
   function resolveLoginPath() {
     const p = window.location.pathname || "";
@@ -193,6 +195,8 @@
     if (p.includes("teacher-schedule")) return "schedule";
     if (p.includes("studentprogressview")) return "progress";
     if (p.includes("notification-center")) return "notifications";
+    if (p.includes("help-guide")) return "help";
+    if (p.includes("messages")) return "messages";
     if (p.includes("email-campaigns")) return "email";
     if (p.includes("failed-sync-retry-center")) return "failedsyncs";
     if (p.includes("system-health")) return "health";

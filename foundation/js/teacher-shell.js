@@ -40,6 +40,8 @@
   function inferActiveKey() {
     const p = (window.location.pathname || "").toLowerCase();
     if (p.includes("attendance")) return "attendance";
+    if (p.includes("help-guide")) return "help";
+    if (p.includes("messages")) return "messages";
     if (p.includes("index")) return "my-class";
     if (p.includes("my-class")) return "my-class";
     if (p.includes("availability")) return "availability";
@@ -174,7 +176,9 @@
       { href: "../teacher/index.html?section=dashboard", label: "Dashboard", key: "dashboard" },
       { href: "../teacher/index.html?section=attendance", label: "Attendance", key: "attendance" },
       { href: "../teacher/index.html?section=my-class", label: "My Class", key: "my-class" },
+      { href: "../teacher/index.html?section=messages", label: "Messages", key: "messages" },
       { href: "../teacher/index.html?section=availability", label: "Availability", key: "availability" },
+      { href: "../staff/help-guide.html", label: "Help", key: "help" },
     ];
 
     // Remove any accidental duplicate shells from previous buggy mounts.

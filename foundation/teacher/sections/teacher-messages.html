@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Messages</title>
+  <link rel="stylesheet" href="../../ui/tokens.css" />
+  <link rel="stylesheet" href="../../ui/primitives.css" />
+  <style>
+    body { margin:0; background:#f5f5f7; font-family:"Manrope",sans-serif; }
+    .wrap { max-width:980px; margin:0 auto; padding:16px; }
+    .grid { display:grid; grid-template-columns:300px 1fr; gap:10px; }
+    .card { border:1px solid #e6e7ee; border-radius:12px; background:#fff; }
+    .panel { padding:12px; }
+    .conv { display:block; width:100%; text-align:left; border:1px solid #ececf2; border-radius:10px; background:#fff; padding:8px; margin-bottom:8px; cursor:pointer; }
+    .conv.active { border-color:#4C2A92; background:#f7f3ff; }
+    .meta { font-size:12px; color:#6b7280; }
+    .messages { height:420px; overflow:auto; padding:10px; border-top:1px solid #ececf2; border-bottom:1px solid #ececf2; background:#fafafc; }
+    .bubble { border:1px solid #ececf2; border-radius:10px; padding:10px; margin-bottom:8px; background:#fff; }
+    .bubble.mine { border-color:#b8a1ea; background:#f7f3ff; }
+    .composer { padding:10px; display:grid; gap:8px; }
+    .empty { font-size:13px; color:#6b7280; }
+    @media (max-width: 900px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1 style="margin:0 0 6px; font-size:24px;">Messages</h1>
+    <p style="margin:0 0 12px; color:#6b7280;">Coordinate with admins and leadership for your jurisdiction.</p>
+
+    <section class="grid">
+      <aside class="card panel">
+        <strong>Conversations</strong>
+        <div id="conversationList" style="margin-top:10px"></div>
+      </aside>
+      <section class="card">
+        <div id="messagesBody" class="messages"></div>
+        <div class="composer">
+          <textarea id="messageInput" rows="3" class="fs-input" placeholder="Type your message..."></textarea>
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+            <div id="msgStatus"></div>
+            <button id="sendBtn" class="fs-btn fs-btn-primary" type="button">Send</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="../../js/config.js"></script>
+  <script src="../../js/config-helper.js"></script>
+  <script type="module" src="../../js/messages-page.js"></script>
+</body>
+</html>

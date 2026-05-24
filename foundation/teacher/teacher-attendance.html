@@ -718,7 +718,8 @@ async function saveAttendance() {
     return;
   }
   const classDate = $("classDate").value || todayYmd();
-  const session = $("sessionSelect").value;
+  const sessionRaw = $("sessionSelect").value;
+  const session = String(sessionRaw || "").replace(/^Class/i, "").trim();
   const attendanceRows = state.roster.map((s) => ({
     studentId: s.id,
     class_option_id: state.selectedClass,
