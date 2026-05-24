@@ -279,8 +279,6 @@
       <section class="card ops-card">
         <h4 class="sec-title" style="margin-bottom:12px;">Quick Actions</h4>
         <div style="display:grid;gap:8px;">
-          <a class="fs-btn fs-btn-secondary fs-btn-sm" href="email-campaigns.html">Send announcement to all students</a>
-          <button id="retryFailedEmailsBtn" class="fs-btn fs-btn-secondary fs-btn-sm">Retry all failed emails</button>
           <button id="retryFailedSyncsBtn2" class="fs-btn fs-btn-secondary fs-btn-sm">Retry all failed Moodle syncs</button>
           <a class="fs-btn fs-btn-secondary fs-btn-sm" href="audit-log.html">View audit log</a>
           <button id="exportStudentsBtn" class="fs-btn fs-btn-secondary fs-btn-sm">Export student list (CSV)</button>
@@ -327,27 +325,6 @@
       <div id="weeklyChartWrap" class="chart-wrap hidden">
         <canvas id="weeklyChart" height="120"></canvas>
       </div>
-    </section>
-
-    <section class="card" style="margin-bottom:16px;">
-      <div class="sec-header">
-        <h3 class="sec-title">Communications</h3>
-        <span id="commsAsOf" class="sec-meta">as of -</span>
-      </div>
-      <div class="funnel-grid" style="margin-bottom:12px;">
-        <div class="funnel-step"><div class="label">Emails sent today</div><div class="count" id="emailsSentToday">0</div></div>
-        <div class="funnel-step"><div class="label">Emails sent this week</div><div class="count" id="emailsSentWeek">0</div></div>
-        <div class="funnel-step"><div class="label">Failed (24h)</div><div class="count kpi-action" id="emailsFailed24h">0</div></div>
-        <div class="funnel-step"><div class="label">Pending emails</div><div class="count kpi-watch" id="emailsPending">0</div></div>
-        <div class="funnel-step"><div class="label">Notifications pending</div><div class="count" id="notifPending">0</div></div>
-      </div>
-      <div class="fs-table-wrap">
-        <table class="fs-table">
-          <thead><tr><th>Recipient</th><th>Template</th><th>Status</th><th>Sent</th><th>Action</th></tr></thead>
-          <tbody id="recentEmailsRows"><tr><td colspan="5">Loading...</td></tr></tbody>
-        </table>
-      </div>
-      <div style="margin-top:10px;font-size:12px;color:var(--color-text-muted);" id="notifWeekMeta">Loading...</div>
     </section>
 
     <!-- Row 4: class capacity -->
@@ -412,7 +389,7 @@
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
-          integrity="sha512-CQBWl4fJHWbryGE+Pc3UJWW1UoKEMDyMBAfBhBuHBZUKs+u7Y4gPWjFVMLPE5HtAqVpMOfPOBod9Rk2DvTEQ=="
+          
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="../js/config.js"></script>
   <script src="../js/config-helper.js"></script>
@@ -550,20 +527,35 @@
       _charts.weekly = new Chart($("weeklyChart"), { type:"line", data:{ labels:rows.map((r)=>fmtDate(r.week_start)), datasets:[{ data:rows.map((r)=>Number(r.cnt)), borderColor:PURPLE, backgroundColor:PURPLE_SOFT, fill:true, tension:.35, pointRadius:4, pointBackgroundColor:PURPLE }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } } });
     }
 
-    async function loadCapacity() {
+        async function loadCapacity() {
       setState("capacityState", "Loading..."); hide("capacityWrap");
       const { data, error } = await supabase.rpc("get_capacity_summary", getParams());
       if (error) { if (isMissingTable(error)) missingItems.add("get_capacity_summary RPC"); setState("capacityState", error.message || "Could not load capacity data."); return; }
       const rows = data || [];
       if (!rows.length) { setState("capacityState", "No class data."); return; }
-      $("capacityRows").innerHTML = rows.map((r) => {
-        const classLabel = `${r.day || "-"} ${r.class_time || "-"} · ${r.fellowship || "-"}`;
+      const classOptionIds = [...new Set(rows.map((r) => r.class_option_id).filter(Boolean))];
+      const teacherByClass = {};
+      if (classOptionIds.length) {
+        const { data: classMeta } = await supabase
+          .from("class_options")
+          .select("class_option_id,teacher_name")
+          .in("class_option_id", classOptionIds);
+        (classMeta || []).forEach((m) => {
+          teacherByClass[m.class_option_id] = String(m.teacher_name || "").trim();
+        });
+      }
+      const hydratedRows = rows.map((r) => ({
+        ...r,
+        teacher_name: String(teacherByClass[r.class_option_id] || r.teacher_name || r.teacher || "").trim() || "Unassigned",
+      }));
+      $("capacityRows").innerHTML = hydratedRows.map((r) => {
+        const classLabel = `${r.day || "-"} ${r.class_time || "-"} - ${r.fellowship || "-"}`;
         const enrolled = Number(r.enrolled_count || 0);
         const max = Number(r.max_capacity || 0);
         const isFull = max > 0 && enrolled >= max;
-        return `<tr><td>${classLabel}</td><td>${r.teacher_name || r.teacher || "-"}</td><td>${enrolled.toLocaleString()}</td><td>${isFull ? '<span class="fs-badge fs-badge-warning">Full</span>' : '<span class="fs-badge fs-badge-success">Active</span>'}</td></tr>`;
+        return `<tr><td>${classLabel}</td><td>${r.teacher_name}</td><td>${enrolled.toLocaleString()}</td><td>${isFull ? '<span class="fs-badge fs-badge-warning">Full</span>' : '<span class="fs-badge fs-badge-success">Active</span>'}</td></tr>`;
       }).join("");
-      _exportState.capacity = rows;
+      _exportState.capacity = hydratedRows;
       hide("capacityState"); show("capacityWrap");
     }
 
@@ -744,58 +736,10 @@
       }
     }
 
-    async function loadCommunications() {
-      try {
-        const [{ data: queue, error: qErr }, { data: notifs, error: nErr }] = await Promise.all([
-          supabase.from("email_queue").select("id,recipient_name,recipient_email,template,status,sent_at,created_at").order("created_at", { ascending: false }).limit(200),
-          supabase.from("scheduled_notifications").select("id,status,created_at,sent_at").limit(1000),
-        ]);
-        if (qErr) throw qErr;
-        if (nErr) throw nErr;
-        const now = Date.now();
-        const rows = queue || [];
-        const sentToday = rows.filter((r) => r.sent_at && (now - new Date(r.sent_at).getTime()) <= 24 * 60 * 60 * 1000).length;
-        const sentWeek = rows.filter((r) => r.sent_at && (now - new Date(r.sent_at).getTime()) <= 7 * 24 * 60 * 60 * 1000).length;
-        const failed24h = rows.filter((r) => String(r.status || "").toLowerCase() === "failed" && (now - new Date(r.created_at || r.sent_at || 0).getTime()) <= 24 * 60 * 60 * 1000).length;
-        const pending = rows.filter((r) => String(r.status || "").toLowerCase() === "pending").length;
-        const notifPending = (notifs || []).filter((n) => String(n.status || "").toLowerCase() === "pending").length;
-        const notifSentWeek = (notifs || []).filter((n) => n.sent_at && (now - new Date(n.sent_at).getTime()) <= 7 * 24 * 60 * 60 * 1000).length;
-
-        $("emailsSentToday").textContent = String(sentToday);
-        $("emailsSentWeek").textContent = String(sentWeek);
-        $("emailsFailed24h").textContent = String(failed24h);
-        $("emailsPending").textContent = String(pending);
-        $("notifPending").textContent = String(notifPending);
-        $("notifWeekMeta").textContent = `Notifications sent this week: ${notifSentWeek}`;
-        setAsOf("commsAsOf", _lastRefreshTs);
-
-        $("recentEmailsRows").innerHTML = rows.slice(0, 10).map((r) => {
-          const st = String(r.status || "Unknown");
-          const badgeCls = st.toLowerCase() === "sent" ? "fs-badge-success" : st.toLowerCase() === "failed" ? "fs-badge-danger" : "fs-badge-warning";
-          const retry = st.toLowerCase() === "failed" ? `<button class="fs-btn fs-btn-secondary fs-btn-sm" data-retry-email="${r.id}">Retry</button>` : "-";
-          return `<tr><td>${(r.recipient_name || "-")}<br /><span style="font-size:11px;color:var(--fs-text-muted)">${r.recipient_email || "-"}</span></td><td>${r.template || "-"}</td><td><span class="fs-badge ${badgeCls}">${st}</span></td><td>${relativeMinutes(r.sent_at || r.created_at)}</td><td>${retry}</td></tr>`;
-        }).join("") || `<tr><td colspan="5">No email activity.</td></tr>`;
-        document.querySelectorAll("[data-retry-email]").forEach((btn) => btn.addEventListener("click", () => retryOneEmail(btn.getAttribute("data-retry-email"))));
-      } catch (e) {
-        $("recentEmailsRows").innerHTML = `<tr><td colspan="5">Unavailable: ${String(e?.message || e)}</td></tr>`;
-      }
-    }
-
-    async function retryOneEmail(id) {
-      if (!id) return;
-      await supabase.from("email_queue").update({ status: "Pending", retry_count: 0, updated_at: new Date().toISOString() }).eq("id", id);
-      await loadCommunications();
-    }
-
-    async function retryAllFailedEmails() {
-      await supabase.from("email_queue").update({ status: "Pending", updated_at: new Date().toISOString() }).eq("status", "Failed");
-      await loadCommunications();
-    }
-
     function exportStudentListCsv() {
       const rows = _exportState.capacity || [];
       const header = ["Class", "Teacher", "Enrolled"];
-      const body = rows.map((r) => [`${r.day || "-"} ${r.class_time || "-"} · ${r.fellowship || "-"}`, r.teacher_name || r.teacher || "-", Number(r.enrolled_count || 0)]);
+      const body = rows.map((r) => [`${r.day || "-"} ${r.class_time || "-"} - ${r.fellowship || "-"}`, r.teacher_name || r.teacher || "-", Number(r.enrolled_count || 0)]);
       const lines = [header, ...body].map((arr) => arr.map((v) => `"${String(v ?? "").replaceAll('"', '""')}"`).join(","));
       const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
       const a = document.createElement("a");
@@ -818,7 +762,6 @@
         loadRegistrationSummary(), loadFellowshipBreakdown(), loadWeeklyTrend(), loadCapacity(), loadStaleQueue(),
         loadAttendanceHealth().catch(() => {}), loadMilestoneSummary().catch(() => {}), loadMoodleSyncHealth().catch(() => {}),
         loadRegistrationFunnel().catch(() => {}),
-        loadCommunications().catch(() => {}),
         loadKpiTeacherCounts().catch(() => {}),
         isRegionalSecretary(_scope.profile?.role) ? Promise.resolve() : loadEscalationSummary(), loadRecent(), loadActivityFeed()
       ]);
@@ -849,7 +792,6 @@
       $("refreshBtn").addEventListener("click", refresh);
       $("retryFailedSyncsBtn").addEventListener("click", retryAllFailedSyncs);
       $("retryFailedSyncsBtn2")?.addEventListener("click", retryAllFailedSyncs);
-      $("retryFailedEmailsBtn")?.addEventListener("click", retryAllFailedEmails);
       $("exportStudentsBtn")?.addEventListener("click", exportStudentListCsv);
       if (_activityTimer) clearInterval(_activityTimer);
       _activityTimer = setInterval(refresh, 60000);
