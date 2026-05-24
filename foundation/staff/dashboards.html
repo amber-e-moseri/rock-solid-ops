@@ -13,24 +13,25 @@
   <link rel="stylesheet" href="../ui/admin-shell.css" />
   <link rel="stylesheet" href="../ui/primitives.css" />
   <style>
-    body { font-family: "Manrope", system-ui, sans-serif; background: var(--fs-bg, #f5f5f7); }
+    body { font-family: "Manrope", system-ui, sans-serif; background: var(--color-bg, #f5f5f7); }
 
     /* KPI row */
     .kpi-row {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
       gap: 12px;
       margin-bottom: 16px;
     }
     .kpi-card {
-      border: 1px solid var(--color-border, var(--border));
-      background: var(--color-surface, var(--surface, #fff));
+      border: 1px solid var(--color-border);
+      border-left: 3px solid var(--color-primary, #4C2A92);
+      background: var(--color-surface, #fff);
       border-radius: 12px;
       padding: 16px 18px;
-      box-shadow: var(--shadow-soft, 0 1px 4px rgba(0,0,0,.06));
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
     }
     .kpi-card .kpi-value {
-      font-size: 2rem;
+      font-size: 1.9rem;
       font-weight: 800;
       color: var(--color-primary, #4C2A92);
       line-height: 1.1;
@@ -41,15 +42,17 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: .06em;
-      color: var(--color-text-muted, var(--color-text-muted));
+      color: var(--color-text-muted);
     }
-    .kpi-card.kpi-warn .kpi-value  { color: #c07400; }
-    .kpi-card.kpi-danger .kpi-value { color: #C8102E; }
-    .kpi-stamp { margin-top: 8px; font-size: 11px; color: var(--fs-text-muted); }
+    .kpi-card.kpi-warn  { border-left-color: #d97706; }
+    .kpi-card.kpi-warn .kpi-value  { color: #b45309; }
+    .kpi-card.kpi-danger { border-left-color: #dc2626; }
+    .kpi-card.kpi-danger .kpi-value { color: #b91c1c; }
+    .kpi-stamp { margin-top: 8px; font-size: 11px; color: var(--color-text-muted); }
 
-    .kpi-good { color: #15803d !important; }
-    .kpi-watch { color: #b45309 !important; }
-    .kpi-action { color: #C8102E !important; }
+    .kpi-good   { color: #15803d !important; }
+    .kpi-watch  { color: #b45309 !important; }
+    .kpi-action { color: #b91c1c !important; }
 
     /* Two-column chart row */
     .chart-row {
@@ -63,8 +66,8 @@
     .chart-wrap { position: relative; }
 
     /* Fill bars */
-    .fill-bar-track { background: var(--color-border, #e5e7eb); border-radius: 4px; height: 6px; width: 100%; min-width: 60px; }
-    .fill-bar-fill  { background: var(--color-primary, #4C2A92); border-radius: 4px; height: 6px; }
+    .fill-bar-track { background: var(--color-border, #e5e7eb); border-radius: 4px; height: 8px; width: 100%; min-width: 60px; }
+    .fill-bar-fill  { background: var(--color-primary, #4C2A92); border-radius: 4px; height: 8px; }
     .fill-bar-fill.fill-warn   { background: #d97706; }
     .fill-bar-fill.fill-danger { background: #dc2626; }
 
@@ -76,42 +79,53 @@
       margin-bottom: 16px;
     }
     .ops-card { margin-bottom: 0; }
-    .ops-card h4 { margin: 0 0 12px; font-size: 13px; font-weight: 800; }
+    .ops-card h4 { margin: 0 0 12px; font-size: 13px; font-weight: 800; color: var(--color-text-primary); }
 
     .state {
       padding: 14px;
-      border: 1px solid var(--color-border, var(--border));
-      border-radius: 12px;
-      background: var(--color-surface, var(--color-surface));
-      color: var(--color-text-muted, var(--color-text-muted));
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      background: var(--color-surface-raised);
+      color: var(--color-text-muted);
       font-size: 13px;
     }
     .hidden { display: none !important; }
 
+    /* Batch switcher — pill tab style */
     .batch-switcher {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
       margin-top: 12px;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+      padding: 4px;
     }
     .batch-switch {
-      border: 1px solid var(--fs-border);
-      border-radius: 12px;
-      background: var(--fs-surface);
-      padding: 10px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      padding: 8px 14px;
       cursor: pointer;
+      text-align: left;
+      transition: background .15s, box-shadow .15s;
+      flex: 1;
+      min-width: 160px;
     }
+    .batch-switch:hover { background: rgba(76,42,146,.06); }
     .batch-switch.active {
-      border-color: var(--fs-primary);
-      box-shadow: 0 0 0 2px rgba(76,42,146,.12);
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(76,42,146,.18);
     }
-    .batch-switch .title { font-size: 13px; font-weight: 700; }
-    .batch-switch .meta { margin-top: 4px; font-size: 11px; color: var(--fs-text-muted); }
+    .batch-switch .title { font-size: 13px; font-weight: 700; color: var(--color-text-primary); }
+    .batch-switch.active .title { color: var(--color-primary, #4C2A92); }
+    .batch-switch .meta { margin-top: 2px; font-size: 11px; color: var(--color-text-muted); }
 
     .health-meter { display: grid; gap: 8px; }
-    .health-progress-track { height: 12px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
-    .health-progress-fill { height: 100%; width: 0%; background: #15803d; transition: width .2s ease; }
-    .health-progress-fill.watch { background: #b45309; }
+    .health-progress-track { height: 10px; border-radius: 999px; background: var(--color-border, #e5e7eb); overflow: hidden; }
+    .health-progress-fill { height: 100%; width: 0%; background: #15803d; transition: width .3s ease; }
+    .health-progress-fill.watch  { background: #b45309; }
     .health-progress-fill.action { background: #b91c1c; }
 
     .funnel-grid {
@@ -120,61 +134,53 @@
       gap: 8px;
     }
     .funnel-step {
-      border: 1px solid var(--fs-border);
+      border: 1px solid var(--color-border);
       border-radius: 10px;
-      padding: 10px;
-      background: var(--fs-surface);
+      padding: 10px 12px;
+      background: var(--color-surface-raised);
     }
-    .funnel-step .label { font-size: 11px; color: var(--fs-text-muted); text-transform: uppercase; letter-spacing: .04em; }
-    .funnel-step .count { font-size: 1.2rem; font-weight: 800; margin-top: 4px; }
-    .funnel-step .pct { font-size: 11px; color: var(--fs-text-muted); margin-top: 3px; }
+    .funnel-step .label { font-size: 11px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+    .funnel-step .count { font-size: 1.25rem; font-weight: 800; margin-top: 4px; color: var(--color-text-primary); }
+    .funnel-step .pct { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
 
-    /* Table */
-    .fs-table-wrap { overflow: auto; border: 1px solid var(--color-border, var(--border)); border-radius: 12px; }
-    table.fs-table { width: 100%; min-width: 560px; border-collapse: collapse; }
-    table.fs-table th,
-    table.fs-table td { padding: 10px 12px; border-bottom: 1px solid var(--color-border, var(--border)); text-align: left; font-size: 13px; }
-    table.fs-table th { font-size: 11px; text-transform: uppercase; color: var(--color-text-muted, var(--color-text-muted)); letter-spacing: .05em; font-weight: 700; }
-    table.fs-table tr:last-child td { border-bottom: none; }
+    /* Section header pattern */
+    .sec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .sec-title { margin: 0; font-size: 14px; font-weight: 800; color: var(--color-text-primary); }
+    .sec-meta { font-size: 11px; color: var(--color-text-muted); }
 
     @media (max-width: 900px) {
       .kpi-row    { grid-template-columns: repeat(2, 1fr); }
       .chart-row  { grid-template-columns: 1fr; }
       .ops-row    { grid-template-columns: 1fr; }
-      .batch-switcher { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .funnel-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 520px) {
       .kpi-row { grid-template-columns: repeat(2, 1fr); }
-      .batch-switcher { grid-template-columns: 1fr; }
+      .batch-switch { min-width: 120px; }
       .funnel-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <main class="fs-page">
-    <section class="hero" style="margin-bottom:16px;">
-      <h1 style="margin:0;font-size:clamp(1.4rem,3vw,2rem);font-weight:800;">Operational Dashboards</h1>
-      <p style="margin:4px 0 0;color:var(--color-text-muted,var(--color-text-muted));">Live registration and delivery summary.</p>
-    </section>
+  <main class="main">
+    <div class="fs-page-header">
+      <div>
+        <h1 class="fs-page-title">Operational Dashboards</h1>
+        <p style="margin:2px 0 0;font-size:var(--fs-meta);color:var(--color-text-muted);">Live registration and delivery summary</p>
+      </div>
+      <div class="fs-page-actions">
+        <select id="batchFilter" class="fs-select" style="min-width:180px;">
+          <option value="">All Batches</option>
+        </select>
+        <button id="refreshBtn" class="fs-btn fs-btn-primary">Refresh</button>
+        <span id="lastRefreshed" style="font-size:12px;color:var(--color-text-muted);white-space:nowrap"></span>
+      </div>
+    </div>
 
     <!-- Scope banner -->
     <div id="scopeBanner" class="fs-banner fs-banner-info hidden" style="margin-bottom:12px;">
       <strong>Scoped view:</strong> Showing data for your assigned subgroups only.
     </div>
-
-    <!-- Batch filter -->
-    <section class="card" style="margin-bottom:16px;">
-      <div class="fs-row" style="gap:12px;align-items:center;flex-wrap:wrap;">
-        <label for="batchFilter" style="font-weight:700;white-space:nowrap;font-size:13px;">Batch:</label>
-        <select id="batchFilter" class="fs-select" style="min-width:200px;">
-          <option value="">All Batches</option>
-        </select>
-        <button id="refreshBtn" class="fs-btn fs-btn-primary fs-btn-sm">Refresh</button>
-        <span id="lastRefreshed" style="margin-left:auto;font-size:12px;color:var(--color-text-muted,var(--color-text-muted));"></span>
-      </div>
-      <div id="batchSwitcher" class="batch-switcher"></div>
-    </section>
 
     <!-- Stale queue alert -->
     <div id="staleQueueBanner" class="fs-banner fs-banner-warning hidden" style="margin-bottom:12px;">
@@ -182,6 +188,12 @@
       REVIEW status for over 48 hours.
       <a href="applicant-directory.html" class="fs-btn fs-btn-sm fs-btn-secondary" style="margin-left:12px;">View Applicants</a>
     </div>
+
+    <!-- Batch quick-switch -->
+    <section class="card" style="margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Quick Batch Switch</div>
+      <div id="batchSwitcher" class="batch-switcher"></div>
+    </section>
 
     <!-- KPI cards -->
     <div class="kpi-row">
@@ -223,14 +235,14 @@
     </div>
 
     <section class="card" style="margin-bottom:16px;">
-      <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <h3 style="margin:0;font-size:14px;font-weight:800;">Attendance Health</h3>
-        <span id="attendanceAsOf" class="kpi-stamp">as of -</span>
+      <div class="sec-header">
+        <h3 class="sec-title">Attendance Health</h3>
+        <span id="attendanceAsOf" class="sec-meta">as of -</span>
       </div>
       <div class="health-meter">
-        <div style="font-size:1.5rem;font-weight:800;" id="attendanceRateBig">-% attendance submission rate</div>
+        <div style="font-size:1.4rem;font-weight:800;" id="attendanceRateBig">—% attendance submission rate</div>
         <div class="health-progress-track"><div id="attendanceProgressFill" class="health-progress-fill"></div></div>
-        <div id="attendanceHealthMeta" style="font-size:12px;color:var(--fs-text-muted);">Loading...</div>
+        <div id="attendanceHealthMeta" style="font-size:12px;color:var(--color-text-muted);">Loading...</div>
       </div>
       <div id="attendanceMissingWrap" class="fs-table-wrap" style="margin-top:12px;">
         <table class="fs-table">
@@ -242,11 +254,11 @@
 
     <div class="ops-row">
       <section class="card ops-card">
-        <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h4 style="margin:0;">Student Milestone Progress</h4>
-          <span id="milestoneAsOf" class="kpi-stamp">as of -</span>
+        <div class="sec-header">
+          <h4 class="sec-title">Student Milestone Progress</h4>
+          <span id="milestoneAsOf" class="sec-meta">as of -</span>
         </div>
-        <div id="milestoneSummaryMeta" style="font-size:12px;color:var(--fs-text-muted);margin-bottom:10px;">Loading...</div>
+        <div id="milestoneSummaryMeta" style="font-size:12px;color:var(--color-text-muted);margin-bottom:10px;">Loading...</div>
         <div class="health-progress-track"><div id="milestoneProgressFill" class="health-progress-fill"></div></div>
         <div id="milestoneBreakdownWrap" class="fs-table-wrap" style="margin-top:12px;">
           <table class="fs-table">
@@ -256,34 +268,16 @@
         </div>
       </section>
       <section class="card ops-card">
-        <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h4 style="margin:0;">Moodle Sync Health</h4>
-          <span id="moodleAsOf" class="kpi-stamp">as of -</span>
+        <div class="sec-header">
+          <h4 class="sec-title">Moodle Sync Health</h4>
+          <span id="moodleAsOf" class="sec-meta">as of -</span>
         </div>
         <div id="moodleSyncHealthGrid" class="funnel-grid"></div>
-        <div style="margin-top:10px;font-size:12px;color:var(--fs-text-muted);" id="moodleSyncMeta">Loading...</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--color-text-muted);" id="moodleSyncMeta">Loading...</div>
         <button id="retryFailedSyncsBtn" class="fs-btn fs-btn-secondary fs-btn-sm" style="margin-top:12px;">Retry all failed</button>
       </section>
-    </div>
-
-    <div class="ops-row">
       <section class="card ops-card">
-        <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h4 style="margin:0;">Registration Funnel</h4>
-          <span id="funnelAsOf" class="kpi-stamp">as of -</span>
-        </div>
-        <div id="funnelGrid" class="funnel-grid"></div>
-      </section>
-      <section class="card ops-card">
-        <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h4 style="margin:0;">Moodle Sync Health</h4>
-          <span id="moodleAsOf2" class="kpi-stamp">as of -</span>
-        </div>
-        <div id="moodleSyncHealthGrid2" class="funnel-grid"></div>
-        <div id="moodleSyncMeta2" style="margin-top:10px;font-size:12px;color:var(--fs-text-muted);">Loading...</div>
-      </section>
-      <section class="card ops-card">
-        <h4 style="margin:0 0 10px;">Quick Actions</h4>
+        <h4 class="sec-title" style="margin-bottom:12px;">Quick Actions</h4>
         <div style="display:grid;gap:8px;">
           <a class="fs-btn fs-btn-secondary fs-btn-sm" href="email-campaigns.html">Send announcement to all students</a>
           <button id="retryFailedEmailsBtn" class="fs-btn fs-btn-secondary fs-btn-sm">Retry all failed emails</button>
@@ -294,17 +288,31 @@
       </section>
     </div>
 
+    <div class="ops-row">
+      <section class="card ops-card" style="grid-column: span 2">
+        <div class="sec-header">
+          <h4 class="sec-title">Registration Funnel</h4>
+          <span id="funnelAsOf" class="sec-meta">as of -</span>
+        </div>
+        <div id="funnelGrid" class="funnel-grid"></div>
+      </section>
+      <!-- hidden ids needed by JS -->
+      <span id="moodleAsOf2" style="display:none"></span>
+      <div id="moodleSyncHealthGrid2" style="display:none"></div>
+      <div id="moodleSyncMeta2" style="display:none"></div>
+    </div>
+
     <!-- Row 2: bar chart + doughnut -->
     <div class="chart-row">
       <section class="card chart-card">
-        <h3>Registration Status</h3>
+        <h3 class="sec-title" style="margin-bottom:14px">Registration Status</h3>
         <div id="regChartState" class="state">Loading...</div>
         <div id="regChartWrap" class="chart-wrap hidden">
           <canvas id="regChart" height="220"></canvas>
         </div>
       </section>
       <section class="card chart-card">
-        <h3>Fellowship Breakdown</h3>
+        <h3 class="sec-title" style="margin-bottom:14px">Fellowship Breakdown</h3>
         <div id="fellowshipChartState" class="state">Loading...</div>
         <div id="fellowshipChartWrap" class="chart-wrap hidden">
           <canvas id="fellowshipChart" height="220"></canvas>
@@ -314,7 +322,7 @@
 
     <!-- Row 3: weekly line chart -->
     <section class="card" style="margin-bottom:16px;">
-      <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Weekly Registrations (last 12 weeks)</h3>
+      <h3 class="sec-title" style="margin-bottom:14px">Weekly Registrations (last 12 weeks)</h3>
       <div id="weeklyChartState" class="state">Loading...</div>
       <div id="weeklyChartWrap" class="chart-wrap hidden">
         <canvas id="weeklyChart" height="120"></canvas>
@@ -322,9 +330,9 @@
     </section>
 
     <section class="card" style="margin-bottom:16px;">
-      <div class="fs-row" style="justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <h3 style="margin:0;font-size:14px;font-weight:800;">Communications</h3>
-        <span id="commsAsOf" class="kpi-stamp">as of -</span>
+      <div class="sec-header">
+        <h3 class="sec-title">Communications</h3>
+        <span id="commsAsOf" class="sec-meta">as of -</span>
       </div>
       <div class="funnel-grid" style="margin-bottom:12px;">
         <div class="funnel-step"><div class="label">Emails sent today</div><div class="count" id="emailsSentToday">0</div></div>
@@ -339,12 +347,12 @@
           <tbody id="recentEmailsRows"><tr><td colspan="5">Loading...</td></tr></tbody>
         </table>
       </div>
-      <div style="margin-top:10px;font-size:12px;color:var(--fs-text-muted);" id="notifWeekMeta">Loading...</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--color-text-muted);" id="notifWeekMeta">Loading...</div>
     </section>
 
     <!-- Row 4: class capacity -->
     <section class="card" style="margin-bottom:16px;">
-      <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Class Capacity</h3>
+      <h3 class="sec-title" style="margin-bottom:14px">Class Capacity</h3>
       <div id="capacityState" class="state">Loading...</div>
       <div id="capacityWrap" class="fs-table-wrap hidden">
         <table class="fs-table">
@@ -358,18 +366,18 @@
       </div>
     </section>
 
-    <!-- Row 5: escalation -->
+    <!-- Row 5: escalation + activity -->
     <div id="systemOpsRow" class="ops-row">
-      <section class="card ops-card">
-        <h4>Escalation Tasks</h4>
+      <section class="card ops-card" style="grid-column: span 2">
+        <div class="sec-header">
+          <h4 class="sec-title">Escalation Tasks</h4>
+          <span style="font-size:11px;color:var(--color-text-muted)">Resolve in ClickUp directly</span>
+        </div>
         <div id="escalationState" class="state">Loading...</div>
         <div id="escalationList" class="hidden"></div>
-        <p style="font-size:11px;color:var(--color-text-muted,var(--color-text-muted));margin-top:10px;">
-          Tasks raised by the system. Resolve in ClickUp directly.
-        </p>
       </section>
       <section class="card ops-card">
-        <h4>Recent Activity</h4>
+        <h4 class="sec-title" style="margin-bottom:12px">Recent Activity</h4>
         <div class="fs-table-wrap">
           <table class="fs-table">
             <thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Entity</th></tr></thead>
@@ -381,7 +389,7 @@
 
     <!-- Recent registrations -->
     <section class="card" style="margin-bottom:16px;">
-      <h3 style="margin:0 0 14px;font-size:14px;font-weight:800;">Recent Registrations</h3>
+      <h3 class="sec-title" style="margin-bottom:14px">Recent Registrations</h3>
       <div id="recentState" class="state">Loading...</div>
       <div id="recentWrap" class="fs-table-wrap hidden">
         <table class="fs-table">
@@ -398,8 +406,8 @@
 
     <!-- Migration notes -->
     <section class="card">
-      <h3 style="margin:0 0 10px;font-size:14px;font-weight:800;">Migration Notes</h3>
-      <ul id="migrationNotes" style="margin:0 0 0 18px;color:var(--color-text-muted,var(--color-text-muted));font-size:13px;"></ul>
+      <h3 class="sec-title" style="margin-bottom:10px">Migration Notes</h3>
+      <ul id="migrationNotes" style="margin:0 0 0 18px;color:var(--color-text-muted);font-size:13px;"></ul>
     </section>
   </main>
 

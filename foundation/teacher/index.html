@@ -17,40 +17,46 @@
 
     .myclass-host { padding: 16px; background: var(--bg, #f5f5f7); min-height: calc(100vh - 56px); }
     .roster-wrap { max-width: 980px; margin: 0 auto; }
-    .toolbar { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin:12px 0; }
+    .mc-header { background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(76,42,146,.06); }
+    .mc-header h2 { margin:0; font-size:18px; font-weight:800; }
+    .mc-header .mc-class-label { margin:3px 0 0; font-size:13px; color:var(--fs-text-muted); }
+    .mc-controls { background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px 16px; margin-bottom:12px; box-shadow:0 2px 8px rgba(76,42,146,.06); }
+    .toolbar { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
     .field { display:grid; gap:4px; }
     .field label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--fs-text-muted); }
-    .summary { margin: 10px 0; border:1px solid var(--border); border-radius:12px; background:#fff; padding:10px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
-    .summary-card { border:1px solid var(--border); border-radius:10px; background:var(--surface-2); padding:9px 10px; }
+    .summary { margin: 0 0 12px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+    .summary-card { border:1px solid var(--border); border-radius:12px; background:#fff; padding:12px 14px; box-shadow:0 2px 8px rgba(76,42,146,.06); }
     .summary-card .k { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--fs-text-muted); font-weight:700; }
-    .summary-card .v { margin-top:3px; font-size:20px; font-weight:800; }
-    .chips { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 12px; }
-    .chip { border:1px solid var(--border); border-radius:999px; background:var(--surface-2); color:var(--text); padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; }
+    .summary-card .v { margin-top:6px; font-size:22px; font-weight:800; color:#4C2A92; }
+    .chips { display:flex; gap:6px; flex-wrap:wrap; padding:10px 0 2px; }
+    .chip { border:1px solid var(--border); border-radius:999px; background:transparent; color:var(--fs-text-muted); padding:5px 14px; font-size:12px; font-weight:700; cursor:pointer; transition:background .15s,color .15s,border-color .15s; }
     .chip.active { background:#4C2A92; border-color:#4C2A92; color:#fff; }
+    .chip:hover:not(.active) { background:var(--surface-2); color:var(--text); }
     .state { padding:14px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); color:var(--fs-text-muted); font-size:13px; }
 
-    .roster-cards { display:grid; gap:8px; margin-top: 8px; }
-    .student { border:1px solid var(--border); border-radius:14px; background:var(--surface-2); padding:10px; }
-    .student.row-amber { background:#fff8e1; }
-    .student.row-red { background:#fff5f5; }
-    .student-head { width:100%; min-height:60px; border:0; background:transparent; padding:6px 4px; display:flex; justify-content:space-between; gap:10px; align-items:center; text-align:left; cursor:pointer; }
-    .student-head-main { display:flex; align-items:flex-start; gap:10px; min-width:0; }
-    .student-chevron { font-size:14px; color:var(--fs-text-muted); transform:rotate(0deg); transition: transform .2s ease; margin-top:2px; }
+    .roster-cards { display:grid; gap:8px; }
+    .student { border:1px solid var(--border); border-radius:14px; background:#fff; padding:10px 12px; border-left:3px solid transparent; transition:border-color .2s; box-shadow:0 1px 4px rgba(0,0,0,.04); }
+    .student.row-amber { background:#fffdf5; border-left-color:#f59e0b; }
+    .student.row-red { background:#fff8f8; border-left-color:#dc2626; }
+    .student-av { width:36px; height:36px; border-radius:50%; flex-shrink:0; color:#fff; font-size:14px; font-weight:800; display:inline-flex; align-items:center; justify-content:center; }
+    .student-head { width:100%; min-height:52px; border:0; background:transparent; padding:4px 2px; display:flex; justify-content:space-between; gap:10px; align-items:center; text-align:left; cursor:pointer; }
+    .student-head-main { display:flex; align-items:center; gap:10px; min-width:0; }
+    .student-chevron { font-size:14px; color:var(--fs-text-muted); transform:rotate(0deg); transition: transform .2s ease; flex-shrink:0; }
     .student-head[aria-expanded="true"] .student-chevron { transform: rotate(90deg); }
-    .student-head-right { flex-shrink:0; display:flex; align-items:center; }
+    .student-head-right { flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
     .student-name { font-weight:800; }
     .student-email { font-size:12px; color:var(--fs-text-muted); }
+    .student-stat { font-size:11px; color:var(--fs-text-muted); font-weight:600; }
     .present-toggle { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:800; }
     .present-toggle input[type="checkbox"] { width:20px; height:20px; accent-color:#4C2A92; }
 
     .student-panel { max-height:0; opacity:0; overflow:hidden; transition:max-height .2s ease, opacity .2s ease; border-top:1px dashed transparent; }
-    .student-panel.open { max-height:500px; opacity:1; border-top-color:var(--border); padding-top:8px; }
-    .student-fellowship { font-size:12px; color:var(--fs-text-muted); margin-bottom:6px; }
-    .risk-badge { display:inline-block; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:8px; }
+    .student-panel.open { max-height:500px; opacity:1; border-top-color:var(--border); padding-top:10px; margin-top:4px; }
+    .risk-badge { display:inline-flex; align-items:center; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:700; }
     .risk-amber { background:#fef3c7; color:#92400e; }
     .risk-red { background:#fee2e2; color:#991b1b; }
-    .milestones-line { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; font-size:14px; }
-    .detail-line { font-size:12px; color:var(--fs-text-muted); margin-top:6px; }
+    .milestones-line { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; font-size:15px; }
+    .detail-line { font-size:12px; color:var(--fs-text-muted); margin-top:4px; }
     .student-actions { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
     .msg { margin:8px 0; border-radius:10px; padding:9px 12px; font-size:13px; border:1px solid var(--border); }
     .msg-ok { color:#166534; background:color-mix(in srgb, #22c55e 10%, white); border-color:color-mix(in srgb, #22c55e 30%, white); }
@@ -71,9 +77,17 @@
     </div>
     <nav class="sb-nav" id="sbNav"></nav>
     <div class="sb-footer">
-      <div class="sb-name" id="teacherName">Teacher</div>
-      <div class="sb-sub" id="teacherEmail">teacher@lwcanada.org</div>
-      <div class="sb-sub"><span class="fs-badge fs-badge-primary">Teacher</span></div>
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--soft-lavender,rgba(76,42,146,.12));color:#4C2A92;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;" id="teacherAv">T</div>
+        <div style="min-width:0;">
+          <div class="sb-name" id="teacherName" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Teacher</div>
+          <div class="sb-sub" id="teacherEmail" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">teacher@lwcanada.org</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <span class="fs-badge fs-badge-primary">Teacher</span>
+        <button id="btnOut" type="button" style="border:1px solid #fecaca;border-radius:8px;background:transparent;color:#b91c1c;font:600 12px/1 Manrope,sans-serif;padding:5px 10px;cursor:pointer;">Sign Out</button>
+      </div>
     </div>
   </aside>
 
@@ -86,10 +100,7 @@
         <span class="bc-now" id="sectionTitle">My Class</span>
       </div>
     </div>
-    <div class="topbar-r">
-      <div class="user-chip"><span class="user-av">T</span><span id="profileName">Teacher</span></div>
-      <button id="btnOut" class="fs-btn-out" type="button">Sign Out</button>
-    </div>
+    <div class="topbar-r"></div>
   </header>
 
   <main class="main">
@@ -98,22 +109,28 @@
     <section id="myClassHost" class="myclass-host" hidden>
       <div class="roster-wrap">
         <div id="flash"></div>
-        <p id="classLabel" style="margin:0 0 8px;color:var(--fs-text-muted);">Select a class to view the roster.</p>
-        <div class="toolbar">
-          <div class="field"><label for="classSelect">Class</label><select id="classSelect"><option value="">Loading...</option></select></div>
-          <div class="field"><label for="searchInput">Search</label><input id="searchInput" type="search" placeholder="Name or email..." style="min-width:220px;" /></div>
-          <div class="field"><label for="riskFilter">Filter</label><select id="riskFilter"><option value="all">All</option><option value="at_risk">At Risk (2+ missed)</option><option value="flagged">Flagged</option><option value="missing_milestones">Missing Milestones</option></select></div>
-          <div style="align-self:flex-end;display:flex;gap:8px;"><button id="refreshBtn" class="fs-btn fs-btn-primary">Refresh</button><button id="exportBtn" class="fs-btn fs-btn-secondary">Export CSV</button></div>
+
+        <div class="mc-header">
+          <h2>My Class</h2>
+          <p class="mc-class-label" id="classLabel">Select a class to view the roster.</p>
         </div>
 
-        <div class="chips" id="filterChips"><button class="chip active" data-filter="all" type="button">All</button><button class="chip" data-filter="at_risk" type="button">At Risk</button><button class="chip" data-filter="flagged" type="button">Flagged</button><button class="chip" data-filter="missing_milestones" type="button">Missing Milestones</button></div>
-
         <section class="summary">
-          <div class="summary-card"><div class="k">Total Students</div><div class="v" id="sumTotal">0</div></div>
-          <div class="summary-card"><div class="k">At Risk (2+ missed)</div><div class="v" id="sumRisk">0</div></div>
-          <div class="summary-card"><div class="k">Flagged</div><div class="v" id="sumFlagged">0</div></div>
-          <div class="summary-card"><div class="k">Average Attendance</div><div class="v" id="sumAvg">0%</div></div>
+          <div class="summary-card"><div class="k">Total Students</div><div class="v" id="sumTotal">—</div></div>
+          <div class="summary-card"><div class="k">At Risk</div><div class="v" id="sumRisk" style="color:#dc2626">—</div></div>
+          <div class="summary-card"><div class="k">Flagged</div><div class="v" id="sumFlagged" style="color:#d97706">—</div></div>
+          <div class="summary-card"><div class="k">Avg Attendance</div><div class="v" id="sumAvg">—</div></div>
         </section>
+
+        <div class="mc-controls">
+          <div class="toolbar">
+            <div class="field"><label for="classSelect">Class</label><select id="classSelect"><option value="">Loading...</option></select></div>
+            <div class="field" style="flex:1;min-width:180px;"><label for="searchInput">Search</label><input id="searchInput" type="search" placeholder="Name or email..." /></div>
+            <div class="field"><label for="riskFilter">Filter</label><select id="riskFilter"><option value="all">All</option><option value="at_risk">At Risk (2+ missed)</option><option value="flagged">Flagged</option><option value="missing_milestones">Missing Milestones</option></select></div>
+            <div style="align-self:flex-end;display:flex;gap:8px;"><button id="refreshBtn" class="fs-btn fs-btn-primary">Refresh</button><button id="exportBtn" class="fs-btn fs-btn-secondary">Export CSV</button></div>
+          </div>
+          <div class="chips" id="filterChips"><button class="chip active" data-filter="all" type="button">All</button><button class="chip" data-filter="at_risk" type="button">At Risk</button><button class="chip" data-filter="flagged" type="button">Flagged</button><button class="chip" data-filter="missing_milestones" type="button">Missing Milestones</button></div>
+        </div>
 
         <div id="pageState" class="state" style="display:none;"></div>
         <div id="rosterCards" class="roster-cards"></div>
@@ -138,10 +155,10 @@
       "availability": { title: "Availability", src: "./teacher-availability.html" },
     };
     const navItems = [
-      { key: "dashboard", icon: "", label: "Dashboard" },
-      { key: "attendance", icon: "", label: "Attendance" },
-      { key: "my-class", icon: "", label: "My Class" },
-      { key: "availability", icon: "", label: "Availability" },
+      { key: "dashboard", icon: "⌂", label: "Dashboard" },
+      { key: "attendance", icon: "✓", label: "Attendance" },
+      { key: "my-class", icon: "⊞", label: "My Class" },
+      { key: "availability", icon: "◷", label: "Availability" },
     ];
 
     let profile = null;
@@ -180,7 +197,7 @@
     function renderNav() {
       sbNav.innerHTML = navItems.map((item) => {
         const active = item.key === sectionKey ? "active" : "";
-        return `<a class="sb-link ${active}" href="?section=${encodeURIComponent(item.key)}" data-section="${item.key}"><span class="sb-icon"></span><span>${item.label}</span></a>`;
+        return `<a class="sb-link ${active}" href="?section=${encodeURIComponent(item.key)}" data-section="${item.key}"><span class="sb-icon">${item.icon}</span><span>${item.label}</span></a>`;
       }).join("");
       sbNav.querySelectorAll("a[data-section]").forEach((el) => {
         el.addEventListener("click", (event) => {
@@ -229,9 +246,9 @@
       const flagged = rosterState.roster.filter((r) => r.flagged).length;
       const avg = total ? Math.round(rosterState.roster.reduce((acc, r) => acc + (r.total ? (r.attended / r.total) * 100 : 0), 0) / total) : 0;
       $("sumTotal").textContent = String(total);
-      $("sumRisk").textContent = String(risk);
-      $("sumFlagged").textContent = String(flagged);
-      $("sumAvg").textContent = `${avg}%`;
+      const riskEl = $("sumRisk"); riskEl.textContent = String(risk); riskEl.style.color = risk > 0 ? "#dc2626" : "#4C2A92";
+      const flagEl = $("sumFlagged"); flagEl.textContent = String(flagged); flagEl.style.color = flagged > 0 ? "#d97706" : "#4C2A92";
+      const avgEl = $("sumAvg"); avgEl.textContent = `${avg}%`; avgEl.style.color = avg >= 80 ? "#059669" : avg >= 60 ? "#d97706" : total ? "#dc2626" : "#4C2A92";
     }
 
     function filterRoster(rows) {
@@ -245,6 +262,9 @@
         return true;
       });
     }
+
+    const AV_COLORS = ["#7c3aed","#2563eb","#059669","#dc2626","#d97706","#0891b2","#9333ea","#0d9488"];
+    function avColor(name) { return AV_COLORS[(String(name||"").charCodeAt(0)||0) % AV_COLORS.length]; }
 
     function renderRiskBadge(row) {
       if (row.missed >= 3) return '<span class="risk-badge risk-red">High Risk</span>';
@@ -269,20 +289,20 @@
           <button type="button" class="student-head" data-expand="${esc(sid)}" aria-expanded="${expanded ? "true" : "false"}">
             <span class="student-head-main">
               <span class="student-chevron">&#9654;</span>
+              <span class="student-av" style="background:${avColor(r.full_name)}">${esc((r.full_name||"?").charAt(0).toUpperCase())}</span>
               <span>
                 <span class="student-name">${esc(r.full_name)}</span><br />
                 <span class="student-email">${esc(r.email || "-")}</span>
               </span>
             </span>
             <span class="student-head-right">
-              <span class="student-email">${esc(r.fellowship_code || "-")} · ${esc(r.subgroup_id || "-")}</span>
+              <span class="student-stat">${esc(r.fellowship_code || "-")} · ${esc(r.subgroup_id || "-")}</span>
+              <span class="student-stat">${esc(`${r.attended}/${r.total} attended`)}</span>
               ${renderRiskBadge(r)}
             </span>
           </button>
-          <div class="detail-line">${esc(`${r.attended}/${r.total} classes`)}</div>
           <div class="student-panel ${expanded ? "open" : ""}" data-panel="${esc(sid)}">
-            <div class="detail-line">${esc(breakdown)}</div>
-            <div class="detail-line">Last attended: ${esc(lastAttend)}</div>
+            <div class="detail-line">${esc(breakdown)} · Last attended: ${esc(lastAttend)}</div>
             <div class="milestones-line">${milestones}</div>
             <div class="student-actions">
               ${r.flagged ? `<button class="fs-btn fs-btn-secondary" style="background:#dcfce7;border-color:#86efac;color:#166534;" disabled>Flagged ✓</button>` : `<button class="fs-btn fs-btn-secondary js-flag" data-applicant-id="${esc(r.applicant_id)}" data-student-name="${esc(r.full_name)}">Flag for follow-up</button>`}
@@ -471,9 +491,10 @@
       if (!profile || !isRoleAllowed(role, allowedRoles)) { window.location.replace("../auth/login.html?error=unauthorized"); return; }
 
       const identity = await resolveSidebarIdentity(session, profile);
-      $("profileName").textContent = identity.fullName || "Teacher";
       $("teacherName").textContent = identity.fullName || "Teacher";
       $("teacherEmail").textContent = identity.email || "";
+      const av = $("teacherAv");
+      if (av) av.textContent = (identity.fullName || "T").charAt(0).toUpperCase();
 
       const bellContainer = document.createElement("div");
       bellContainer.style.cssText = "position:relative;display:inline-flex;align-items:center;";

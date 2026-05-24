@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -168,6 +168,21 @@
     .mobile-cards { display: none; gap: 10px; }
     .mobile-card { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--color-surface); box-shadow: var(--shadow-sm); }
     .sticky-mobile { position: sticky; bottom: 8px; z-index: 10; margin-top: 8px; display: none; }
+
+    /* Quick tab strip & mode tabs — pill style */
+    #quickTabStrip, #modeTabs { display: flex; gap: 4px; flex-wrap: wrap; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 12px; padding: 3px; }
+    #quickTabStrip button, #modeTabs button {
+      border: none; background: transparent; border-radius: 9px; padding: 6px 14px;
+      font: 700 12px/1.4 inherit; color: var(--color-text-muted); cursor: pointer;
+      transition: background .15s, color .15s, box-shadow .15s; white-space: nowrap;
+    }
+    #quickTabStrip button:hover, #modeTabs button:hover { background: rgba(76,42,146,.07); color: var(--text); }
+    #quickTabStrip button.active, #modeTabs button.active {
+      background: #fff; color: var(--color-primary, #4C2A92);
+      box-shadow: 0 1px 4px rgba(76,42,146,.16);
+    }
+    /* Drawer section labels */
+    .drawer-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text-muted); margin-bottom: 6px; }
     @media (max-width: 1260px) {
       .page-toolbar { grid-template-columns: 1fr; }
       .quick-filter { overflow: auto; }
@@ -200,7 +215,7 @@
           <select id="quickNotif"><option value="">All Notification</option><option value="SENT">Sent</option><option value="PENDING">Pending</option><option value="FAILED">Failed</option><option value="RETRIED">Retried</option></select>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button class="icon-btn" id="refreshBtnTop" title="Refresh" aria-label="Refresh">?</button>
+          <button class="icon-btn" id="refreshBtnTop" title="Refresh" aria-label="Refresh">↺</button>
         </div>
       </section>
 
@@ -208,8 +223,8 @@
 
       <section class="card" id="quickTabSection" style="margin-top:10px">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em">View</span>
-          <div id="quickTabStrip" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+          <span style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap">Quick View</span>
+          <div id="quickTabStrip"></div>
         </div>
       </section>
 
@@ -222,8 +237,8 @@
           <select id="attendanceFilter"><option value="">All Attendance</option><option value="high">High (75%+)</option><option value="low">Low (&lt;75%)</option><option value="none">No data</option></select>
           <select id="statusFilter"><option value="">All Status</option></select>
           <input id="dateFilter" type="date" />
-          <button class="fs-btn fs-btn fs-btn-secondary" id="clearFilters">Clear Filters</button>
-          <button class="fs-btn fs-btn fs-btn-secondary" id="toggleAdvFilters">Advanced ? <span id="advFilterBadge" style="display:none;background:var(--primary);color:#fff;border-radius:999px;padding:1px 7px;font-size:10px;margin-left:4px"></span></button>
+          <button class="fs-btn fs-btn-secondary" id="clearFilters">Clear Filters</button>
+          <button class="fs-btn fs-btn-secondary" id="toggleAdvFilters">Advanced Filters <span id="advFilterBadge" style="display:none;background:var(--primary);color:#fff;border-radius:999px;padding:1px 7px;font-size:10px;margin-left:4px"></span></button>
         </div>
       </section>
 
@@ -246,16 +261,16 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
-          <button class="fs-btn fs-btn fs-btn-primary primary" id="afApplyBtn">Apply Filters</button>
-          <button class="fs-btn fs-btn fs-btn-secondary" id="afResetBtn">Reset</button>
-          <button class="fs-btn fs-btn fs-btn-secondary" id="afSaveBtn">Save Preset</button>
-          <select id="afPresetSelect" style="border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 12px;min-width:140px"><option value="">Load preset�</option></select>
+          <button class="fs-btn fs-btn-primary" id="afApplyBtn">Apply Filters</button>
+          <button class="fs-btn fs-btn-secondary" id="afResetBtn">Reset</button>
+          <button class="fs-btn fs-btn-secondary" id="afSaveBtn">Save Preset</button>
+          <select id="afPresetSelect" style="border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 12px;min-width:140px"><option value="">Load preset…</option></select>
         </div>
       </section>
       <section class="card" style="margin-top:10px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em">Mode</span>
-          <div id="modeTabs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap">Display Mode</span>
+          <div id="modeTabs"></div>
         </div>
       </section>
 
@@ -275,25 +290,25 @@
             <h3>Registrants</h3>
             <p id="rowMeta">Loading...</p>
           </div>
-          <button class="fs-btn fs-btn fs-btn-secondary" id="refreshBtn">Refresh</button>
+          <button class="fs-btn fs-btn-secondary" id="refreshBtn">Refresh</button>
         </div>
         <div id="flashArea"></div>
-        <div id="bulkBar" style="display:none;padding:10px 14px;background:color-mix(in srgb,var(--primary) 10%,var(--color-surface));border:1px solid color-mix(in srgb,var(--primary) 30%,var(--line));border-radius:var(--radius-lg);margin-bottom:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div id="bulkBar" style="display:none;padding:10px 14px;background:color-mix(in srgb,var(--primary) 10%,var(--color-surface));border:1px solid color-mix(in srgb,var(--primary) 30%,var(--line));border-radius:var(--radius-lg);margin-bottom:8px;gap:10px;align-items:center;flex-wrap:wrap">
           <span id="bulkCount" style="font-weight:800;font-size:13px;white-space:nowrap;color:var(--primary)">0 selected</span>
           <select id="bulkStatusSelect" style="border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 10px">
-            <option value="">Change Status�</option>
+            <option value="">Change Status…</option>
             <option value="PENDING">PENDING</option><option value="ASSIGNED">ASSIGNED</option>
             <option value="WAITLISTED">WAITLISTED</option><option value="REVIEW">REVIEW</option><option value="INACTIVE">INACTIVE</option>
           </select>
-          <select id="bulkClassSelect" style="border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 10px;min-width:160px"><option value="">Change Class�</option></select>
-          <button class="fs-btn fs-btn fs-btn-secondary" id="bulkEmailBtn">Send Email</button>
-          <button class="fs-btn fs-btn fs-btn-secondary" id="bulkExportBtn">Export CSV</button>
-          <button class="fs-btn fs-btn fs-btn-secondary" id="bulkClearBtn">? Clear</button>
+          <select id="bulkClassSelect" style="border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 10px;min-width:160px"><option value="">Change Class…</option></select>
+          <button class="fs-btn fs-btn-secondary" id="bulkEmailBtn">Send Email</button>
+          <button class="fs-btn fs-btn-secondary" id="bulkExportBtn">Export CSV</button>
+          <button class="fs-btn fs-btn-secondary" id="bulkClearBtn">✕ Clear</button>
           <div id="bulkProgress" style="display:none;font-size:12px;color:var(--color-text-muted)"></div>
         </div>
         <div class="table-wrap fs-table-wrap" id="tableWrap"></div>
         <div class="mobile-cards" id="mobileCards"></div>
-        <div class="sticky-mobile"><button class="fs-btn fs-btn fs-btn-primary primary" style="width:100%" id="openSelectedBtn">Open Latest Viewed Student</button></div>
+        <div class="sticky-mobile"><button class="fs-btn fs-btn-primary" style="width:100%" id="openSelectedBtn">Open Latest Viewed Student</button></div>
       </section>
     </main>
   </div>
@@ -301,33 +316,51 @@
   <div id="drawerOverlay" class="overlay"></div>
   <aside id="detailDrawer" class="drawer" aria-hidden="true">
     <div class="drawer-head">
-      <div>
-        <div id="drawerName" style="font-size:20px;font-weight:800">Student</div>
-        <div id="drawerSub" class="muted" style="font-size:12px"></div>
+      <div style="min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div id="drawerName" style="font-size:19px;font-weight:800;line-height:1.2">Student</div>
+          <span id="drawerStatusPill"></span>
+        </div>
+        <div id="drawerSub" class="muted" style="font-size:12px;margin-top:2px"></div>
       </div>
-      <button class="fs-btn fs-btn fs-btn-secondary" id="closeDrawerBtn">Close</button>
+      <button class="fs-btn fs-btn-secondary" id="closeDrawerBtn" style="flex-shrink:0">✕ Close</button>
     </div>
     <div class="drawer-body">
-      <div class="fs-btns">
-        <button class="fs-btn fs-btn fs-btn-primary primary" id="changeClassBtn">Change Class</button>
-        <button class="fs-btn fs-btn fs-btn-secondary" id="needsFollowUpBtn">Mark Needs Follow-up</button>
-        <button class="fs-btn fs-btn fs-btn-secondary" id="sendEmailBtn">Send Email</button>
-        <button class="fs-btn fs-btn fs-btn-secondary" id="openAttendanceBtn">Open Attendance</button>
-        <button class="fs-btn fs-btn fs-btn-secondary" id="openMilestonesBtn">Open Milestones</button>
-        <button class="fs-btn fs-btn fs-btn-secondary" id="retryNotificationBtn">Retry Notification</button>
-        <button class="fs-btn fs-btn fs-btn-secondary" id="openClickupBtn">Open ClickUp Task</button>
+      <div class="fs-btns" style="flex-wrap:wrap">
+        <button class="fs-btn fs-btn-primary" id="changeClassBtn">Change Class</button>
+        <button class="fs-btn fs-btn-secondary" id="needsFollowUpBtn">Flag Follow-up</button>
+        <button class="fs-btn fs-btn-secondary" id="sendEmailBtn">Send Email</button>
+        <button class="fs-btn fs-btn-secondary" id="openAttendanceBtn">Attendance</button>
+        <button class="fs-btn fs-btn-secondary" id="openMilestonesBtn">Milestones</button>
+        <button class="fs-btn fs-btn-secondary" id="retryNotificationBtn">Retry Notif.</button>
+        <button class="fs-btn fs-btn-secondary" id="openClickupBtn">ClickUp Task</button>
       </div>
       <section class="card" style="margin:0"><div class="kv" id="overviewKv"></div></section>
-      <section class="card" style="margin:0"><strong>Milestones</strong><div class="fs-badge fs-badges" id="milestoneChips"></div></section>
-      <section class="card" style="margin:0"><strong>Attendance Summary</strong><div class="kv" id="attendanceKv"></div></section>
-      <section class="card" style="margin:0"><strong>Notification History</strong><div id="notificationHistory" class="list"></div></section>
-      <section class="card" style="margin:0"><strong>Email History</strong><div id="emailHistory" class="list"></div></section>
-      <section class="card" style="margin:0"><strong>Audit History</strong><div id="auditHistory" class="list"></div></section>
       <section class="card" style="margin:0">
-        <strong>Status Override</strong>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px;align-items:end">
+        <div class="drawer-section-label">Milestones</div>
+        <div class="fs-badge fs-badges" id="milestoneChips"></div>
+      </section>
+      <section class="card" style="margin:0">
+        <div class="drawer-section-label">Attendance Summary</div>
+        <div class="kv" id="attendanceKv"></div>
+      </section>
+      <section class="card" style="margin:0">
+        <div class="drawer-section-label">Notification History</div>
+        <div id="notificationHistory" class="list"></div>
+      </section>
+      <section class="card" style="margin:0">
+        <div class="drawer-section-label">Email History</div>
+        <div id="emailHistory" class="list"></div>
+      </section>
+      <section class="card" style="margin:0">
+        <div class="drawer-section-label">Audit History</div>
+        <div id="auditHistory" class="list"></div>
+      </section>
+      <section class="card" style="margin:0">
+        <div class="drawer-section-label">Status Override</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:6px;align-items:end">
           <select id="statusOverrideSelect" style="border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px;">
-            <option value="">� pick status �</option>
+            <option value="">— pick status —</option>
             <option value="PENDING">PENDING</option>
             <option value="WAITLISTED">WAITLISTED</option>
             <option value="REVIEW">REVIEW</option>
@@ -335,7 +368,7 @@
             <option value="CLASS_ASSIGNED">CLASS_ASSIGNED</option>
             <option value="COMPLETED">COMPLETED</option>
           </select>
-          <button class="fs-btn fs-btn fs-btn-primary primary" id="applyStatusOverrideBtn">Apply</button>
+          <button class="fs-btn fs-btn-primary" id="applyStatusOverrideBtn">Apply</button>
         </div>
         <div id="statusOverrideMsg" style="margin-top:6px;font-size:12px;color:#b42318"></div>
       </section>
@@ -349,7 +382,7 @@
           <div style="font-size:18px;font-weight:800">Class Assignment Correction</div>
           <div class="muted" style="font-size:12px">Updates assignment and queues notification event only</div>
         </div>
-        <button class="fs-btn fs-btn fs-btn-secondary" id="closeCorrectionBtn">Close</button>
+        <button class="fs-btn fs-btn-secondary" id="closeCorrectionBtn">Close</button>
       </div>
       <div id="modalError"></div>
       <div class="modal-grid">
@@ -366,12 +399,12 @@
       <div id="modalWarnings"></div>
       <div class="field" style="grid-column:1/-1">
         <label for="correctionReason">Reason for Change <span style="color:#b42318">*</span></label>
-        <textarea id="correctionReason" rows="3" style="width:100%;border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px;resize:vertical;min-height:64px;transition:border-color .16s ease,box-shadow .16s ease;" placeholder="Explain why the class is being changed (min 10 characters)�"></textarea>
+        <textarea id="correctionReason" rows="3" style="width:100%;border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px;resize:vertical;min-height:64px;transition:border-color .16s ease,box-shadow .16s ease;" placeholder="Explain why the class is being changed (min 10 characters)…"></textarea>
       </div>
       <div class="warn">Safety: if class is full this update is blocked. This flow queues a <code>class_reassignment_notice</code> email and resets Moodle sync.</div>
       <div class="fs-btns" style="justify-content:flex-end">
-        <button class="fs-btn fs-btn fs-btn-secondary" id="cancelCorrectionBtn">Cancel</button>
-        <button class="fs-btn fs-btn fs-btn-primary primary" id="saveCorrectionBtn">Confirm & Save</button>
+        <button class="fs-btn fs-btn-secondary" id="cancelCorrectionBtn">Cancel</button>
+        <button class="fs-btn fs-btn-primary" id="saveCorrectionBtn">Confirm & Save</button>
       </div>
     </div>
   </div>

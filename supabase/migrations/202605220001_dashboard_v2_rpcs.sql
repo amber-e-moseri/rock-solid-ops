@@ -24,19 +24,19 @@ declare
   v_zero bigint := 0;
   v_missing bigint := 0;
   v_rate numeric := 0;
-  v_missing_classes jsonb := '[]'::jsonb;
+  v_missing_classes jsonb := 'unknown'::jsonb;
 begin
-  if to_regclass('public.class_roster') is null
-     or to_regclass('public.class_options') is null
-     or to_regclass('public.attendance_log') is null then
-    return query select 0::bigint,0::bigint,0::numeric,0::bigint,0::bigint,'[]'::jsonb,now();
+  if to_regclass('unknown') is null
+     or to_regclass('unknown') is null
+     or to_regclass('unknown') is null then
+    return query select 0::bigint,0::bigint,0::numeric,0::bigint,0::bigint,'unknown'::jsonb,now();
     return;
   end if;
 
   with roster_active as (
     select distinct cr.student_id, cr.class_option_id, cr.batch_id
     from public.class_roster cr
-    where cr.status = 'Active'
+    where cr.status = 'unknown'
       and (p_batch_id is null or cr.batch_id::text = p_batch_id)
   ),
   expected as (
@@ -84,16 +84,16 @@ begin
     coalesce(sum(c.expected_sessions), 0)::bigint,
     coalesce(sum(c.submitted_sessions), 0)::bigint,
     coalesce(sum(case when c.submitted_sessions = 0 then 1 else 0 end), 0)::bigint,
-    coalesce(sum(case when c.last_submitted is null or c.last_submitted < now() - interval '14 days' then 1 else 0 end), 0)::bigint,
+    coalesce(sum(case when c.last_submitted is null or c.last_submitted < now() - interval 'unknown' then 1 else 0 end), 0)::bigint,
     coalesce(jsonb_agg(
       jsonb_build_object(
-        'teacher_name', coalesce(c.teacher_name, '—'),
-        'class_label', concat_ws(' ', coalesce(c.day, ''), coalesce(c.class_time::text, '')),
-        'last_submitted', c.last_submitted,
-        'sessions_missing', greatest(c.expected_sessions - c.submitted_sessions, 0)
+        'unknown', coalesce(c.teacher_name, '—'),
+        'unknown', concat_ws('unknown', coalesce(c.day, 'unknown'), coalesce(c.class_time::text, 'unknown')),
+        'unknown', c.last_submitted,
+        'unknown', greatest(c.expected_sessions - c.submitted_sessions, 0)
       )
       order by c.teacher_name nulls last
-    ) filter (where c.submitted_sessions = 0 or c.last_submitted is null or c.last_submitted < now() - interval '14 days'), '[]'::jsonb)
+    ) filter (where c.submitted_sessions = 0 or c.last_submitted is null or c.last_submitted < now() - interval 'unknown'), 'unknown'::jsonb)
   into v_expected, v_submitted, v_zero, v_missing, v_missing_classes
   from classes c;
 
@@ -105,7 +105,7 @@ begin
 
   return query select v_expected, v_submitted, v_rate, v_zero, v_missing, v_missing_classes, now();
 exception when others then
-  return query select 0::bigint,0::bigint,0::numeric,0::bigint,0::bigint,'[]'::jsonb,now();
+  return query select 0::bigint,0::bigint,0::numeric,0::bigint,0::bigint,'unknown'::jsonb,now();
 end;
 $$;
 
@@ -133,19 +133,19 @@ declare
   v_all bigint := 0;
   v_zero bigint := 0;
   v_avg numeric := 0;
-  v_breakdown jsonb := '[]'::jsonb;
+  v_breakdown jsonb := 'unknown'::jsonb;
 begin
-  if to_regclass('public.students') is null
-     or to_regclass('public.student_milestone_status') is null
-     or to_regclass('public.milestone_definitions') is null then
-    return query select 0::bigint,0::bigint,0::bigint,0::numeric,'[]'::jsonb,now();
+  if to_regclass('unknown') is null
+     or to_regclass('unknown') is null
+     or to_regclass('unknown') is null then
+    return query select 0::bigint,0::bigint,0::bigint,0::numeric,'unknown'::jsonb,now();
     return;
   end if;
 
   with active_students as (
     select s.student_id
     from public.students s
-    where s.status = 'Active'
+    where s.status = 'unknown'
       and s.deleted_at is null
       and (p_batch_id is null or s.batch_id::text = p_batch_id)
   ),
@@ -191,12 +191,12 @@ begin
     end,
     coalesce(jsonb_agg(
       jsonb_build_object(
-        'milestone_code', pm.code,
-        'milestone_name', pm.label,
-        'completed_students', pm.completed_students,
-        'completion_pct', case when t.total_students = 0 then 0 else round((pm.completed_students::numeric * 100.0) / t.total_students::numeric, 1) end
+        'unknown', pm.code,
+        'unknown', pm.label,
+        'unknown', pm.completed_students,
+        'unknown', case when t.total_students = 0 then 0 else round((pm.completed_students::numeric * 100.0) / t.total_students::numeric, 1) end
       ) order by pm.label
-    ), '[]'::jsonb)
+    ), 'unknown'::jsonb)
   into v_total, v_all, v_zero, v_avg, v_breakdown
   from totals t
   cross join milestone_count mc
@@ -206,7 +206,7 @@ begin
 
   return query select v_total, v_all, v_zero, v_avg, v_breakdown, now();
 exception when others then
-  return query select 0::bigint,0::bigint,0::bigint,0::numeric,'[]'::jsonb,now();
+  return query select 0::bigint,0::bigint,0::bigint,0::numeric,'unknown'::jsonb,now();
 end;
 $$;
 
@@ -236,10 +236,10 @@ declare
   v_assigned bigint := 0;
   v_waitlisted bigint := 0;
   v_duplicate bigint := 0;
-  v_conv jsonb := '[]'::jsonb;
+  v_conv jsonb := 'unknown'::jsonb;
 begin
-  if to_regclass('public.applicants') is null then
-    return query select 0::bigint,0::bigint,0::bigint,0::bigint,0::bigint,'[]'::jsonb,now();
+  if to_regclass('unknown') is null then
+    return query select 0::bigint,0::bigint,0::bigint,0::bigint,0::bigint,'unknown'::jsonb,now();
     return;
   end if;
 
@@ -251,10 +251,10 @@ begin
   counts as (
     select
       count(*)::bigint as registered_count,
-      count(*) filter (where coalesce(a.reviewed_at, a.review_notes) is not null or upper(coalesce(a.registration_status, a.status, '')) in ('REVIEW','ASSIGNED','WAITLISTED','DUPLICATE','COMPLETED','INACTIVE'))::bigint as reviewed_count,
-      count(*) filter (where upper(coalesce(a.registration_status, a.status, '')) = 'ASSIGNED')::bigint as assigned_count,
-      count(*) filter (where upper(coalesce(a.registration_status, a.status, '')) = 'WAITLISTED')::bigint as waitlisted_count,
-      count(*) filter (where upper(coalesce(a.registration_status, a.status, '')) = 'DUPLICATE')::bigint as duplicate_count
+      count(*) filter (where coalesce(a.reviewed_at, a.review_notes) is not null or upper(coalesce(a.registration_status, a.status, 'unknown')) in ('unknown','unknown','unknown','unknown','unknown','unknown'))::bigint as reviewed_count,
+      count(*) filter (where upper(coalesce(a.registration_status, a.status, 'unknown')) = 'unknown')::bigint as assigned_count,
+      count(*) filter (where upper(coalesce(a.registration_status, a.status, 'unknown')) = 'unknown')::bigint as waitlisted_count,
+      count(*) filter (where upper(coalesce(a.registration_status, a.status, 'unknown')) = 'unknown')::bigint as duplicate_count
     from scoped a
   )
   select
@@ -264,18 +264,18 @@ begin
     c.waitlisted_count,
     c.duplicate_count,
     jsonb_build_array(
-      jsonb_build_object('stage','Registered','count',c.registered_count,'pct_from_previous',100),
-      jsonb_build_object('stage','Reviewed','count',c.reviewed_count,'pct_from_previous',case when c.registered_count=0 then 0 else round((c.reviewed_count::numeric*100.0)/c.registered_count::numeric,1) end),
-      jsonb_build_object('stage','Assigned','count',c.assigned_count,'pct_from_previous',case when c.reviewed_count=0 then 0 else round((c.assigned_count::numeric*100.0)/c.reviewed_count::numeric,1) end),
-      jsonb_build_object('stage','Waitlisted','count',c.waitlisted_count,'pct_from_previous',case when c.assigned_count=0 then 0 else round((c.waitlisted_count::numeric*100.0)/c.assigned_count::numeric,1) end),
-      jsonb_build_object('stage','Duplicate','count',c.duplicate_count,'pct_from_previous',case when c.waitlisted_count=0 then 0 else round((c.duplicate_count::numeric*100.0)/c.waitlisted_count::numeric,1) end)
+      jsonb_build_object('unknown','unknown','unknown',c.registered_count,'unknown',100),
+      jsonb_build_object('unknown','unknown','unknown',c.reviewed_count,'unknown',case when c.registered_count=0 then 0 else round((c.reviewed_count::numeric*100.0)/c.registered_count::numeric,1) end),
+      jsonb_build_object('unknown','unknown','unknown',c.assigned_count,'unknown',case when c.reviewed_count=0 then 0 else round((c.assigned_count::numeric*100.0)/c.reviewed_count::numeric,1) end),
+      jsonb_build_object('unknown','unknown','unknown',c.waitlisted_count,'unknown',case when c.assigned_count=0 then 0 else round((c.waitlisted_count::numeric*100.0)/c.assigned_count::numeric,1) end),
+      jsonb_build_object('unknown','unknown','unknown',c.duplicate_count,'unknown',case when c.waitlisted_count=0 then 0 else round((c.duplicate_count::numeric*100.0)/c.waitlisted_count::numeric,1) end)
     )
   into v_registered, v_reviewed, v_assigned, v_waitlisted, v_duplicate, v_conv
   from counts c;
 
   return query select v_registered, v_reviewed, v_assigned, v_waitlisted, v_duplicate, v_conv, now();
 exception when others then
-  return query select 0::bigint,0::bigint,0::bigint,0::bigint,0::bigint,'[]'::jsonb,now();
+  return query select 0::bigint,0::bigint,0::bigint,0::bigint,0::bigint,'unknown'::jsonb,now();
 end;
 $$;
 

@@ -1,4 +1,4 @@
-﻿# Next Steps
+# Next Steps
 
 ## Cutover Enforcement
 - Keep archived legacy registration code out of runtime traffic paths.
@@ -23,7 +23,7 @@
 - Continue mobile density/readability refinements on operational pages where required.
 - Keep RLS and role-policy reviews aligned with any new operational tables.
 
-## Current Platform State — May 2026
+## Current Platform State � May 2026
 - RLS hardening baseline completed (continue incremental policy audits as new flows ship).
 - CORS cleanup baseline completed.
 - Attendance dedupe baseline completed.
@@ -50,11 +50,20 @@
 - Page-specific design systems outside `tokens.css`/`primitives.css`.
 
 ## Completed
+- 2026-05-24: `auth-client.js` runtime config read path hardened to use `window.FS_CONFIG` as primary source and `FSConfig.validate()` for validation/rendering.
+- 2026-05-24: `teacher-portal-api/getStudentMilestonesForClass` migrated from legacy `student_milestones` query to canonical `student_milestone_status` query via class applicant IDs.
+- 2026-05-24: `report-generator` updated to call `applyAllowedOrigin(req)` to ensure browser edge-invoke requests receive origin-allow headers.
+- 2026-05-24: Admin shell teacher-mode availability expanded to `admin` and `superadmin` roles; teacher switch label normalized to `Teacher Mode`.
+- 2026-05-24: `class-editor` table now includes per-class `Enrolled` totals from `applicants` with `registration_status = ASSIGNED`.
 - 2026-05-13: Keep Supabase `registration-processor` as canonical and only active registration processor. `phase2-processor` registration path is hard-disabled with a 410 guard.
 - 2026-05-13: Treat dual endpoint configuration as a release blocker. Legacy `APPS_SCRIPT_URL` was removed from `registration-form.html`.
 - 2026-05-13: Ensure scheduled invocation of `retry-worker` every 20 minutes is active in deployed project. Confirmed active in `supabase/functions/retry-worker/config.toml` (no change required).
 - 2026-05-13: `sender-worker` must remain unscheduled. Confirmed no cron entry exists (no change required).
 - 2026-05-14: `sender-worker` deprecation intent recorded. Follow-up required: verify runtime function file/state and update this note to match the current repository/deployed artifact.
+
+
+
+
 
 
 

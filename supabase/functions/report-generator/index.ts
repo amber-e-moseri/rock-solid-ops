@@ -20,7 +20,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, jsonResponse, safeLogAudit } from "../_shared/http.ts";
+import { applyAllowedOrigin, corsHeaders, jsonResponse, safeLogAudit } from "../_shared/http.ts";
 
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -515,6 +515,7 @@ async function queueEmail(
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
+  applyAllowedOrigin(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST")    return jsonResponse({ ok: false, error: "POST required" }, 405);
 

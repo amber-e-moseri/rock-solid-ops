@@ -22,12 +22,17 @@
   }
 
   /* Roster layout specific to attendance step */
-  .roster-item { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .roster-item { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; }
   .roster-main { min-width: 0; }
+  .roster-av {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: #fff;
+  }
   .roster-status {
     flex-shrink: 0;
     border-radius: 999px;
-    padding: 7px 12px;
+    padding: 6px 14px;
     font-size: .72rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -36,7 +41,11 @@
     background: var(--surface, #fff);
     color: var(--fs-text-muted);
     transition: all .18s ease;
+    min-width: 72px;
+    text-align: center;
   }
+  .item { border-left: 3px solid transparent !important; transition: border-color .2s, opacity .18s ease, border-color .18s ease !important; }
+  .item.sel { border-left-color: #22c55e !important; }
   .item.sel .roster-status {
     background: var(--success-soft, #ECFDF3);
     color: var(--success-text, #276749);
@@ -72,31 +81,34 @@
     to   { transform: translateY(0);    opacity: 1;  }
   }
   .session-pill {
-    display: inline-block;
-    padding: 6px 14px;
-    margin: 4px;
-    border-radius: 20px;
-    border: 1px solid var(--primary, #7c3aed);
-    background: transparent;
-    color: var(--primary, #7c3aed);
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface, #fff);
+    color: var(--fs-text-muted, #6b7280);
     cursor: pointer;
     font-size: 13px;
-    font-weight: 500;
-    transition: all 0.15s;
+    font-weight: 700;
+    font-family: inherit;
+    transition: background .15s, color .15s, border-color .15s;
   }
-  .session-pill-active {
-    background: var(--primary, #7c3aed);
+  .session-pill-active, .session-pill.session-pill-active {
+    background: var(--navy, #4C2A92);
     color: #fff;
-    transform: scale(1.05);
+    border-color: var(--navy, #4C2A92);
   }
-  .session-pill:hover {
-    opacity: 0.85;
+  .session-pill:hover:not(.session-pill-active) {
+    background: var(--soft-lavender, #f5f0ff);
+    color: var(--navy, #4C2A92);
+    border-color: var(--navy, #4C2A92);
   }
   #sessionSel {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 8px;
+    gap: 6px;
+    margin-top: 10px;
   }
 </style>
   <link rel="stylesheet" href="../ui/premium-theme.css" />
@@ -155,7 +167,7 @@
     <section class="card hidden" id="s5">
       <div class="card-header"><div class="card-icon">M</div><div><div class="card-title">Mark Attendance</div><div class="card-sub">Tap a person to toggle present or absent.</div></div></div>
       <div id="attendance-context" class="context-bar hidden"></div>
-      <div class="toolbar"><button class="fs-btn success" onclick="markAllPresent()">? All Present</button><button class="fs-btn danger" onclick="markAllAbsent()">? All Absent</button><input id="rosterSearch" placeholder="Search roster" oninput="renderRoster()" autocomplete="off" /><button class="fs-btn" onclick="openAdd()">Add Existing Person</button></div>
+      <div class="toolbar"><button class="fs-btn success" onclick="markAllPresent()">✓ All Present</button><button class="fs-btn danger" onclick="markAllAbsent()">✕ All Absent</button><input id="rosterSearch" placeholder="Search roster..." oninput="renderRoster()" autocomplete="off" /><button class="fs-btn" onclick="openAdd()">+ Add Person</button></div>
       <div id="roster"></div>
       <div class="stats" id="roster-counts"><div class="stat"><div class="stat-value" id="count-present" style="color:var(--success)">0</div><div class="stat-label">Present</div></div><div class="stat"><div class="stat-value" id="count-absent" style="color:var(--danger)">0</div><div class="stat-label">Absent</div></div><div class="stat"><div class="stat-value" id="count-total" style="color:var(--primary)">0</div><div class="stat-label">Total</div></div></div>
       <div class="fs-btn-row fab-row"><button class="fs-btn" onclick="show(4)">Back</button><div class="spacer"></div><button class="fs-btn primary" onclick="review()">Review -></button></div>
@@ -356,8 +368,30 @@
       try{
         const r = await apiGet('getTeacherActiveClassOptions', { teacherId: state.teacher.teacherId });
         state.classes = r.data || [];
+        const classIds = state.classes.map((c) => String(c.classOptionId || "").trim()).filter(Boolean);
+        const enrolledByClass = {};
+        if (classIds.length) {
+          const { data: assignedRows, error: assignedErr } = await ensureSupabaseClient()
+            .from("applicants")
+            .select("class_option_id")
+            .in("class_option_id", classIds)
+            .eq("registration_status", "ASSIGNED")
+            .limit(20000);
+          if (!assignedErr) {
+            (assignedRows || []).forEach((row) => {
+              const cid = String(row.class_option_id || "").trim();
+              if (!cid) return;
+              enrolledByClass[cid] = (enrolledByClass[cid] || 0) + 1;
+            });
+          }
+        }
         state.classOption = null;
-        list.innerHTML = state.classes.map(c => `<div class="item" onclick="pickClass('${esc(c.classOptionId)}')" id="c-${esc(c.classOptionId)}"><div class="item-name">${esc(c.campus || c.fellowship || c.classOptionId)}</div><div class="item-meta">${esc(c.day)} ${esc(c.time)} | Batch ${esc(c.batch)} | ${Number(c.enrolledCount || 0)} enrolled</div></div>`).join('') || '<div class="muted">No assigned classes yet.</div>';
+        list.innerHTML = state.classes.map(c => {
+          const classId = String(c.classOptionId || "").trim();
+          const enrolled = Number(enrolledByClass[classId] ?? c.enrolledCount ?? 0);
+          const batchLabel = String(c.batch || c.batchId || c.batch_id || "-");
+          return `<div class="item" onclick="pickClass('${esc(c.classOptionId)}')" id="c-${esc(c.classOptionId)}"><div class="item-name">${esc(c.campus || c.fellowship || c.classOptionId)}</div><div class="item-meta">${esc(c.day)} ${esc(c.time)} | Batch ${esc(batchLabel)} | ${enrolled} enrolled</div></div>`;
+        }).join('') || '<div class="muted">No assigned classes yet.</div>';
       } catch(e){ list.innerHTML = `<div class="error">${esc(e.message)}</div>`; }
     }
 

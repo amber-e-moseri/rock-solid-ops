@@ -164,6 +164,7 @@
             <th>Active</th>
             <th>Enroll Open</th>
             <th>Expires</th>
+            <th>Enrolled</th>
             <th>Slots</th>
             <th id="actionsHeader">Actions</th>
           </tr>
@@ -189,6 +190,7 @@
       fellowships:   [],
       batches:       [],
       slots:         {},
+      enrolled:      {},
       profile:       null,
       canEdit:       false,
       canSuperadmin: false,
@@ -218,7 +220,7 @@
     }
 
     function editColspan() {
-      return 10 + (state.canEdit ? 1 : 0) + (state.massManageOpen ? 1 : 0);
+      return 11 + (state.canEdit ? 1 : 0) + (state.massManageOpen ? 1 : 0);
     }
 
     function updateMassUI() {
@@ -385,6 +387,7 @@
 
       let html = "";
       rows.forEach((co) => {
+        const enrolledCount = state.enrolled[co.class_option_id] || 0;
         const slotCount = state.slots[co.class_option_id] || 0;
         const fc        = (co.fellowship_codes || []).join(", ") || "-";
         const onlineTag = co.is_online === true ? ' <span class="fc-chip" style="font-size:10px;padding:1px 8px">ONLINE</span>' : "";
@@ -399,6 +402,7 @@
           <td style="font-size:12px">${co.active === false ? "No" : "Yes"}</td>
           <td style="font-size:12px">${co.enrollment_open === false ? "No" : "Yes"}</td>
           <td style="font-size:12px">${esc(fmtShortDate(co.enrollment_closes_at))}</td>
+          <td style="font-size:12px">${enrolledCount}</td>
           <td style="font-size:12px">${slotCount}</td>
           ${canAct ? `<td>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
@@ -431,12 +435,13 @@
     // ── Load data ─────────────────────────────────────────────────────────────
     async function loadData() {
       showFlash("Loading...");
-      const [classRes, teacherRes, fcRes, batchRes, slotRes] = await Promise.all([
+      const [classRes, teacherRes, fcRes, batchRes, slotRes, applicantsRes] = await Promise.all([
         supabase.from("class_options").select("*").is("deleted_at", null).order("class_option_id").limit(500),
         supabase.from("teachers").select("teacher_id,full_name,email,group_id,subgroup_id").eq("status", "ACTIVE").order("full_name").limit(200),
         supabase.from("fellowship_map").select("fellowship_code,campus_name,group_id").eq("active", true).order("fellowship_code").limit(200),
         supabase.from("batches").select("batch_id,batch_name").order("created_at", { ascending: false }).limit(50),
         supabase.from("class_slots").select("class_option_id,batch_id").limit(2000),
+        supabase.from("applicants").select("class_option_id").eq("registration_status", "ASSIGNED").limit(20000),
       ]);
 
       state.classes     = classRes.data || [];
@@ -448,6 +453,14 @@
       state.slots = {};
       (slotRes.data || []).forEach((s) => {
         state.slots[s.class_option_id] = (state.slots[s.class_option_id] || 0) + 1;
+      });
+
+      // Count enrolled students per class (ASSIGNED applicants)
+      state.enrolled = {};
+      (applicantsRes.data || []).forEach((a) => {
+        const classOptionId = String(a.class_option_id || "").trim();
+        if (!classOptionId) return;
+        state.enrolled[classOptionId] = (state.enrolled[classOptionId] || 0) + 1;
       });
 
       // Populate group filter
@@ -995,5 +1008,4 @@
   </script>
 </body>
 </html>
-
 

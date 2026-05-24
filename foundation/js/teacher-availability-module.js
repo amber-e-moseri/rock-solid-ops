@@ -187,8 +187,9 @@ export async function mountTeacherAvailability(containerId) {
       .ta-page-head p { margin: 4px 0 0; color: var(--fs-text-muted); font-size: 12px; }
       .ta-card { background:#fff; border:1px solid var(--fs-border); border-radius:12px; box-shadow: 0 4px 20px rgba(76,42,146,.08); padding:24px; margin-top:12px; }
       .availability-layout { display:grid; grid-template-columns: 1fr 280px; gap:24px; align-items:start; }
-      .ta-left-grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); row-gap:12px; column-gap:24px; }
+      .ta-left-grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); row-gap:14px; column-gap:48px; }
       .ta-card label.fs-label { font-size:11px; font-weight:700; color:var(--fs-text-muted); text-transform:uppercase; letter-spacing:.05em; }
+      .ta-left-grid input:disabled { background: var(--fs-bg, #faf9ff); color: var(--fs-text-muted, #6b7280); border-color: var(--fs-border); opacity: 1; }
       .ta-pill-wrap { display:flex; flex-wrap:wrap; gap:6px; }
       .ta-pill { border-radius:999px; border:1px solid #d1d5db; background:#fff; color:#6b7280; min-height:34px; }
       .ta-pill:hover { background:#f5f3ff; border-color:#c4b5fd; color:#4C2A92; }
@@ -235,10 +236,10 @@ export async function mountTeacherAvailability(containerId) {
           <div class="ta-left-grid">
             <div><label class="fs-label">Teacher</label><input class="fs-input" id="taTeacher" disabled /></div>
             <div><label class="fs-label">Email</label><input class="fs-input" id="taEmail" disabled /></div>
-            <div><label class="fs-label">BATCH</label><select id="batchSelect" class="fs-select"></select></div>
+            <div><label class="fs-label">Batch</label><select id="batchSelect" class="fs-select"></select></div>
             <div><label class="fs-label">Timezone</label><select id="taTimezone" class="fs-select"></select></div>
           </div>
-          <div style="margin-top:8px;">
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--fs-border);">
             <label style="display:flex;align-items:center;gap:8px;">
               <input type="checkbox" id="taOtherTeacherToggle" />
               <span class="fs-muted">Create availability for another teacher</span>
@@ -248,7 +249,7 @@ export async function mountTeacherAvailability(containerId) {
               <select id="taOtherTeacherSelect" class="fs-select"></select>
             </div>
           </div>
-          <div style="margin-top:10px;">
+          <div style="margin-top:12px;">
             <label class="fs-label">Search Campus</label>
             <div class="ta-search-wrap">
               <input id="taCampusSearch" class="fs-input" placeholder="Search campus..." />

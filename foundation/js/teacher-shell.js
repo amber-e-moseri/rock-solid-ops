@@ -171,10 +171,10 @@
     document.body.classList.add("fs-force-light");
     const active = opts.active || inferActiveKey();
     const links = [
-      { href: "../teacher/index.html?section=dashboard", icon: "", label: "Dashboard", key: "dashboard" },
-      { href: "../teacher/index.html?section=attendance", icon: "", label: "Attendance", key: "attendance" },
-      { href: "../teacher/index.html?section=my-class", icon: "", label: "My Class", key: "my-class" },
-      { href: "../teacher/index.html?section=availability", icon: "", label: "Availability", key: "availability" },
+      { href: "../teacher/index.html?section=dashboard", label: "Dashboard", key: "dashboard" },
+      { href: "../teacher/index.html?section=attendance", label: "Attendance", key: "attendance" },
+      { href: "../teacher/index.html?section=my-class", label: "My Class", key: "my-class" },
+      { href: "../teacher/index.html?section=availability", label: "Availability", key: "availability" },
     ];
 
     // Remove any accidental duplicate shells from previous buggy mounts.

@@ -6,76 +6,403 @@
   <title>Teacher Dashboard</title>
   <link rel="stylesheet" href="../../ui/tokens.css" />
   <link rel="stylesheet" href="../../ui/primitives.css" />
+  <script src="../../js/config.js"></script>
+  <script src="../../js/config-helper.js"></script>
   <style>
-    body { margin: 0; background: var(--color-bg); color: var(--color-text-primary); font-family: "Manrope", system-ui, sans-serif; }
-    .wrap { padding: 16px; max-width: 1100px; margin: 0 auto; }
-    .welcome { background: #fff; border-radius: 12px; box-shadow: var(--shadow-raised); padding: 18px; margin-bottom: 14px; }
-    .welcome h1 { margin: 0 0 6px; font-size: 22px; }
-    .welcome p { margin: 0; color: var(--color-text-muted); }
-    .metrics { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; margin-bottom: 14px; }
-    .metric { background:#fff; border-radius:12px; box-shadow:var(--shadow-raised); padding:14px; }
-    .metric .k { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); font-weight:700; }
-    .metric .v { font-size:30px; font-weight:800; margin-top:3px; color:#4C2A92; line-height:1; }
-    .links { background:#fff; border-radius:12px; box-shadow:var(--shadow-raised); padding:14px; }
-    .link-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
-    .quick-link { min-height:44px; display:flex; align-items:center; justify-content:center; border:1px solid var(--color-border); border-radius:10px; text-decoration:none; color:var(--color-text-primary); font-weight:700; background:#fff; }
-    .quick-link:hover { background:#f5f0ff; color:#4C2A92; border-color:#d9c9ff; }
-    @media (max-width: 900px) { .metrics,.link-grid { grid-template-columns:1fr; } }
+    body { margin: 0; background: #f5f5f7; color: var(--color-text-primary); font-family: "Manrope", system-ui, sans-serif; }
+    .wrap { padding: 16px; max-width: 1100px; margin: 0 auto; display: grid; gap: 14px; }
+    .card { background: #fff; border: 1px solid #e6e7ee; border-radius: 12px; box-shadow: 0 4px 20px rgba(20, 16, 38, 0.06); padding: 16px; }
+    .header h1 { margin: 0; font-size: 28px; line-height: 1.15; }
+    .header p { margin: 6px 0 0; color: var(--color-text-muted); }
+    .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .kpi .k { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-muted); font-weight: 700; }
+    .kpi .v { font-size: 2rem; font-weight: 800; margin-top: 6px; color: #4C2A92; line-height: 1; }
+    .kpi .v.ok { color: #15803d; }
+    .kpi .v.warn { color: #b45309; }
+    .kpi .v.bad { color: #C8102E; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .sec-title { margin: 0 0 10px; font-size: 16px; font-weight: 800; }
+    .muted { color: var(--color-text-muted); font-size: 13px; }
+    .row-list { display: grid; gap: 8px; }
+    .row-item { border: 1px solid #ececf2; border-left: 4px solid #f59e0b; border-radius: 10px; padding: 10px; }
+    .row-item.high { border-left-color: #C8102E; background: #fff5f5; }
+    .row-item.never { border-left-color: #b45309; background: #fff8e1; }
+    .name { font-weight: 700; }
+    .meta { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; }
+    .pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+    .pill.bad { background: #fee2e2; color: #991b1b; }
+    .pill.warn { background: #fef3c7; color: #92400e; }
+    .pill.ok { background: #dcfce7; color: #166534; }
+    .quick-links { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+    .quick-link { min-height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #dddff0; border-radius: 10px; text-decoration: none; color: var(--color-text-primary); font-weight: 700; background: #fff; }
+    .quick-link.primary { background: #4C2A92; border-color: #4C2A92; color: #fff; }
+    .quick-link:hover { background: #f5f0ff; color: #4C2A92; }
+    .quick-link.primary:hover { background: #3d2176; color: #fff; }
+    .skeleton { height: 16px; border-radius: 8px; background: linear-gradient(90deg, #f0f1f5 0%, #f8f8fb 50%, #f0f1f5 100%); background-size: 200% 100%; animation: pulse 1.1s linear infinite; }
+    .hidden { display: none !important; }
+    .empty { border: 1px dashed #d7d8e2; border-radius: 10px; padding: 12px; color: var(--color-text-muted); font-size: 13px; }
+    @keyframes pulse { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    @media (max-width: 980px) { .kpis, .two-col, .three-col, .quick-links { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <main class="wrap">
-    <section class="welcome">
-      <h1 id="welcomeTitle">Welcome</h1>
-      <p>Quick view of your class health and direct links to daily tasks.</p>
+    <section class="card header">
+      <h1 id="greeting">Good day, Teacher</h1>
+      <p>Here's your class overview for today</p>
     </section>
 
-    <section class="metrics">
-      <article class="metric"><div class="k">Students In Class</div><div class="v" id="mStudents">-</div></article>
-      <article class="metric"><div class="k">Sessions Completed</div><div class="v" id="mSessions">-</div></article>
-      <article class="metric"><div class="k">Pending Milestones</div><div class="v" id="mMilestones">-</div></article>
+    <section class="kpis">
+      <article class="card kpi"><div class="k">Students in class</div><div class="v" id="kpiStudents">--</div></article>
+      <article class="card kpi"><div class="k">Avg attendance rate</div><div class="v" id="kpiAttendance">--</div></article>
     </section>
 
-    <section class="links">
-      <div class="link-grid">
-        <a class="quick-link" href="../index.html?section=attendance" target="_top">Go to Attendance</a>
-        <a class="quick-link" href="../index.html?section=roster" target="_top">Go to Class Roster</a>
-        <a class="quick-link" href="../index.html?section=availability" target="_top">Go to Availability</a>
-      </div>
+    <section class="two-col">
+      <article class="card">
+        <h2 class="sec-title">Today's Class</h2>
+        <div id="todayClassBody" class="muted"><div class="skeleton" style="width:80%"></div></div>
+        <div style="margin-top:10px"><a class="quick-link primary" href="../index.html?section=attendance" target="_top">Go to Attendance</a></div>
+      </article>
+
+      <article class="card">
+        <h2 class="sec-title">At-Risk Students</h2>
+        <div id="riskList" class="row-list"><div class="skeleton" style="width:100%"></div><div class="skeleton" style="width:88%"></div></div>
+        <div style="margin-top:10px"><a class="quick-link" href="../index.html?section=my-class" target="_top">View in My Class</a></div>
+      </article>
+    </section>
+
+    <section class="two-col">
+      <article class="card">
+        <h2 class="sec-title">Recent Attendance Submissions</h2>
+        <div id="recentSubmissions" class="row-list"><div class="skeleton" style="width:100%"></div><div class="skeleton" style="width:92%"></div></div>
+      </article>
+
+      <article class="card">
+        <h2 class="sec-title">Quick Links</h2>
+        <div class="quick-links">
+          <a class="quick-link primary" href="../index.html?section=attendance" target="_top">Take Attendance</a>
+          <a class="quick-link" href="../index.html?section=my-class" target="_top">My Class Roster</a>
+          <a class="quick-link" href="../index.html?section=availability" target="_top">Submit Availability</a>
+        </div>
+      </article>
     </section>
   </main>
 
   <script type="module">
     import { supabase, getCurrentProfile } from "../../auth/auth-client.js";
-    const profile = await getCurrentProfile();
-    document.getElementById("welcomeTitle").textContent = `Welcome, ${profile?.full_name || "Teacher"}`;
-    const email = String(profile?.email || "").trim();
-    const userId = String(profile?.user_id || "").trim();
-    let teacher = null;
-    if (userId) {
-      const byUser = await supabase.from("teachers").select("teacher_id").eq("teacher_user_id", userId).is("deleted_at", null).limit(1).maybeSingle();
-      teacher = byUser.data || null;
+
+    const el = {
+      greeting: document.getElementById("greeting"),
+      kpiStudents: document.getElementById("kpiStudents"),
+      kpiAttendance: document.getElementById("kpiAttendance"),
+      todayClassBody: document.getElementById("todayClassBody"),
+      riskList: document.getElementById("riskList"),
+      recentSubmissions: document.getElementById("recentSubmissions"),
+    };
+
+    function toSafeText(v) {
+      return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }
-    if (!teacher && email) {
-      const byEmail = await supabase.from("teachers").select("teacher_id").ilike("email", email).is("deleted_at", null).limit(1).maybeSingle();
-      teacher = byEmail.data || null;
+
+    function formatTime(raw) {
+      const s = String(raw || "").trim();
+      const m = s.match(/^(\d{1,2}):(\d{2})/);
+      if (!m) return s;
+      const hh = Number(m[1]);
+      const mm = Number(m[2]);
+      const ap = hh >= 12 ? "PM" : "AM";
+      const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+      return `${h12}:${String(mm).padStart(2, "0")} ${ap}`;
     }
-    const teacherId = teacher?.teacher_id;
-    if (!teacherId) return;
-    const { data: classes } = await supabase.from("class_options").select("class_option_id").eq("teacher_id", teacherId).eq("active", true).limit(20);
-    const classIds = (classes || []).map((c) => c.class_option_id).filter(Boolean);
-    if (!classIds.length) return;
-    const { count: students } = await supabase.from("students").select("student_id", { count: "exact", head: true }).in("class_option_id", classIds);
-    const { data: attendance } = await supabase.from("attendance_log").select("class_date").in("class_option_id", classIds).not("class_date", "is", null).limit(20000);
-    const uniqueDates = new Set((attendance || []).map((a) => String(a.class_date)));
-    const { data: teacherStudents } = await supabase.from("students").select("student_id").in("class_option_id", classIds).limit(10000);
-    const studentIds = (teacherStudents || []).map((s) => s.student_id).filter(Boolean);
-    const pendingMilestones = studentIds.length
-      ? (await supabase.from("student_milestone_status").select("id", { count: "exact", head: true }).in("student_id", studentIds).eq("status", "pending")).count
-      : 0;
-    document.getElementById("mStudents").textContent = String(students || 0);
-    document.getElementById("mSessions").textContent = String(uniqueDates.size || 0);
-    document.getElementById("mMilestones").textContent = String(pendingMilestones || 0);
+
+    function greetingForNow(name) {
+      return `Good day, ${name}`;
+    }
+
+    function attendanceColorClass(rate) {
+      if (!Number.isFinite(rate)) return "";
+      if (rate > 80) return "ok";
+      if (rate >= 60) return "warn";
+      return "bad";
+    }
+
+    function sortAttendance(a, b) {
+      const ad = String(a.class_date || "");
+      const bd = String(b.class_date || "");
+      if (ad && bd && ad !== bd) return ad.localeCompare(bd);
+      const an = Number(String(a.class_number || "").replace(/\D/g, ""));
+      const bn = Number(String(b.class_number || "").replace(/\D/g, ""));
+      if (Number.isFinite(an) && Number.isFinite(bn) && an !== bn) return an - bn;
+      return 0;
+    }
+
+    function computeConsecutiveMisses(rows) {
+      const sorted = [...rows].sort(sortAttendance);
+      let streak = 0;
+      let maxStreak = 0;
+      let everPresent = false;
+      for (const r of sorted) {
+        if (r.present === true) {
+          everPresent = true;
+          streak = 0;
+        } else {
+          streak += 1;
+          if (streak > maxStreak) maxStreak = streak;
+        }
+      }
+      return { streak, maxStreak, everPresent };
+    }
+
+    function renderTodayClass(primaryClass, studentCount) {
+      if (!primaryClass) {
+        el.todayClassBody.innerHTML = `<div class="empty">No class assigned yet. Contact admin.</div>`;
+        return;
+      }
+      const day = String(primaryClass.day || "-");
+      const time = formatTime(primaryClass.class_time || primaryClass.time_slot || primaryClass.time || "");
+      const fellowships = Array.isArray(primaryClass.fellowship_codes) ? primaryClass.fellowship_codes.filter(Boolean) : [];
+      const fellowshipText = fellowships.length ? fellowships.join(", ") : (primaryClass.fellowship_code || primaryClass.fellowship || "-");
+      el.todayClassBody.innerHTML = `
+        <div><strong>${toSafeText(day)} ${toSafeText(time)}</strong></div>
+        <div class="meta">${toSafeText(fellowshipText)}</div>
+        <div class="meta" style="margin-top:6px">${studentCount} student${studentCount === 1 ? "" : "s"}</div>
+      `;
+    }
+
+    function renderRiskRows(riskRows) {
+      if (!riskRows.length) {
+        el.riskList.innerHTML = `<div class="empty">No at-risk students based on current attendance.</div>`;
+        return;
+      }
+      el.riskList.innerHTML = riskRows.map((r) => {
+        const riskClass = r.neverAttended ? "never" : r.missed >= 3 ? "high" : "";
+        const badge = r.neverAttended
+          ? `<span class="pill warn">Never attended</span>`
+          : r.missed >= 3
+            ? `<span class="pill bad">${r.missed} consecutive missed</span>`
+            : `<span class="pill warn">${r.missed} consecutive missed</span>`;
+        return `<div class="row-item ${riskClass}"><div class="name">${toSafeText(r.full_name || "Student")}</div><div class="meta">${toSafeText(r.email || "-")}</div><div style="margin-top:6px">${badge}</div></div>`;
+      }).join("");
+    }
+
+    function renderRecentSubmissions(rows) {
+      if (!rows.length) {
+        el.recentSubmissions.innerHTML = `<div class="empty">No recent attendance submissions yet.</div>`;
+        return;
+      }
+      el.recentSubmissions.innerHTML = rows.map((r) => `
+        <div class="row-item" style="border-left-color:#4C2A92;background:#fff;">
+          <div class="name">Class ${toSafeText(r.classNumber || "-")}</div>
+          <div class="meta">${toSafeText(r.classDate || "-")} - Submitted ${toSafeText(r.submittedAt || "-")}</div>
+          <div class="meta">${r.presentCount}/${r.totalCount} present</div>
+        </div>
+      `).join("");
+    }
+
+    function toSubmissionGroups(attendanceRows) {
+      const groups = new Map();
+      for (const row of attendanceRows || []) {
+        const key = [row.class_number || "", row.class_date || "", row.submission_date || ""].join("|");
+        if (!groups.has(key)) {
+          groups.set(key, { classNumber: row.class_number || "", classDate: row.class_date || "", submission_date: row.submission_date || "", totalCount: 0, presentCount: 0 });
+        }
+        const g = groups.get(key);
+        g.totalCount += 1;
+        if (row.present === true) g.presentCount += 1;
+      }
+      return [...groups.values()]
+        .sort((a, b) => String(b.submission_date || "").localeCompare(String(a.submission_date || "")))
+        .slice(0, 3)
+        .map((g) => ({
+          classNumber: g.classNumber,
+          classDate: g.classDate ? new Date(g.classDate + "T00:00:00").toLocaleDateString() : "-",
+          submittedAt: g.submission_date ? new Date(g.submission_date).toLocaleString() : "-",
+          totalCount: g.totalCount,
+          presentCount: g.presentCount,
+        }));
+    }
+
+    async function boot() {
+      const profile = await getCurrentProfile();
+      let teacherName = "Teacher";
+      if (profile?.email) {
+        const { data: teacherRow } = await supabase
+          .from("teachers")
+          .select("full_name")
+          .ilike("email", profile.email.trim())
+          .is("deleted_at", null)
+          .limit(1)
+          .maybeSingle();
+        teacherName = String(teacherRow?.full_name || profile?.full_name || profile?.email || "Teacher").trim();
+        if (teacherName === profile.email) teacherName = "Teacher";
+      }
+      el.greeting.textContent = greetingForNow(teacherName);
+
+      let classes = [];
+      try {
+        const { data, error } = await supabase.functions.invoke("teacher-portal-api", {
+          body: { action: "getTeacherActiveClassOptions", params: {} },
+        });
+        if (error) throw error;
+        if (data?.ok === false) throw new Error(data?.error || "Failed to load class options");
+        classes = Array.isArray(data?.data) ? data.data : [];
+      } catch (_) {
+        renderTodayClass(null, 0);
+        el.kpiStudents.textContent = "0";
+        el.kpiAttendance.textContent = "0%";
+        el.riskList.innerHTML = `<div class="empty">No class assigned yet. Contact admin.</div>`;
+        el.recentSubmissions.innerHTML = `<div class="empty">No attendance data available.</div>`;
+        return;
+      }
+
+      const primaryClass = classes[0] || null;
+      if (!primaryClass?.class_option_id) {
+        renderTodayClass(null, 0);
+        el.kpiStudents.textContent = "0";
+        el.kpiAttendance.textContent = "0%";
+        el.riskList.innerHTML = `<div class="empty">No class assigned yet. Contact admin.</div>`;
+        el.recentSubmissions.innerHTML = `<div class="empty">No attendance data available.</div>`;
+        return;
+      }
+
+      const classOptionId = String(primaryClass.class_option_id);
+      const classOptionIds = classes
+        .map((c) => String(c?.class_option_id || "").trim())
+        .filter(Boolean);
+
+      let students = [];
+      let attendance = [];
+
+      try {
+        const { data, error } = await supabase
+          .from("class_roster")
+          .select("student_id,batch_id,students(student_id,full_name,email,fellowship_code,subgroup_id)")
+          .eq("class_option_id", classOptionId)
+          .eq("status", "Active");
+        if (error) throw error;
+        students = Array.isArray(data) ? data : [];
+      } catch (_) {
+        students = [];
+      }
+
+      if (!students.length) {
+        try {
+          const { data, error } = await supabase
+            .from("students")
+            .select("student_id,batch_id,full_name,email,fellowship_code,subgroup_id")
+            .eq("class_option_id", classOptionId)
+            .is("deleted_at", null)
+            .limit(5000);
+          if (!error && Array.isArray(data)) {
+            students = data.map((row) => ({
+              student_id: row.student_id,
+              batch_id: row.batch_id,
+              students: {
+                student_id: row.student_id,
+                full_name: row.full_name,
+                email: row.email,
+                fellowship_code: row.fellowship_code,
+                subgroup_id: row.subgroup_id,
+              },
+            }));
+          }
+        } catch (_) {
+          // Keep empty if fallback fails.
+        }
+      }
+
+      const studentIds = students.map((s) => String(s.student_id || "")).filter(Boolean);
+      const batchId = String(students[0]?.batch_id || primaryClass.batch_id || "").trim();
+
+      try {
+        let q = supabase
+          .from("attendance_log")
+          .select("student_id,present,class_number,class_date,submission_date")
+          .eq("class_option_id", classOptionId);
+        if (batchId) q = q.eq("batch_id", batchId);
+        const { data, error } = await q;
+        if (error) throw error;
+        attendance = Array.isArray(data) ? data : [];
+      } catch (_) {
+        attendance = [];
+      }
+
+      let totalStudentsAcrossClasses = students.length;
+      if (classOptionIds.length > 1) {
+        try {
+          const { data, error } = await supabase
+            .from("students")
+            .select("student_id,class_option_id")
+            .in("class_option_id", classOptionIds)
+            .is("deleted_at", null)
+            .limit(10000);
+          if (!error && Array.isArray(data)) {
+            const uniqueStudentIds = new Set(
+              data.map((row) => String(row.student_id || "").trim()).filter(Boolean),
+            );
+            totalStudentsAcrossClasses = uniqueStudentIds.size;
+          }
+        } catch (_) {
+          // Keep primary class count if aggregate lookup fails.
+        }
+      }
+
+      renderTodayClass(primaryClass, students.length);
+      el.kpiStudents.textContent = String(totalStudentsAcrossClasses);
+
+      const totalAttendanceRows = attendance.length;
+      const attendedRows = attendance.filter((r) => r.present === true).length;
+      const avgAttendanceRate = totalAttendanceRows ? Math.round((attendedRows / totalAttendanceRows) * 100) : 0;
+      el.kpiAttendance.textContent = `${avgAttendanceRate}%`;
+      el.kpiAttendance.classList.remove("ok", "warn", "bad");
+      el.kpiAttendance.classList.add(attendanceColorClass(avgAttendanceRate));
+
+      const attendanceByStudent = new Map();
+      for (const row of attendance) {
+        const sid = String(row.student_id || "").trim();
+        if (!sid) continue;
+        if (!attendanceByStudent.has(sid)) attendanceByStudent.set(sid, []);
+        attendanceByStudent.get(sid).push(row);
+      }
+
+      const riskRows = [];
+      for (const rosterRow of students) {
+        const sid = String(rosterRow.student_id || "").trim();
+        const person = rosterRow.students || {};
+        const rows = attendanceByStudent.get(sid) || [];
+        const missedTotal = rows.filter((r) => r.present !== true).length;
+        const stats = computeConsecutiveMisses(rows);
+        const neverAttended = rows.length > 0 && !stats.everPresent;
+        const atRisk = neverAttended || stats.maxStreak >= 2;
+        if (atRisk) {
+          riskRows.push({
+            student_id: sid,
+            full_name: person.full_name || "Student",
+            email: person.email || "",
+            missed: neverAttended ? missedTotal : stats.maxStreak,
+            neverAttended,
+          });
+        }
+      }
+
+      riskRows.sort((a, b) => {
+        if (a.neverAttended !== b.neverAttended) return a.neverAttended ? -1 : 1;
+        return b.missed - a.missed;
+      });
+      renderRiskRows(riskRows.slice(0, 8));
+
+      const submissionRows = toSubmissionGroups(attendance);
+      renderRecentSubmissions(submissionRows);
+    }
+
+    boot().catch(() => {
+      el.todayClassBody.innerHTML = `<div class="empty">No class assigned yet. Contact admin.</div>`;
+      el.riskList.innerHTML = `<div class="empty">Could not load at-risk students.</div>`;
+      el.recentSubmissions.innerHTML = `<div class="empty">Could not load recent submissions.</div>`;
+      el.kpiStudents.textContent = "0";
+      el.kpiAttendance.textContent = "0%";
+    });
   </script>
 </body>
 </html>

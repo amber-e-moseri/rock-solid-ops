@@ -31,13 +31,13 @@
     .fs-btn.active .fs-badge { background: rgba(255,255,255,.2); color: #fff; }
 
     /* Weekly availability grid */
-    .days { display: grid; grid-template-columns: 80px repeat(7,1fr); background: var(--color-bg); border-bottom: 1px solid var(--border); }
-    .days div { padding: 7px; text-align: center; font-size: 11px; font-weight: 700; border-left: 1px solid var(--border); color: var(--color-primary); }
-    .days div:first-child { text-align: left; border-left: 0; color: var(--fs-text-muted); }
+    .days { display: grid; grid-template-columns: 80px repeat(7,1fr); background: var(--soft-lavender, #f5f0ff); border-bottom: 1px solid var(--border); }
+    .days div { padding: 8px 4px; text-align: center; font-size: 11px; font-weight: 800; border-left: 1px solid var(--border); color: var(--navy, #4C2A92); letter-spacing: .03em; text-transform: uppercase; }
+    .days div:first-child { text-align: left; border-left: 0; color: var(--fs-text-muted); font-weight: 600; text-transform: none; letter-spacing: 0; }
     .slot { display: grid; grid-template-columns: 80px repeat(7,1fr); border-bottom: 1px solid var(--border); }
-    .time { padding: 8px; background: var(--color-bg); font-size: 11px; color: var(--fs-text-muted); font-weight: 600; }
+    .time { padding: 8px; background: var(--soft-lavender, #f5f0ff); font-size: 11px; color: var(--fs-text-muted); font-weight: 600; }
     .cell {
-      min-height: 38px;
+      min-height: 40px;
       border-left: 1px solid var(--border);
       display: flex;
       align-items: center;
@@ -45,10 +45,11 @@
       cursor: pointer;
       user-select: none;
       font-size: 12px;
-      transition: background .1s;
+      transition: background .12s;
     }
-    .cell:hover { background: var(--lilacSoft, var(--soft-lavender)); }
-    .cell.on    { background: #FEF6E4; color: #7A5A00; font-weight: 700; border-left-color: var(--gold, #F5A623); }
+    .cell:hover { background: var(--soft-lavender, #f5f0ff); }
+    .cell.on    { background: color-mix(in srgb, #4C2A92 12%, #fff); color: #4C2A92; font-weight: 700; border-left-color: #4C2A92; }
+    #campusSearch { margin: 10px 0; }
 
     /* Teacher name match suggestions */
     .suggestions { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -94,7 +95,7 @@
 
       <div class="card p mb">
         <div style="display:flex;justify-content:space-between;align-items:center"><strong>Campuses</strong><span id="campusMeta" class="sub"></span></div>
-        <input id="campusSearch" placeholder="Search campus name or code..." style="margin:10px 0" />
+        <input id="campusSearch" placeholder="Search campus name or code..." />
         <div id="campusGroups"></div>
       </div>
 
@@ -106,9 +107,9 @@
         <div id="gridWrap"></div>
       </div>
 
-      <div class="card p" style="display:flex;justify-content:space-between;align-items:center">
-        <span id="selStats" class="sub">0 slots selected</span>
-        <button id="review" class="fs-btn fs-btn-secondary" disabled>Review &amp; Submit</button>
+      <div class="card p" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <span id="selStats" style="font-size:13px;font-weight:700;color:var(--fs-text-muted);">0 slots selected</span>
+        <button id="review" class="fs-btn fs-btn-primary" disabled>Review &amp; Submit</button>
       </div>
     </section>
 
@@ -124,7 +125,7 @@
     <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0;color:var(--navy)">Review &amp; Submit</h3><button id="close" class="fs-btn fs-btn-secondary fs-btn-sm">Close</button></div>
     <p class="sub">Confirm converted campus times before submitting.</p>
     <div id="reviewContent"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span id="submitState" class="sub"></span><button id="submit" class="fs-btn fs-btn-secondary">Confirm Submit</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><span id="submitState" class="sub"></span><button id="submit" class="fs-btn fs-btn-primary">Confirm Submit</button></div>
   </div>
 </div>
 

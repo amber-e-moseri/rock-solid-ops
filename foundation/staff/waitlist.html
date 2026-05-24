@@ -15,9 +15,14 @@
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: "Manrope", sans-serif; color: var(--color-text-primary); background: var(--color-bg); min-height: 100dvh; }
-    .tab-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: var(--space-4); }
-    .tab { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-primary); border-radius: var(--radius-md); padding: var(--space-1) var(--space-3); font: 600 var(--fs-meta)/1.4 inherit; cursor: pointer; }
-    .tab.active { background: var(--color-primary); color: var(--color-primary-fg); border-color: var(--color-primary); }
+    .tab-bar { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: var(--space-4); background: var(--color-surface-raised); border: 1px solid var(--color-border); border-radius: 14px; padding: 4px; width: fit-content; }
+    .tab { border: none; background: transparent; color: var(--color-text-muted); border-radius: 10px; padding: 7px 18px; font: 700 var(--fs-meta)/1.4 inherit; cursor: pointer; transition: background .15s, color .15s, box-shadow .15s; }
+    .tab.active { background: #fff; color: var(--color-primary); box-shadow: 0 1px 4px rgba(76,42,146,.14); }
+    .urgency-badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+    .urgency-act { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
+    .urgency-wait { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .slot-class-primary { font-weight: 700; font-size: 13px; color: var(--color-text-primary); }
+    .slot-class-sub { font-size: 11px; color: var(--color-text-muted); margin-top: 2px; }
     .summary-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-raised); }
     .summary-label { font-size: var(--fs-label); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
     .summary-value { font-size: 26px; font-weight: 800; color: var(--color-text-primary); line-height: 1.1; margin-top: var(--space-1); }
@@ -79,14 +84,10 @@
         <table class="fs-table" id="queueTable">
           <thead>
             <tr>
-              <th></th>
+              <th style="width:130px"></th>
               <th>Class</th>
-              <th>Teacher</th>
-              <th>Day / Time</th>
               <th>Fellowship</th>
-              <th>Enrolled</th>
-              <th>Capacity</th>
-              <th>Available</th>
+              <th>Enrolled / Cap</th>
               <th>Waitlisted</th>
               <th>Fill</th>
               <th>Actions</th>
@@ -255,7 +256,7 @@
       const tbody  = $("queueTableBody");
 
       if (!slots.length) {
-        tbody.innerHTML = `<tr><td colspan="11"><div class="msg">No active class slots found.</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7"><div class="msg">No active class slots found.</div></td></tr>`;
         return;
       }
 
@@ -264,33 +265,36 @@
         const wl       = state.waitlistCounts[`${slot.class_option_id}:${slot.batch_id}`] || 0;
         const avail    = slot.max_capacity != null ? slot.max_capacity - slot.current_enrolment : "∞";
         const pct      = slot.max_capacity ? Math.round((slot.current_enrolment / slot.max_capacity) * 100) : 0;
-        const availHtml = (typeof avail === "number" && avail <= 0)
-          ? `<span class="spots-none">0</span>`
-          : `<span class="spots-ok">${avail}</span>`;
-        const fc = (co.fellowship_codes || []).join(", ") || "-";
-        const rowId = `qrow-${slot.class_slot_id}`;
+        const fc       = (co.fellowship_codes || []).join(", ") || "-";
+        const dayTime  = [(co.day || ""), (co.class_time || "")].filter(Boolean).join(" · ");
+        const hasOpen  = typeof avail === "number" && avail > 0;
+        const urgency  = hasOpen && wl > 0
+          ? `<span class="urgency-badge urgency-act" style="margin-top:4px;display:inline-flex">⚡ ${wl} waiting, ${avail} open</span>`
+          : (!hasOpen && wl > 0)
+            ? `<span class="urgency-badge urgency-wait" style="margin-top:4px;display:inline-flex">⏳ ${wl} waiting</span>`
+            : "";
+        const expandLabel = wl > 0 ? `View Queue (${wl})` : "View Queue";
 
-        return `<tr id="${rowId}">
-          <td><button class="fs-btn btn-sm" data-expand="${slot.class_slot_id}">▶ Queue</button></td>
-          <td style="font-size:12px;font-weight:600">${esc(slot.class_option_id)}</td>
-          <td style="font-size:12px">${esc(co.teacher_name || "-")}</td>
-          <td style="font-size:12px">${esc((co.day || "") + " " + (co.class_time || "")).trim() || "-"}</td>
+        return `<tr id="qrow-${slot.class_slot_id}">
+          <td><button class="fs-btn btn-sm" data-expand="${slot.class_slot_id}" data-wl="${wl}">${expandLabel}</button></td>
+          <td>
+            <div class="slot-class-primary">${esc(co.teacher_name || "—")}</div>
+            <div class="slot-class-sub">${esc(dayTime || "—")} · <span style="font-family:monospace">${esc(slot.class_option_id)}</span></div>
+            ${urgency}
+          </td>
           <td style="font-size:12px">${esc(fc)}</td>
-          <td style="font-size:12px">${slot.current_enrolment}</td>
-          <td style="font-size:12px">${slot.max_capacity ?? "∞"}</td>
-          <td>${availHtml}</td>
-          <td style="font-size:12px;font-weight:${wl>0?"700":"400"};color:${wl>0?"var(--color-warning-fg)":"inherit"}">${wl}</td>
-          <td>${slot.max_capacity ? fillBarHtml(pct) : "-"}</td>
+          <td style="font-size:12px">${slot.current_enrolment} / ${slot.max_capacity ?? "∞"}</td>
+          <td style="font-size:12px;font-weight:${wl>0?"700":"400"};color:${wl>0?"var(--color-warning-fg)":"inherit"}">${wl || "—"}</td>
+          <td>${slot.max_capacity ? fillBarHtml(pct) : "—"}</td>
           <td>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              <button class="fs-btn btn-sm btn-success" data-promote-one="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${typeof avail === "number" && avail <= 0 ? "disabled" : ""}>Promote Next</button>
-              <button class="fs-btn btn-sm btn-primary" data-promote-all="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${wl === 0 ? "disabled" : ""}>Promote All</button>
-              <input class="cap-input" data-cap-slot="${esc(slot.class_slot_id)}" value="${slot.max_capacity ?? ""}" placeholder="∞" title="Edit capacity" />
+              <button class="fs-btn btn-sm btn-success" data-promote-one="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${!hasOpen ? "disabled" : ""}>Promote Next</button>
+              <button class="fs-btn btn-sm" data-promote-all="${slot.class_option_id}" data-batch="${esc(slot.batch_id)}" ${wl === 0 ? "disabled" : ""}>Promote All</button>
             </div>
           </td>
         </tr>
         <tr id="queue-${slot.class_slot_id}" style="display:none">
-          <td colspan="11" class="queue-panel"><div class="loading-queue">Loading...</div></td>
+          <td colspan="7" class="queue-panel"><div class="loading-queue">Loading...</div></td>
         </tr>`;
       }).join("");
     }
@@ -315,34 +319,42 @@
         .filter((c, i, arr) => arr.findIndex((x) => x.class_option_id === c.class_option_id) === i);
 
       if (!rows?.length) {
-        panel.querySelector(".loading-queue, .queue-panel > *").outerHTML =
-          '<div class="msg" style="margin:8px 0">No students on the waitlist for this class.</div>';
-        panel.innerHTML = `<td colspan="11" class="queue-panel"><div class="msg">No students on the waitlist for this class.</div></td>`;
+        panel.innerHTML = `<td colspan="7" class="queue-panel"><div class="msg">No students on the waitlist for this class.</div></td>`;
         return;
       }
 
       const tableHtml = `<table class="queue-table">
-        <thead><tr><th>#</th><th>Name</th><th>Fellowship</th><th>Email</th><th>Phone</th><th>Waiting Since</th><th>Days</th><th>Actions</th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>Fellowship</th><th>Waiting Since</th><th>Days</th><th>Actions</th><th>Reassign to Class</th></tr></thead>
         <tbody>${rows.map((r, i) => {
           const days = daysSince(r.waitlisted_at) ?? 0;
           const rowCls = days > 14 ? "wait-red" : days > 7 ? "wait-amber" : "";
           const reassignOpts = coOpts.map((c) =>
-            `<option value="${esc(c.class_option_id)}"${c.class_option_id === classOptionId ? " selected" : ""}>${esc(c.class_option_id)} – ${esc(c.teacher_name || "")}</option>`
+            `<option value="${esc(c.class_option_id)}"${c.class_option_id === classOptionId ? " selected" : ""}>${esc(c.teacher_name || c.class_option_id)} – ${esc((c.day || "") + (c.class_time ? " " + c.class_time : ""))}</option>`
           ).join("");
+          const dayBadge = days > 14
+            ? `<span style="color:var(--color-danger-fg);font-weight:700">${days}d</span>`
+            : days > 7
+              ? `<span style="color:var(--color-warning-fg);font-weight:700">${days}d</span>`
+              : `${days}d`;
           return `<tr class="${rowCls}">
-            <td style="font-weight:700">${i+1}</td>
-            <td>${esc(r.full_name)}</td>
-            <td>${esc(r.fellowship_code || "-")}</td>
-            <td>${esc(r.email)}</td>
-            <td>${esc(r.phone || "-")}</td>
-            <td>${fmt(r.waitlisted_at)}</td>
-            <td style="font-weight:${days>7?"700":"400"}">${days}d</td>
+            <td style="font-weight:700;color:var(--color-text-muted)">${i+1}</td>
             <td>
-              <div style="display:flex;gap:3px;flex-wrap:wrap;align-items:center">
-                <button class="fs-btn btn-sm btn-success" data-q-promote="${esc(r.id)}" data-q-slot="${esc(slotId)}">Promote</button>
-                <button class="fs-btn btn-sm" data-q-top="${esc(r.id)}" data-q-slot="${esc(slotId)}">Move to Top</button>
-                <button class="fs-btn btn-sm btn-danger" data-q-remove="${esc(r.id)}" data-q-slot="${esc(slotId)}">Remove</button>
-                <select class="status-select" data-q-reassign="${esc(r.id)}" data-q-slot="${esc(slotId)}">${reassignOpts}</select>
+              <div style="font-weight:600;font-size:12px">${esc(r.full_name)}</div>
+              <div style="font-size:11px;color:var(--color-text-muted)">${esc(r.email)}</div>
+            </td>
+            <td style="font-size:12px">${esc(r.fellowship_code || "—")}</td>
+            <td style="font-size:12px">${fmt(r.waitlisted_at)}</td>
+            <td style="font-size:12px">${dayBadge}</td>
+            <td>
+              <div style="display:flex;gap:3px">
+                <button class="fs-btn btn-sm btn-success" data-q-promote="${esc(r.id)}" data-q-slot="${esc(slotId)}" title="Promote to enrolled">↑ Promote</button>
+                <button class="fs-btn btn-sm" data-q-top="${esc(r.id)}" data-q-slot="${esc(slotId)}" title="Move to top of queue">⇑ Top</button>
+                <button class="fs-btn btn-sm btn-danger" data-q-remove="${esc(r.id)}" data-q-slot="${esc(slotId)}" title="Remove from waitlist">✕</button>
+              </div>
+            </td>
+            <td>
+              <div style="display:flex;gap:3px;align-items:center">
+                <select class="status-select" style="font-size:11px;max-width:180px" data-q-reassign="${esc(r.id)}" data-q-slot="${esc(slotId)}">${reassignOpts}</select>
                 <button class="fs-btn btn-sm" data-q-doReassign="${esc(r.id)}" data-q-slot="${esc(slotId)}">Move</button>
               </div>
             </td>
@@ -350,7 +362,7 @@
         }).join("")}</tbody>
       </table>`;
 
-      panel.innerHTML = `<td colspan="11" class="queue-panel">${tableHtml}</td>`;
+      panel.innerHTML = `<td colspan="7" class="queue-panel">${tableHtml}</td>`;
     }
 
     // ── Capacity table (Tab 2) ────────────────────────────────────────────────
@@ -586,7 +598,7 @@
           if (!row) return;
           const expanded = row.style.display !== "none";
           row.style.display = expanded ? "none" : "";
-          btn.textContent   = expanded ? "▶ Queue" : "▼ Queue";
+          btn.textContent   = expanded ? (btn.dataset.wl > 0 ? `View Queue (${btn.dataset.wl})` : "View Queue") : "▼ Hide Queue";
           if (!expanded) {
             const slot = state.slots.find((s) => s.class_slot_id === slotId);
             if (slot) await loadQueueForSlot(slotId, slot.class_option_id, slot.batch_id);

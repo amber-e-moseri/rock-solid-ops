@@ -1,4 +1,4 @@
-    import { supabase, getCurrentProfile, getSessionOrNull, isAdmin } from "../auth/auth-client.js";
+﻿    import { supabase, getCurrentProfile, getSessionOrNull, isAdmin } from "../auth/auth-client.js";
     import { initOperationalTrace } from "../js/operational-trace.js";
 
     const adminApi = window.FSAdminApi;
@@ -321,7 +321,7 @@
         $("kConnection").textContent = "FAIL";
       }
 
-      // 3. Profile visibility check � profiles (canonical) then admin_users (legacy fallback)
+      // 3. Profile visibility check - profiles (canonical) then admin_users (legacy fallback)
       try {
         const userRes = await withTimeout("auth user", () => supabase.auth.getUser());
         const user = userRes.data?.user;
@@ -335,7 +335,7 @@
         );
         if (!profileErr && profileRow) {
           profileSource = "profiles";
-          pushCheck("profiles", "Profile Visibility (profiles)", "pass", `Role: ${profileRow.role || "unknown"} � canonical table present.`);
+          pushCheck("profiles", "Profile Visibility (profiles)", "pass", `Role: ${profileRow.role || "unknown"} - canonical table present.`);
         } else if (profileErr && isMissingTable(profileErr)) {
           missingTables.add("profiles");
           pushCheck("profiles", "Profile Visibility (profiles)", "warn", "profiles table not yet present; using admin_users fallback.");

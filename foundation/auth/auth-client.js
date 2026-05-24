@@ -2,15 +2,21 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Consumers: foundation/index.html, foundation/auth/{login.html,logout.js}, foundation/js/{admin-review.js,admin-shell.js,applicant-directory.js,failed-sync-retry-center.js,notification-center.js,operational-trace.js,teacher-shell.js,teacher-management.js}, foundation/staff/*, foundation/teacher/*.
 
 function readRuntimeConfig() {
-  if (window.FSConfig?.ensureOrRender) {
-    const result = window.FSConfig.ensureOrRender({ render: true });
-    return result.config;
-  }
   const cfg = window.FS_CONFIG || {};
-  return {
-    SUPABASE_URL: String(cfg.SUPABASE_URL || "").trim(),
-    SUPABASE_ANON_KEY: String(cfg.SUPABASE_ANON_KEY || "").trim(),
-  };
+  const url = String(cfg.SUPABASE_URL || "").trim();
+  const key = String(cfg.SUPABASE_ANON_KEY || "").trim();
+
+  if (window.FSConfig?.validate) {
+    const result = window.FSConfig.validate({
+      SUPABASE_URL: url,
+      SUPABASE_ANON_KEY: key,
+    });
+    if (!result.ok) {
+      window.FSConfig.ensureOrRender?.({ render: true });
+    }
+  }
+
+  return { SUPABASE_URL: url, SUPABASE_ANON_KEY: key };
 }
 
 function reportMissingConfig(keys) {
@@ -40,7 +46,13 @@ if (BYPASS_ROLE) {
 const missing = [];
 if (!CONFIG.SUPABASE_URL) missing.push("SUPABASE_URL");
 if (!CONFIG.SUPABASE_ANON_KEY) missing.push("SUPABASE_ANON_KEY");
-if (missing.length) reportMissingConfig(missing);
+const filteredMissing = missing.filter((k) => {
+  if (k === "SUPABASE_ANON_KEY" && CONFIG.SUPABASE_ANON_KEY?.startsWith("sb_publishable_")) {
+    return false;
+  }
+  return true;
+});
+if (filteredMissing.length) reportMissingConfig(filteredMissing);
 
 if (window.FSConfig?.validate) {
   const validity = window.FSConfig.validate(CONFIG);

@@ -1,6 +1,6 @@
 # Rock Solid Foundation School — System Overview
 
-*Last updated: May 2026 · Primary audience: engineers, new contributors, and operators*
+*Last updated: May 24, 2026 � Primary audience: engineers, new contributors, and operators*
 
 ---
 
@@ -175,6 +175,8 @@ When all milestones are completed and attendance is satisfactory, the admin mark
 
 Role checks are enforced in `auth-client.js` (`isAdmin()`, `isStaff()`, `isRegionalSecretary()`) and in Supabase RLS policies using the `is_admin_like()` helper function.
 
+Admin Teacher Mode: `admin`, `superadmin`, and `regional_secretary` can enter `Teacher Mode` from the shared admin shell, which applies teacher-scope navigation and links into teacher portal views.
+
 ---
 
 ## 5 — Edge Functions Reference
@@ -206,7 +208,9 @@ All functions live under `supabase/functions/`. They run on Deno. Shared utiliti
 | `class-selection` | Handles class time selection links for registered students | HTTP POST | None |
 | `reminder-processor` | **Deprecated tombstone** — renamed to `notification-batch-processor` | Cron (still scheduled) | Every 15 min |
 
-> **Note:** `reminder-processor` returns a redirect error. Any caller should be updated to use `notification-batch-processor` directly.
+
+
+> **Note:** eport-generator now applies request-origin allow headers before handling requests (pplyAllowedOrigin(req)) to avoid browser edge-invoke transport failures.
 
 ---
 
@@ -574,3 +578,7 @@ ORDER BY logged_at ASC;
 | **LINKED / UNLINKED teacher** | A teacher whose `teacher_id` is linked to a Supabase auth user (LINKED) has working Teacher Portal access. UNLINKED teachers cannot log in until the admin runs `link_teacher_to_auth_user(email)`. |
 | **email_queue** | The outbound email delivery queue. Rows move from `Pending` → `Sent` or `Failed` as `email-sender` processes them. |
 | **scheduled_notifications** | Future-dated notification events. `notification-batch-processor` moves due rows into `email_queue`. |
+
+
+
+

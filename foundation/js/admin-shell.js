@@ -15,6 +15,7 @@
   const THEME_KEY = "fs_admin_theme";
   const COLLAPSE_KEY = "fs_admin_sidebar_collapsed";
   const REGIONAL_MODE_KEY = "fs_regional_secretary_mode";
+  const TEACHER_MODE_ELIGIBLE_ROLES = new Set(["regional_secretary", "admin", "superadmin"]);
   const Shell = (window.FSAdminShell = window.FSAdminShell || {});
   const OPERATIONAL_ROLES = ["regional_secretary", "principal", "subgroup_admin", "pastor", "admin", "superadmin"];
   const SYSTEM_ADMIN_ROLES = ["admin", "superadmin"];
@@ -159,7 +160,7 @@
 
   function effectiveRoleFromMode(role, mode) {
     const raw = String(role || "").toLowerCase();
-    if (raw === "regional_secretary" && String(mode || "").toLowerCase() === "teacher") return "teacher";
+    if (TEACHER_MODE_ELIGIBLE_ROLES.has(raw) && String(mode || "").toLowerCase() === "teacher") return "teacher";
     return raw;
   }
 
@@ -214,13 +215,16 @@
 
   function buildSidebarHTML(active, badgeCounts, role) {
     const bc = badgeCounts || {};
-    const isTeacher = String(role || "").toLowerCase() === "teacher";
+    const currentRole = String(role || "").toLowerCase();
+    const isTeacher = currentRole === "teacher";
     let nav = "";
     NAV_SECTIONS.forEach(function (section) {
       const visibleItems = section.items.filter(function (item) {
+        if (currentRole === "regional_secretary" && (item.key === "notifications" || item.key === "email")) {
+          return false;
+        }
         if (isTeacher) return TEACHER_KEYS.has(item.key);
         if (Array.isArray(item.roles) && item.roles.length) {
-          const currentRole = String(role || "").toLowerCase();
           return item.roles.includes(currentRole);
         }
         return true;
@@ -276,11 +280,11 @@
         role = String(profile?.role || "").toLowerCase();
       } catch (_) {}
     }
-    const mode = role === "regional_secretary"
+    const mode = TEACHER_MODE_ELIGIBLE_ROLES.has(role)
       ? setRegionalMode(options.mode || getRegionalMode())
       : "admin";
     const effectiveRole = effectiveRoleFromMode(role, mode);
-    if (role !== "regional_secretary" || mode !== "teacher") clearRegionalTeacherScope();
+    if (!TEACHER_MODE_ELIGIBLE_ROLES.has(role) || mode !== "teacher") clearRegionalTeacherScope();
     if (isTeacherBlockedPage(active, effectiveRole)) {
       window.clearTimeout(mountFailSafeTimer);
       document.body.style.opacity = "1";
@@ -325,7 +329,7 @@
         <span class="bc-now" id="fs-bc-now">${pageTitle}</span>
       </div>
       <div class="fs-topbar-right topbar-r">
-        ${role === "regional_secretary" ? `
+        ${TEACHER_MODE_ELIGIBLE_ROLES.has(role) ? `
           <div id="fs-mode-switch" style="display:inline-flex;gap:6px;align-items:center;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2)">
             <button class="btn-out" id="fs-mode-admin" type="button" style="min-width:88px;height:30px;${mode === "admin" ? "background:var(--brand);color:#fff;border-color:var(--brand);" : ""}">Admin Mode</button>
             <button class="btn-out" id="fs-mode-teacher" type="button" style="min-width:96px;height:30px;${mode === "teacher" ? "background:var(--brand);color:#fff;border-color:var(--brand);" : ""}">Teacher Mode</button>
@@ -432,7 +436,7 @@
     // Regional secretary teacher-mode scope: persist linked teacher identity for staff teacher pages.
     (async function () {
       try {
-        if (role !== "regional_secretary" || mode !== "teacher") return;
+        if (!TEACHER_MODE_ELIGIBLE_ROLES.has(role) || mode !== "teacher") return;
         const { getCurrentProfile: getProf, getLinkedTeacherRecord } = await import("../auth/auth-client.js");
         const prof = await getProf();
         if (!prof?.email) return;
@@ -440,7 +444,7 @@
         if (!teacherRec) return;
         setRegionalTeacherScope({
           mode: "teacher",
-          role: "regional_secretary",
+          role,
           email: String(teacherRec.email || prof.email || "").trim().toLowerCase(),
           teacherId: String(teacherRec.teacher_id || "").trim(),
           fullName: String(teacherRec.full_name || "").trim(),
@@ -484,8 +488,8 @@
         link.href = teacherPath;
         link.className = "sb-link";
         link.id = "fs-teacher-portal-link";
-        link.title = "Switch to Teacher Portal";
-        link.innerHTML = '<span class="sb-icon">T</span> Teacher Portal';
+        link.title = "Teacher Mode";
+        link.innerHTML = '<span class="sb-icon">T</span> Teacher Mode';
         const logoutLink = document.getElementById("fs-admin-logout");
         if (logoutLink) {
           sbFooter.insertBefore(link, logoutLink);
@@ -526,3 +530,4 @@
     }
   };
 })();
+
