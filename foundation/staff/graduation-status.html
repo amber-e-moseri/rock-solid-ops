@@ -33,6 +33,17 @@
     .modal h2 { margin: 0 0 var(--space-3); font-size: 16px; font-weight: 800; }
     .form-label { font-size: 12px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: var(--space-1); display: block; }
     .form-row { margin-bottom: var(--space-3); }
+    @media (max-width: 768px) {
+      #tableBody td:first-child > div:first-child {
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .gate-icon { width: 18px; height: 18px; font-size: 0; }
+      .gate-icon.pass::after { content: "✓"; font-size: 10px; }
+      .gate-icon.fail::after { content: "×"; font-size: 10px; }
+    }
   </style>
 </head>
 <body>

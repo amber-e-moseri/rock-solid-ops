@@ -232,6 +232,138 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
         if (upsertRes.error) throw new ApiError("INTERNAL_ERROR", "Failed to save attendance", 500);
       }
 
+      const isClassOneSubmission = classSessions.some((s) => String(s || "").trim() === "1");
+      if (isClassOneSubmission) {
+        const moodleUrl = String(Deno.env.get("MOODLE_URL") || "https://rocksolid.lwcanada.org").trim();
+
+        const rosterRes = await withTimeout(
+          db
+            .from("class_roster")
+            .select("student_id,batch_id,status")
+            .eq("class_option_id", classOptionId)
+            .eq("status", "Active"),
+          "class one moodle follow-up roster",
+        );
+        if (!rosterRes.error && (rosterRes.data || []).length) {
+          const rosterRows = rosterRes.data || [];
+          const studentIds = [...new Set(rosterRows.map((r: any) => String(r.student_id || "").trim()).filter(Boolean))];
+          const batchIds = [...new Set(rosterRows.map((r: any) => String(r.batch_id || "").trim()).filter(Boolean))];
+
+          const [studentsRes, classInfoRes] = await Promise.all([
+            withTimeout(
+              db
+                .from("students")
+                .select("student_id,email,full_name")
+                .in("student_id", studentIds),
+              "class one moodle follow-up students",
+            ),
+            withTimeout(
+              db
+                .from("class_options")
+                .select("class_option_id,day,class_time,teacher_name")
+                .eq("class_option_id", classOptionId)
+                .maybeSingle(),
+              "class one moodle follow-up class info",
+            ),
+          ]);
+
+          if (!studentsRes.error) {
+            const students = studentsRes.data || [];
+            const studentById = new Map(students.map((s: any) => [String(s.student_id), s]));
+            const emails = [...new Set(students.map((s: any) => String(s.email || "").trim().toLowerCase()).filter(Boolean))];
+
+            if (emails.length && batchIds.length) {
+              const [syncRes, applicantsRes] = await Promise.all([
+                withTimeout(
+                  db
+                    .from("moodle_enrollment_sync")
+                    .select("email,batch_id,sync_status,moodle_course_id,course_id")
+                    .in("email", emails)
+                    .in("batch_id", batchIds),
+                  "class one moodle follow-up sync rows",
+                ),
+                withTimeout(
+                  db
+                    .from("applicants")
+                    .select("id,email,batch_id,full_name")
+                    .in("email", emails)
+                    .in("batch_id", batchIds),
+                  "class one moodle follow-up applicants",
+                ),
+              ]);
+
+              if (!syncRes.error && !applicantsRes.error) {
+                const syncMap = new Map<string, any>();
+                for (const row of syncRes.data || []) {
+                  const key = `${String(row.email || "").trim().toLowerCase()}::${String(row.batch_id || "").trim()}`;
+                  syncMap.set(key, row);
+                }
+                const appMap = new Map<string, any>();
+                for (const row of applicantsRes.data || []) {
+                  const key = `${String(row.email || "").trim().toLowerCase()}::${String(row.batch_id || "").trim()}`;
+                  appMap.set(key, row);
+                }
+
+                const classDay = String((classInfoRes.data as any)?.day || "").trim();
+                const classTime = String((classInfoRes.data as any)?.class_time || "").trim();
+                const teacherName = String((classInfoRes.data as any)?.teacher_name || auth.teacher.fullName || "").trim();
+                const classLabel = `${classDay}${classTime ? ` ${classTime}` : ""}`.trim() || "Foundation School Class";
+                const scheduledFor = new Date(Date.now() + (3 * 24 * 60 * 60 * 1000)).toISOString();
+
+                const notificationRows: Array<Record<string, unknown>> = [];
+                for (const rosterRow of rosterRows) {
+                  const studentId = String(rosterRow.student_id || "").trim();
+                  const batchId = String(rosterRow.batch_id || "").trim();
+                  if (!studentId || !batchId) continue;
+                  const student = studentById.get(studentId);
+                  const email = String(student?.email || "").trim().toLowerCase();
+                  if (!email) continue;
+                  const mapKey = `${email}::${batchId}`;
+                  const syncRow = syncMap.get(mapKey);
+                  if (!syncRow) continue;
+                  const syncStatus = String(syncRow.sync_status || "").toUpperCase();
+                  const moodleCourseId = String(syncRow.moodle_course_id || syncRow.course_id || "").trim();
+                  if (syncStatus !== "SYNCED" || !moodleCourseId) continue;
+                  const applicant = appMap.get(mapKey);
+                  const applicantId = String(applicant?.id || "").trim();
+                  if (!applicantId) continue;
+
+                  notificationRows.push({
+                    recipient_email: email,
+                    applicant_id: applicantId,
+                    batch_id: batchId,
+                    event_type: "moodle_login_check",
+                    template_key: "moodle_login_reminder",
+                    scheduled_for: scheduledFor,
+                    status: "PENDING",
+                    dedupe_key: `moodle_login_check:${applicantId}:${batchId}`,
+                    payload: {
+                      class_option_id: classOptionId,
+                      class_label: classLabel,
+                      teacher_name: teacherName,
+                      moodle_url: moodleUrl,
+                      class_start_date: classDate || null,
+                      email,
+                      full_name: String(student?.full_name || applicant?.full_name || "").trim(),
+                    },
+                  });
+                }
+
+                if (notificationRows.length) {
+                  const schedRes = await withTimeout(
+                    db.from("scheduled_notifications").upsert(notificationRows, { onConflict: "dedupe_key" }),
+                    "class one moodle follow-up schedule insert",
+                  );
+                  if (schedRes.error) {
+                    console.error("CLASS_ONE_MOODLE_LOGIN_CHECK_SCHEDULE_ERROR", schedRes.error);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
       await writeAudit(db, {
         action: "ATTENDANCE_SUBMITTED",
         actorEmail: auth.teacher.email,

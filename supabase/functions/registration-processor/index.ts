@@ -450,10 +450,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    let templateKey = "waitlist_confirmation";
+    let templateKey = "";
     if (registrationStatus === "ASSIGNED") templateKey = "foundation_welcome";
     if (registrationStatus === "DUPLICATE") templateKey = "duplicate_registration";
-    if (registrationStatus === "REVIEW") templateKey = "registration_under_review";
     if (registrationStatus === "WAITLISTED" && availabilityStatus === "NO_MATCHING_TIME") templateKey = "no_suitable_times";
     if (registrationStatus === "WAITLISTED" && (availabilityStatus === "CLASS_FULL" || availabilityStatus === "NO_CLASS_AVAILABLE")) templateKey = "no_class_available";
 
@@ -473,8 +472,6 @@ Deno.serve(async (req) => {
           ? "Welcome to Foundation School"
           : templateKey === "duplicate_registration"
           ? "We received your additional registration"
-          : templateKey === "registration_under_review"
-          ? "Your registration is under review"
           : templateKey === "no_suitable_times"
           ? "We are working on a class time for you"
           : templateKey === "no_class_available"
@@ -525,36 +522,38 @@ Deno.serve(async (req) => {
         template_key: templateKey,
       },
     };
-    let emailQueueInsertError: { message?: string } | null = null;
-    ({ error: emailQueueInsertError } = await db
-      .from("email_queue")
-      .insert(emailQueuePayload));
-    if (emailQueueInsertError) {
-      const emailQueueMsg = JSON.stringify(emailQueueInsertError);
-      if (emailQueueMsg.includes("trace_id")) {
-        const emailQueueLegacyPayload = { ...emailQueuePayload };
-        delete (emailQueueLegacyPayload as Record<string, unknown>).trace_id;
-        ({ error: emailQueueInsertError } = await db
-          .from("email_queue")
-          .insert(emailQueueLegacyPayload));
+    if (templateKey) {
+      let emailQueueInsertError: { message?: string } | null = null;
+      ({ error: emailQueueInsertError } = await db
+        .from("email_queue")
+        .insert(emailQueuePayload));
+      if (emailQueueInsertError) {
+        const emailQueueMsg = JSON.stringify(emailQueueInsertError);
+        if (emailQueueMsg.includes("trace_id")) {
+          const emailQueueLegacyPayload = { ...emailQueuePayload };
+          delete (emailQueueLegacyPayload as Record<string, unknown>).trace_id;
+          ({ error: emailQueueInsertError } = await db
+            .from("email_queue")
+            .insert(emailQueueLegacyPayload));
+        }
       }
+      if (emailQueueInsertError) {
+        console.error("REGISTRATION_PROCESSOR_EMAIL_QUEUE_INSERT_ERROR", emailQueueInsertError);
+        throw new Error(
+          `Queue insertion failure: ${emailQueueInsertError.message || "email_queue insert failed"}`,
+        );
+      }
+      debugTrail.phase = "email_queued";
+      void triggerMailchimpSync({
+        email,
+        first_name,
+        last_name,
+        phone,
+        campus: String(body.fellowship_name || body.fellowship_code || ""),
+        fellowship_code: fellowship_code || "",
+        template_key: templateKey,
+      });
     }
-    if (emailQueueInsertError) {
-      console.error("REGISTRATION_PROCESSOR_EMAIL_QUEUE_INSERT_ERROR", emailQueueInsertError);
-      throw new Error(
-        `Queue insertion failure: ${emailQueueInsertError.message || "email_queue insert failed"}`,
-      );
-    }
-    debugTrail.phase = "email_queued";
-    void triggerMailchimpSync({
-      email,
-      first_name,
-      last_name,
-      phone,
-      campus: String(body.fellowship_name || body.fellowship_code || ""),
-      fellowship_code: fellowship_code || "",
-      template_key: templateKey,
-    });
 
     let moodleSyncRowId = "";
     if (registrationStatus === "ASSIGNED") {

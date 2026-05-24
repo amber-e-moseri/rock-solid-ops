@@ -328,6 +328,7 @@
     topbar.id = "fs-admin-topbar";
     topbar.innerHTML = `
       <div class="fs-topbar-left breadcrumb">
+        <button id="fs-hamburger" style="display:none;background:none;border:none;cursor:pointer;padding:8px;color:#4C2A92;" aria-label="Open menu">☰</button>
         <span>${mode === "teacher" ? "Teacher" : "Admin"}</span>
         <span class="bc-sep">/</span>
         <span class="bc-now" id="fs-bc-now">${pageTitle}</span>
@@ -351,7 +352,11 @@
     const overlay = document.createElement("div");
     overlay.className = "s-ov";
     overlay.id = "fs-s-ov";
+    const mobileBackdrop = document.createElement("div");
+    mobileBackdrop.className = "fs-sidebar-backdrop";
+    mobileBackdrop.id = "fs-sidebar-backdrop";
 
+    document.body.prepend(mobileBackdrop);
     document.body.prepend(overlay);
     document.body.prepend(topbar);
     document.body.prepend(sidebar);
@@ -374,6 +379,7 @@
     themeBtn && themeBtn.remove();
 
     const hamBtn = document.getElementById("fs-ham");
+    const hamburgerBtn = document.getElementById("fs-hamburger");
     const collapseBtn = document.getElementById("fs-collapse-btn");
     const sb = document.getElementById("fs-admin-sb");
     const ov = document.getElementById("fs-s-ov");
@@ -381,19 +387,25 @@
     function openSidebar() {
       sb.classList.add("open");
       ov.classList.add("show");
+      document.body.classList.add("fs-sidebar-open");
       hamBtn && hamBtn.setAttribute("aria-expanded", "true");
     }
 
     function closeSidebar() {
       sb.classList.remove("open");
       ov.classList.remove("show");
+      document.body.classList.remove("fs-sidebar-open");
       hamBtn && hamBtn.setAttribute("aria-expanded", "false");
     }
 
     hamBtn && hamBtn.addEventListener("click", function () {
       sb.classList.contains("open") ? closeSidebar() : openSidebar();
     });
+    hamburgerBtn && hamburgerBtn.addEventListener("click", function () {
+      document.body.classList.contains("fs-sidebar-open") ? closeSidebar() : openSidebar();
+    });
     ov.addEventListener("click", closeSidebar);
+    mobileBackdrop.addEventListener("click", closeSidebar);
 
     collapseBtn && collapseBtn.addEventListener("click", function () {
       const next = !document.body.classList.contains("fs-shell-collapsed");

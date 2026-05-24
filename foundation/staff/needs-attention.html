@@ -46,6 +46,12 @@
       .fs-table-wrap { display:none; }
       .mobile-cards { display:grid !important; gap:8px; }
     }
+    @media (max-width: 768px) {
+      .na-summary { grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .na-actions { flex-direction: column; }
+      .na-actions .fs-btn { width: 100%; }
+      .na-accordion { width: 100%; }
+    }
     .mobile-cards { display:none; }
     .mobile-card { border:1px solid var(--color-border); border-radius:12px; padding:10px; background:var(--color-surface); }
   </style>

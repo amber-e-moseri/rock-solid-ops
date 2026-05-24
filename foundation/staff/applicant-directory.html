@@ -198,6 +198,16 @@
       .kv { grid-template-columns: 1fr; }
       .modal-grid { grid-template-columns: 1fr; }
       .drawer { width: 100%; }
+      .searchbox, .searchbox input { width: 100%; }
+      #bulkBar { flex-direction: column; align-items: stretch !important; }
+    }
+    @media (max-width: 768px) {
+      #tableWrap table thead th:nth-child(4),
+      #tableWrap table tbody td:nth-child(4),
+      #tableWrap table thead th:nth-child(5),
+      #tableWrap table tbody td:nth-child(5),
+      #tableWrap table thead th:nth-child(8),
+      #tableWrap table tbody td:nth-child(8) { display: none; }
     }
   </style>
 </head>

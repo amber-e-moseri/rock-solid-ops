@@ -21,7 +21,6 @@ async function getConfig(): Promise<Record<string, number>> {
   return {
     never_started_days:      map.never_started_days      ?? 7,
     dropoff_days:            map.dropoff_days            ?? 14,
-    final_notice_days:       map.final_notice_days       ?? 21,
     max_emails_per_scenario: map.max_emails_per_scenario ?? 2,
   };
 }
@@ -124,6 +123,15 @@ async function processNeverStarted(
     await Promise.all(slice.map(async (app) => {
       if (!app.email) return;
 
+      // Only fire never_started after Class 1 has been submitted by teacher.
+      const { count: classOneSubmittedCount } = await sb
+        .from("attendance_log")
+        .select("attendance_id", { count: "exact", head: true })
+        .eq("class_option_id", app.class_option_id)
+        .eq("class_number", "1")
+        .eq("submitted_by_teacher", true);
+      if ((classOneSubmittedCount ?? 0) === 0) return;
+
       // Check Moodle SYNCED
       const { data: moodle } = await sb
         .from("moodle_enrollment_sync")
@@ -141,11 +149,8 @@ async function processNeverStarted(
         .eq("status", "present");
       if ((attCount ?? 0) > 0) return;
 
-      // Already sent final notice?
-      const finalSent = await hasLogEntry(app.email, batchId, "final_notice");
       const prior     = await countPriorEngagements(app.email, batchId, "never_started");
-
-      if (prior >= cfg.max_emails_per_scenario && finalSent) return;
+      if (prior >= cfg.max_emails_per_scenario) return;
 
       const cls = await getClassInfo(app.class_option_id);
       const firstName = String(app.full_name || "Student").split(/\s+/)[0];
@@ -176,14 +181,6 @@ async function processNeverStarted(
         await safeLogAudit(sb, "ENGAGEMENT_NEVER_STARTED_FLAGGED", "applicant", String(app.id),
           { batch_id: batchId, email: app.email, trace_id: traceId });
         emails++; flagged++;
-      } else if (prior >= 1 && !finalSent) {
-        // Second attempt — send final notice and flag for follow-up
-        const traceId = await queueEmail(app.email, app.full_name || "", "engagement_final_notice",
-          "An important update about your Foundation School enrollment", payload);
-        await insertLog(app.email, batchId, "final_notice", "email_queued", "final notice — never started");
-        await safeLogAudit(sb, "ENGAGEMENT_FINAL_NOTICE_SENT", "applicant", String(app.id),
-          { batch_id: batchId, scenario: "never_started", trace_id: traceId });
-        emails++;
       }
     }));
   }
@@ -229,9 +226,8 @@ async function processDroppedOff(
       const daysSinceLast = Math.floor((Date.now() - lastDate.getTime()) / 86400000);
       if (daysSinceLast < cfg.dropoff_days) return;
 
-      const finalSent = await hasLogEntry(stu.email, batchId, "final_notice");
       const prior     = await countPriorEngagements(stu.email, batchId, "dropped_off");
-      if (prior >= cfg.max_emails_per_scenario && finalSent) return;
+      if (prior >= cfg.max_emails_per_scenario) return;
 
       // Count missed sessions since last attendance
       const { count: missedCount } = await sb
@@ -269,15 +265,6 @@ async function processDroppedOff(
         await safeLogAudit(sb, "ENGAGEMENT_DROPPED_OFF_FLAGGED", "student", stu.student_id,
           { batch_id: batchId, days_since_last: daysSinceLast, trace_id: traceId });
         emails++; flagged++;
-      }
-
-      if (daysSinceLast >= cfg.final_notice_days && !finalSent) {
-        const traceId = await queueEmail(stu.email, stu.full_name || "", "engagement_final_notice",
-          "An important update about your Foundation School enrollment", payload);
-        await insertLog(stu.email, batchId, "final_notice", "email_queued", "final notice — dropped off");
-        await safeLogAudit(sb, "ENGAGEMENT_FINAL_NOTICE_SENT", "student", stu.student_id,
-          { batch_id: batchId, scenario: "dropped_off", trace_id: traceId });
-        emails++;
       }
     }));
   }

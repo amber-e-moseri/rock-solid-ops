@@ -128,6 +128,7 @@
         <div>
           <h1 class="title">Rock Solid Help Guide</h1>
           <p class="subtitle">Interactive role-based guide for staff and teachers.</p>
+          <p id="viewingAs" class="subtitle" style="display:none"></p>
         </div>
       </div>
       <div class="tools">
@@ -146,7 +147,10 @@
     <section id="searchResults" class="search-results"></section>
     <nav id="breadcrumb" class="crumb"></nav>
 
-    <section id="landingView"><div class="cards" id="roleCards"></div></section>
+    <section id="landingView">
+      <p id="landingNote" class="subtitle" style="margin:0 0 10px;">Select your role to view guide</p>
+      <div class="cards" id="roleCards"></div>
+    </section>
 
     <section id="guideView" class="guide hidden">
       <div class="guide-top">
@@ -160,7 +164,9 @@
     </section>
   </div>
 
-  <script>
+  <script type="module">
+    import { supabase } from "../auth/auth-client.js";
+
     (function () {
       const THEME_KEY = "fs_help_guide_theme";
       const CHECK_KEY = "fs_help_guide_checks";
@@ -259,9 +265,20 @@
         ["Moodle sync issues", "System admin"],
       ];
 
-      const keys = Object.keys(ROLES);
+      const allRoleKeys = Object.keys(ROLES);
+      let visibleKeys = [...allRoleKeys];
+      let activeProfileRole = "";
       let role = "";
       let tab = "getting-started";
+      let searchIndex = [];
+      const VISIBLE_ROLES = {
+        superadmin: ["superadmin", "admin"],
+        admin: ["admin"],
+        regional_secretary: ["regional_secretary", "admin"],
+        pastor: ["pastor"],
+        subgroup_admin: ["subgroup_admin"],
+        teacher: ["teacher"],
+      };
 
       const el = {
         cards: document.getElementById("roleCards"),
@@ -279,6 +296,8 @@
         homeBtn: document.getElementById("homeBtn"),
         themeToggle: document.getElementById("themeToggle"),
         printBtn: document.getElementById("printBtn"),
+        viewingAs: document.getElementById("viewingAs"),
+        landingNote: document.getElementById("landingNote"),
       };
 
       const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -306,7 +325,7 @@
       }
 
       function renderCards() {
-        el.cards.innerHTML = keys.map((k) => {
+        el.cards.innerHTML = visibleKeys.map((k) => {
           const r = ROLES[k];
           return `<article class="role-card">
             <div class="role-head">
@@ -320,7 +339,7 @@
       }
 
       function renderSwitcher() {
-        el.roleSwitcher.innerHTML = `<option value="">Select role</option>` + keys.map((k) => `<option value="${k}">${ROLES[k].label}</option>`).join("");
+        el.roleSwitcher.innerHTML = `<option value="">Select role</option>` + visibleKeys.map((k) => `<option value="${k}">${ROLES[k].label}</option>`).join("");
       }
 
       function renderCrumb() {
@@ -425,7 +444,7 @@
       }
 
       function navigate(nextRole, nextTab, replace) {
-        role = nextRole && ROLES[nextRole] ? nextRole : "";
+        role = nextRole && ROLES[nextRole] && visibleKeys.includes(nextRole) ? nextRole : "";
         tab = tId(nextTab || "getting-started");
         const h = role ? `#${role}/${tab}` : "";
         if (replace) history.replaceState(null, "", h || location.pathname);
@@ -439,7 +458,7 @@
         const parts = raw.split("/");
         const r = norm(parts[0]);
         const t = tId(norm(parts[1] || "getting-started"));
-        if (!ROLES[r]) return navigate("", "getting-started", true);
+        if (!ROLES[r] || !visibleKeys.includes(r)) return navigate("", "getting-started", true);
         role = r;
         tab = t;
         if (replace) {
@@ -449,11 +468,14 @@
         renderGuide();
       }
 
-      const INDEX = keys.flatMap((k) => ROLES[k].tasks.map((t) => ({ role: k, label: ROLES[k].label, color: ROLES[k].color, id: t[0], title: t[1], body: t[2].join(" ") })));
+      function rebuildSearchIndex() {
+        searchIndex = visibleKeys.flatMap((k) => ROLES[k].tasks.map((t) => ({ role: k, label: ROLES[k].label, color: ROLES[k].color, id: t[0], title: t[1], body: t[2].join(" ") })));
+      }
+
       function runSearch(q) {
         const s = String(q || "").trim().toLowerCase();
         if (!s) { el.searchResults.classList.remove("open"); el.searchResults.innerHTML = ""; return; }
-        const hits = INDEX.filter((x) => (`${x.title} ${x.body} ${x.label}`).toLowerCase().includes(s)).slice(0, 40);
+        const hits = searchIndex.filter((x) => (`${x.title} ${x.body} ${x.label}`).toLowerCase().includes(s)).slice(0, 40);
         el.searchResults.classList.add("open");
         if (!hits.length) { el.searchResults.innerHTML = `<div class="search-item"><div>No matching tasks found.</div></div>`; return; }
         el.searchResults.innerHTML = hits.map((h) => `<div class="search-item"><div><span class="role-badge" style="background:${h.color}">${esc(h.label)}</span><strong>${esc(h.title)}</strong><div class="search-meta">${esc(h.body.slice(0, 140))}</div></div><button class="btn" data-open="${h.role}|common-tasks|${h.id}" type="button">Open</button></div>`).join("");
@@ -483,12 +505,52 @@
         window.addEventListener("hashchange", () => parseHash(false));
       }
 
-      function init() {
+      async function detectRoleVisibility() {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user?.id) {
+            activeProfileRole = "";
+            visibleKeys = [...allRoleKeys];
+            el.landingNote.textContent = "Select your role to view guide";
+            el.viewingAs.style.display = "none";
+            return;
+          }
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .single();
+          const profileRole = norm(profile?.role || "");
+          activeProfileRole = profileRole;
+          const allowed = VISIBLE_ROLES[profileRole];
+          visibleKeys = allowed && allowed.length ? allowed.filter((r) => ROLES[r]) : [...allRoleKeys];
+          el.landingNote.textContent = "Select your role to view guide";
+          if (allowed && allowed.length) {
+            el.viewingAs.textContent = `Viewing as: ${ROLES[profileRole]?.label || profileRole}`;
+            el.viewingAs.style.display = "";
+          } else {
+            el.viewingAs.style.display = "none";
+          }
+        } catch (_) {
+          activeProfileRole = "";
+          visibleKeys = [...allRoleKeys];
+          el.landingNote.textContent = "Select your role to view guide";
+          el.viewingAs.style.display = "none";
+        }
+      }
+
+      async function init() {
+        await detectRoleVisibility();
+        rebuildSearchIndex();
         renderSwitcher();
         renderCards();
         bind();
         applyTheme(localStorage.getItem(THEME_KEY) || "light");
-        parseHash(true);
+        if (visibleKeys.length === 1) {
+          navigate(visibleKeys[0], "getting-started", true);
+        } else {
+          parseHash(true);
+        }
       }
       init();
     })();

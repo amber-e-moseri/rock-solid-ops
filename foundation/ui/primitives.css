@@ -446,3 +446,104 @@
   background: var(--color-info-bg);
   color: var(--color-info-fg);
 }
+
+@media (max-width: 768px) {
+  .fs-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fs-grid-2,
+  .fs-grid-3,
+  .fs-grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .fs-modal {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+    margin: 0 !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  .fs-drawer,
+  #applicantDrawer,
+  #reviewDrawer {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .fs-filter-row,
+  .filter-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .fs-page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .fs-btn {
+    min-height: 44px !important;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .fs-page-content {
+    padding: 12px !important;
+  }
+  .kpi-grid,
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  #fs-admin-sb.fs-shell.sidebar {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    height: 100vh;
+    width: 260px;
+    z-index: 300;
+    transition: left 0.25s ease;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+  }
+  body.fs-sidebar-open #fs-admin-sb.fs-shell.sidebar {
+    left: 0;
+  }
+  .fs-content.main {
+    margin-left: 0 !important;
+  }
+  #fs-hamburger {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  .fs-sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 299;
+  }
+  body.fs-sidebar-open .fs-sidebar-backdrop {
+    display: block;
+  }
+}

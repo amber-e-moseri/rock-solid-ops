@@ -1,4 +1,4 @@
-<!doctype html>
+ï»¿<!doctype html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
@@ -37,7 +37,9 @@
     @media (max-width: 760px) {
       .filters { grid-template-columns: 1fr; }
       .table-wrap { display: none; }
-      .mobile-cards { display: grid; }
+      .mobile-cards { display: grid; grid-template-columns: 1fr; }
+      .tm-modal-overlay { align-items: end; padding: 0; }
+      .tm-modal { width: 100%; max-width: 100%; border-radius: 16px 16px 0 0; max-height: 90dvh; }
     }
     .tm-modal-overlay { position: fixed; inset: 0; background: color-mix(in srgb, var(--color-text-primary), transparent 60%); display: none; align-items: center; justify-content: center; z-index: 1200; padding: var(--space-4); }
     .tm-modal-overlay.open { display: flex; }
@@ -107,7 +109,7 @@
       <p id="actionReasonDesc" style="margin:0;color:var(--color-text-secondary,var(--fs-text-muted));font-size:14px;"></p>
       <div class="tm-field tm-field-full" style="margin-top:12px;">
         <label class="tm-label" for="actionReasonInput">Reason <span id="actionReasonRequired" style="color:var(--color-danger-fg,#b53030);">*</span></label>
-        <textarea id="actionReasonInput" class="fs-input" rows="3" placeholder="Enter reason…" style="resize:vertical;"></textarea>
+        <textarea id="actionReasonInput" class="fs-input" rows="3" placeholder="Enter reasonâ€¦" style="resize:vertical;"></textarea>
         <p id="actionReasonError" class="tm-note" style="color:var(--color-danger-fg,#b53030);min-height:18px;margin-top:4px;"></p>
       </div>
       <div class="tm-modal-actions">
@@ -161,7 +163,7 @@
           <p class="tm-note">Email: <span id="addTeacherResultEmail"></span></p>
           <pre id="addTeacherResultPassword"></pre>
           <p class="tm-note">Login URL: <code>/foundation/auth/login.html</code></p>
-          <p class="tm-note">Status is PENDING — use Activate to enable portal access</p>
+          <p class="tm-note">Status is PENDING â€” use Activate to enable portal access</p>
         </div>
         <div class="tm-modal-actions tm-field-full">
           <button id="cancelAddTeacherBtn" type="button" class="fs-btn fs-btn fs-btn-secondary">Cancel</button>
@@ -214,7 +216,8 @@
         <button id="confirmUnlinkAuthBtn" type="button" class="fs-btn fs-btn fs-btn-danger">Unlink</button>
       </div>
     </div>
-  </div>`r`n  <script src="../js/config.js"></script>
+  </div>`r
+  <script src="../js/config.js"></script>
   <script src="../js/config-helper.js"></script>
   <script src="../js/admin-ui.js"></script>
   <script src="../js/toast.js"></script>
@@ -226,6 +229,8 @@
   <script src="../js/teacher-management.js"></script>
 </body>
 </html>
+
+
 
 
 

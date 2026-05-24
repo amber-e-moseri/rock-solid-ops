@@ -18,7 +18,7 @@
     /* KPI row */
     .kpi-row {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
       margin-bottom: 16px;
     }
@@ -63,7 +63,8 @@
     }
     .chart-card { margin-bottom: 0; }
     .chart-card h3 { margin: 0 0 14px; font-size: 14px; font-weight: 800; }
-    .chart-wrap { position: relative; }
+    .chart-wrap { position: relative; overflow-x: auto; }
+    .chart-wrap canvas { min-width: 320px; }
 
     /* Fill bars */
     .fill-bar-track { background: var(--color-border, #e5e7eb); border-radius: 4px; height: 8px; width: 100%; min-width: 60px; }
@@ -148,15 +149,31 @@
     .sec-title { margin: 0; font-size: 14px; font-weight: 800; color: var(--color-text-primary); }
     .sec-meta { font-size: 11px; color: var(--color-text-muted); }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1024px) {
       .kpi-row    { grid-template-columns: repeat(2, 1fr); }
       .chart-row  { grid-template-columns: 1fr; }
       .ops-row    { grid-template-columns: 1fr; }
       .funnel-grid { grid-template-columns: 1fr 1fr; }
     }
-    @media (max-width: 520px) {
+    @media (max-width: 768px) {
       .kpi-row { grid-template-columns: repeat(2, 1fr); }
-      .batch-switch { min-width: 120px; }
+      .batch-switcher { flex-direction: column; }
+      .batch-switch { width: 100%; min-width: 0; }
+      .fs-page-actions { width: 100%; }
+      #batchFilter { width: 100%; min-width: 0 !important; }
+      #refreshBtn { width: 44px; min-width: 44px; padding: 0; font-size: 0; }
+      #refreshBtn::before { content: "↻"; font-size: 18px; line-height: 1; }
+      #capacityWrap thead th:nth-child(4),
+      #capacityWrap tbody td:nth-child(4) { display: none; }
+      #systemOpsRow .ops-card:last-child table thead th:first-child,
+      #systemOpsRow .ops-card:last-child table tbody td:first-child,
+      #systemOpsRow .ops-card:last-child table thead th:last-child,
+      #systemOpsRow .ops-card:last-child table tbody td:last-child { display: none; }
+      #funnelGrid { grid-template-columns: 1fr; }
+      .chart-wrap canvas { height: 220px !important; }
+    }
+    @media (max-width: 480px) {
+      .kpi-row { grid-template-columns: 1fr; }
       .funnel-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -401,6 +418,7 @@
     const PURPLE = "#4C2A92";
     const PURPLE_SOFT = "rgba(76,42,146,0.12)";
     const PALETTE = ["#4C2A92","#7B52C8","#A97EE8","#C9B4F2","#6B3FA0","#9B6BD6","#D4BCF7","#3D1F7A"];
+    const isMobileViewport = () => window.matchMedia("(max-width: 768px)").matches;
     const isScopedRole = (role) => !isAdmin(role) && !isRegionalSecretary(role);
     const missingItems = new Set();
     let _scope = { profile: null, subgroups: null };
@@ -504,7 +522,7 @@
       setKpiStamp("kpiPendingReview", _lastRefreshTs); setKpiStamp("kpiDuplicates", _lastRefreshTs);
       _exportState.registration = rows;
       hide("regChartState"); show("regChartWrap");
-      _charts.reg = new Chart($("regChart"), { type: "bar", data: { labels: rows.map((r) => r.reg_status), datasets: [{ data: rows.map((r) => Number(r.cnt)), backgroundColor: PALETTE.slice(0, rows.length), borderRadius: 6 }] }, options: { indexAxis:"y", responsive:true, plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } } } } });
+      _charts.reg = new Chart($("regChart"), { type: "bar", data: { labels: rows.map((r) => r.reg_status), datasets: [{ data: rows.map((r) => Number(r.cnt)), backgroundColor: PALETTE.slice(0, rows.length), borderRadius: 6 }] }, options: { indexAxis:"y", responsive:true, plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true, ticks:{ precision:0, font: { size: isMobileViewport() ? 10 : 12 } } }, y: { ticks: { font: { size: isMobileViewport() ? 10 : 12 } } } } } });
     }
 
     async function loadFellowshipBreakdown() {
@@ -514,7 +532,7 @@
       const rows = data || [];
       if (!rows.length) { setState("fellowshipChartState", "No fellowship data."); return; }
       hide("fellowshipChartState"); show("fellowshipChartWrap");
-      _charts.fellowship = new Chart($("fellowshipChart"), { type:"doughnut", data:{ labels:rows.map((r)=>r.fellowship), datasets:[{ data:rows.map((r)=>Number(r.cnt)), backgroundColor:PALETTE.slice(0, rows.length), borderColor:"#fff", borderWidth:2 }] }, options:{ responsive:true, cutout:"60%", plugins:{ legend:{ position:"right", labels:{ font:{ size:11 }, boxWidth:12, padding:10 } } } } });
+      _charts.fellowship = new Chart($("fellowshipChart"), { type:"doughnut", data:{ labels:rows.map((r)=>r.fellowship), datasets:[{ data:rows.map((r)=>Number(r.cnt)), backgroundColor:PALETTE.slice(0, rows.length), borderColor:"#fff", borderWidth:2 }] }, options:{ responsive:true, cutout:"60%", plugins:{ legend:{ position:isMobileViewport() ? "bottom" : "right", labels:{ font:{ size:isMobileViewport() ? 10 : 11 }, boxWidth:12, padding:10 } } } } });
     }
 
     async function loadWeeklyTrend() {
@@ -524,7 +542,7 @@
       const rows = (data || []).slice(-12);
       if (!rows.length) { setState("weeklyChartState", "No weekly data."); return; }
       hide("weeklyChartState"); show("weeklyChartWrap");
-      _charts.weekly = new Chart($("weeklyChart"), { type:"line", data:{ labels:rows.map((r)=>fmtDate(r.week_start)), datasets:[{ data:rows.map((r)=>Number(r.cnt)), borderColor:PURPLE, backgroundColor:PURPLE_SOFT, fill:true, tension:.35, pointRadius:4, pointBackgroundColor:PURPLE }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } } });
+      _charts.weekly = new Chart($("weeklyChart"), { type:"line", data:{ labels:rows.map((r)=>fmtDate(r.week_start)), datasets:[{ data:rows.map((r)=>Number(r.cnt)), borderColor:PURPLE, backgroundColor:PURPLE_SOFT, fill:true, tension:.35, pointRadius:4, pointBackgroundColor:PURPLE }] }, options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0, font: { size: isMobileViewport() ? 10 : 12 } } }, x: { ticks: { font: { size: isMobileViewport() ? 10 : 12 } } } } } });
     }
 
         async function loadCapacity() {
