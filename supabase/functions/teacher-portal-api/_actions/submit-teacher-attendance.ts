@@ -350,12 +350,30 @@ export async function submitTeacherAttendanceAction(ctx: ActionContext): Promise
                 }
 
                 if (notificationRows.length) {
-                  const schedRes = await withTimeout(
-                    db.from("scheduled_notifications").upsert(notificationRows, { onConflict: "dedupe_key" }),
-                    "class one moodle follow-up schedule insert",
+                  const dedupeKeys = notificationRows
+                    .map((row) => String(row.dedupe_key || "").trim())
+                    .filter(Boolean);
+                  const existingRes = await withTimeout(
+                    db
+                      .from("scheduled_notifications")
+                      .select("dedupe_key")
+                      .in("dedupe_key", dedupeKeys),
+                    "class one moodle follow-up dedupe lookup",
                   );
-                  if (schedRes.error) {
-                    console.error("CLASS_ONE_MOODLE_LOGIN_CHECK_SCHEDULE_ERROR", schedRes.error);
+                  if (existingRes.error) {
+                    console.error("CLASS_ONE_MOODLE_LOGIN_CHECK_DEDUPE_LOOKUP_ERROR", existingRes.error);
+                  } else {
+                    const existingKeys = new Set((existingRes.data || []).map((r: any) => String(r.dedupe_key || "").trim()));
+                    const rowsToInsert = notificationRows.filter((row) => !existingKeys.has(String(row.dedupe_key || "").trim()));
+                    if (rowsToInsert.length) {
+                      const schedRes = await withTimeout(
+                        db.from("scheduled_notifications").insert(rowsToInsert),
+                        "class one moodle follow-up schedule insert",
+                      );
+                      if (schedRes.error) {
+                        console.error("CLASS_ONE_MOODLE_LOGIN_CHECK_SCHEDULE_ERROR", schedRes.error);
+                      }
+                    }
                   }
                 }
               }
