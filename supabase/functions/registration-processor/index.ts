@@ -278,6 +278,7 @@ Deno.serve(async (req) => {
     let availabilityStatus = String(assignment.availabilityStatus || "MANUAL_REVIEW_REQUIRED") as
       | "CLASS_ASSIGNED"
       | "NO_MATCHING_TIME"
+      | "NO_SUITABLE_TIME"
       | "CLASS_FULL"
       | "MANUAL_REVIEW_REQUIRED"
       | "NO_CLASS_AVAILABLE";
@@ -453,7 +454,7 @@ Deno.serve(async (req) => {
     let templateKey = "";
     if (registrationStatus === "ASSIGNED") templateKey = "foundation_welcome";
     if (registrationStatus === "DUPLICATE") templateKey = "duplicate_registration";
-    if (registrationStatus === "WAITLISTED" && availabilityStatus === "NO_MATCHING_TIME") templateKey = "no_suitable_times";
+    if (registrationStatus === "PENDING" && availabilityStatus === "NO_SUITABLE_TIME") templateKey = "no_suitable_times";
     if (registrationStatus === "WAITLISTED" && (availabilityStatus === "CLASS_FULL" || availabilityStatus === "NO_CLASS_AVAILABLE")) templateKey = "no_class_available";
 
     console.log("EMAIL_TEMPLATE_SELECTED", {

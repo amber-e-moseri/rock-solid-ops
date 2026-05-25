@@ -33,7 +33,7 @@
       items: [
         { key: "batch", label: "Batch Management", href: "batch-management.html", icon: "BM", roles: OPERATIONAL_ROLES },
         { key: "applicants", label: "Applicants", href: "applicant-directory.html", icon: "AD", roles: OPERATIONAL_ROLES },
-        { key: "waitlist", label: "Waitlist", href: "waitlist.html", icon: "WL", roles: OPERATIONAL_ROLES },
+        { key: "waitlist", label: "Waiting Students", href: "waitlist.html", icon: "WL", roles: OPERATIONAL_ROLES },
         { key: "classeditor", label: "Class Editor", href: "class-editor.html", icon: "CE", roles: OPERATIONAL_ROLES }
       ]
     },
@@ -110,6 +110,47 @@
   function resolveLoginPath() {
     const p = window.location.pathname || "";
     return p.includes("/foundation/") ? "/foundation/auth/login.html" : "/auth/login.html";
+  }
+
+  function ensureProgressBar() {
+    let bar = document.getElementById("fs-progress-bar");
+    if (bar) return bar;
+    bar = document.createElement("div");
+    bar.id = "fs-progress-bar";
+    bar.style.cssText = "position:fixed;top:0;left:0;height:3px;width:0%;background:#C8102E;z-index:9999;transition:width 0.3s ease,opacity 0.2s ease;border-radius:0 2px 2px 0;opacity:0;";
+    document.body.appendChild(bar);
+    return bar;
+  }
+
+  function completeProgressBar() {
+    const bar = ensureProgressBar();
+    bar.style.opacity = "1";
+    bar.style.width = "100%";
+    window.setTimeout(function () {
+      bar.style.opacity = "0";
+      window.setTimeout(function () {
+        bar.style.width = "0%";
+      }, 200);
+      try { sessionStorage.removeItem("fs_nav_progress_pending"); } catch (_) {}
+    }, 300);
+  }
+
+  function startShellTransition() {
+    const main = document.querySelector(".fs-shell-main, .fs-content.main, main.main, main");
+    if (main) {
+      main.classList.add("fs-shell-main");
+      main.classList.add("fs-loading");
+    }
+    document.body.classList.add("fs-nav-transitioning");
+    const frame = document.querySelector(".fs-content-frame");
+    if (frame) {
+      frame.style.opacity = "0";
+      frame.style.transition = "opacity 0.15s ease";
+    }
+    const bar = ensureProgressBar();
+    bar.style.opacity = "1";
+    bar.style.width = "70%";
+    try { sessionStorage.setItem("fs_nav_progress_pending", "1"); } catch (_) {}
   }
 
   function applyTheme() {
@@ -328,7 +369,7 @@
     topbar.id = "fs-admin-topbar";
     topbar.innerHTML = `
       <div class="fs-topbar-left breadcrumb">
-        <button id="fs-hamburger" style="display:none;background:none;border:none;cursor:pointer;padding:8px;color:#4C2A92;" aria-label="Open menu">☰</button>
+        <button id="fs-hamburger" aria-label="Open menu" style="display:none;background:none;border:none;cursor:pointer;padding:8px;color:#4C2A92;font-size:20px;min-height:44px;align-items:center;justify-content:center;">☰</button>
         <span>${mode === "teacher" ? "Teacher" : "Admin"}</span>
         <span class="bc-sep">/</span>
         <span class="bc-now" id="fs-bc-now">${pageTitle}</span>
@@ -370,7 +411,14 @@
     if (mainEl) {
       if (!mainEl.classList.contains("main")) mainEl.classList.add("main");
       if (!mainEl.classList.contains("fs-content")) mainEl.classList.add("fs-content");
+      if (!mainEl.classList.contains("fs-shell-main")) mainEl.classList.add("fs-shell-main");
+      window.setTimeout(function () { mainEl.classList.remove("fs-loading"); }, 60);
     }
+    try {
+      if (sessionStorage.getItem("fs_nav_progress_pending") === "1") {
+        completeProgressBar();
+      }
+    } catch (_) {}
 
     initTheme();
     initCollapsedState();
@@ -447,6 +495,22 @@
       } else {
         window.location.href = resolveLoginPath();
       }
+    });
+
+    sidebar.querySelectorAll(".sb-link").forEach(function (link) {
+      link.addEventListener("click", function (e) {
+        const target = e.currentTarget;
+        if (!(target instanceof HTMLAnchorElement)) return;
+        if (target.id === "fs-admin-logout") return;
+        const href = String(target.getAttribute("href") || "");
+        if (!href || href.startsWith("#") || target.target === "_blank") return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        startShellTransition();
+        window.setTimeout(function () {
+          window.location.href = href;
+        }, 140);
+      });
     });
 
     // Regional secretary teacher-mode scope: persist linked teacher identity for staff teacher pages.

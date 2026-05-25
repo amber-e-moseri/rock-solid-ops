@@ -1,10 +1,9 @@
-﻿import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, jsonResponse, safeLogAudit, withTimeout } from "../_shared/http.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MOODLE_URL = "https://rocksolid.lwcanada.org";
-const MAX_PROMOTIONS = 50;
 
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE);
 
@@ -17,10 +16,8 @@ interface Slot {
 }
 
 interface RunResults {
-  promoted: number;
   slots_checked: number;
-  emails_queued: number;
-  class_available_notified: number;
+  notified: number;
   errors: string[];
 }
 
@@ -39,24 +36,6 @@ async function getClassInfo(classOptionId: string): Promise<ClassInfo> {
     .limit(1)
     .maybeSingle();
   return data as ClassInfo;
-}
-
-async function decrementSlot(classOptionId: string, batchId: string): Promise<void> {
-  const { data: slot } = await sb
-    .from("class_slots")
-    .select("class_slot_id,current_enrolment")
-    .eq("class_option_id", classOptionId)
-    .eq("batch_id", batchId)
-    .eq("status", "Active")
-    .limit(1)
-    .maybeSingle();
-
-  if (!slot || (slot.current_enrolment ?? 0) <= 0) return;
-
-  await sb
-    .from("class_slots")
-    .update({ current_enrolment: slot.current_enrolment - 1 })
-    .eq("class_slot_id", slot.class_slot_id);
 }
 
 async function notifyClassNowAvailable(slot: Slot, classInfo: ClassInfo, results: RunResults): Promise<number> {
@@ -136,99 +115,8 @@ async function notifyClassNowAvailable(slot: Slot, classInfo: ClassInfo, results
     notified += 1;
   }
 
-  results.class_available_notified += notified;
+  results.notified += notified;
   return notified;
-}
-
-async function promoteSlot(slot: Slot, classInfo: ClassInfo, results: RunResults, budget: number): Promise<number> {
-  const available = slot.max_capacity != null ? slot.max_capacity - slot.current_enrolment : 9999;
-  if (available <= 0) return 0;
-
-  let promoted = 0;
-  let remaining = Math.min(available, budget);
-
-  while (remaining > 0) {
-    const { data: applicant } = await sb
-      .from("applicants")
-      .select("id,full_name,email,fellowship_code,class_option_id,batch_id")
-      .eq("class_option_id", slot.class_option_id)
-      .eq("batch_id", slot.batch_id)
-      .eq("registration_status", "WAITLISTED")
-      .order("waitlisted_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (!applicant) break;
-
-    const now = new Date().toISOString();
-    const newEnrolment = slot.current_enrolment + promoted + 1;
-
-    const { error: assignErr } = await sb
-      .from("applicants")
-      .update({ registration_status: "ASSIGNED", assigned_at: now })
-      .eq("id", applicant.id)
-      .eq("registration_status", "WAITLISTED");
-
-    if (assignErr) {
-      results.errors.push(`assign ${applicant.id}: ${assignErr.message}`);
-      break;
-    }
-
-    await sb
-      .from("class_slots")
-      .update({ current_enrolment: newEnrolment })
-      .eq("class_slot_id", slot.class_slot_id);
-
-    await sb.from("moodle_enrollment_sync").upsert(
-      {
-        email: applicant.email,
-        full_name: applicant.full_name,
-        batch_id: slot.batch_id,
-        class_option_id: slot.class_option_id,
-        applicant_id: applicant.id,
-        sync_status: "PENDING",
-      },
-      { onConflict: "email,batch_id" },
-    );
-
-    const firstName = String(applicant.full_name || "Student").split(/\s+/)[0];
-    const spotsRemaining = (slot.max_capacity ?? 9999) - newEnrolment;
-    await sb.from("email_queue").insert({
-      recipient_email: applicant.email,
-      recipient_name: applicant.full_name || "",
-      template_key: "waitlist_promoted",
-      subject: "Great news - you have been assigned to a Foundation School class!",
-      status: "Pending",
-      payload: {
-        first_name: firstName,
-        full_name: applicant.full_name,
-        email: applicant.email,
-        class_time: classInfo?.class_time || "",
-        teacher_name: classInfo?.teacher_name || "",
-        class_day: classInfo?.day || "",
-        fellowship_code: applicant.fellowship_code || "",
-        batch_id: slot.batch_id,
-        class_option_id: slot.class_option_id,
-        moodle_url: MOODLE_URL,
-      },
-    });
-
-    await safeLogAudit(sb, {
-      actor_email: "waitlist-processor@system",
-      action: "WAITLIST_PROMOTED",
-      entity_type: "applicant",
-      entity_id: applicant.id,
-      status: "SUCCESS",
-      details: { class_option_id: slot.class_option_id, batch_id: slot.batch_id, spots_remaining: spotsRemaining },
-    });
-
-    promoted++;
-    remaining--;
-  }
-
-  results.promoted += promoted;
-  results.emails_queued += promoted;
-  return promoted;
 }
 
 Deno.serve(async (req) => {
@@ -236,32 +124,15 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({})) as {
-      action?: string;
       class_option_id?: string;
       batch_id?: string;
-      applicant_id?: string;
     };
 
     const results: RunResults = {
-      promoted: 0,
       slots_checked: 0,
-      emails_queued: 0,
-      class_available_notified: 0,
+      notified: 0,
       errors: [],
     };
-
-    if (body.applicant_id) {
-      const { data: app } = await sb
-        .from("applicants")
-        .select("class_option_id,batch_id")
-        .eq("id", body.applicant_id)
-        .maybeSingle();
-      if (app?.class_option_id && app?.batch_id) {
-        await decrementSlot(app.class_option_id, app.batch_id);
-        body.class_option_id = app.class_option_id;
-        body.batch_id = app.batch_id;
-      }
-    }
 
     let slots: Slot[] = [];
 
@@ -298,14 +169,10 @@ Deno.serve(async (req) => {
     }
 
     results.slots_checked = slots.length;
-    let budget = MAX_PROMOTIONS - results.promoted;
 
     for (const slot of slots) {
       const classInfo = await getClassInfo(slot.class_option_id);
       await notifyClassNowAvailable(slot, classInfo, results);
-      if (budget <= 0) continue;
-      const n = await promoteSlot(slot, classInfo, results, budget);
-      budget -= n;
     }
 
     return jsonResponse({ ok: true, ...results });

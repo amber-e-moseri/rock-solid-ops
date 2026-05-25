@@ -219,9 +219,8 @@ async function assignForRegistration(applicantId: string, db: AnyClient, ctx: An
       }
     }
   } else if (availability) {
-    registrationStatus = "WAITLISTED";
-    availabilityStatus = "NO_MATCHING_TIME";
-    waitlistedAt = nowIso;
+    registrationStatus = "PENDING";
+    availabilityStatus = "NO_SUITABLE_TIME";
   } else {
     registrationStatus = "WAITLISTED";
     availabilityStatus = "NO_CLASS_AVAILABLE";

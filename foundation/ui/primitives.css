@@ -56,6 +56,45 @@
   width: 100%;
 }
 
+.fs-shell-main {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.fs-page-content {
+  animation: fs-page-in 0.2s ease forwards;
+}
+
+@keyframes fs-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fs-shell-main.fs-loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+body.fs-nav-transitioning .fs-shell-main {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+}
+
+.fs-content-frame {
+  animation: fs-page-in 0.2s ease forwards;
+}
+
+.fs-shell-link,
+.sb-link {
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
 
 /* ----------------------------------------------------------
    PAGE HEADER
@@ -448,14 +487,37 @@
 }
 
 @media (max-width: 768px) {
+  .fs-shell-sidebar {
+    position: fixed !important;
+    left: -260px !important;
+    top: 0 !important;
+    height: 100vh !important;
+    z-index: 300 !important;
+    transition: left 0.25s ease !important;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15) !important;
+  }
+  body.fs-sidebar-open .fs-shell-sidebar {
+    left: 0 !important;
+  }
+  .fs-shell-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
   .fs-table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+  .table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
 
   .fs-grid-2,
   .fs-grid-3,
-  .fs-grid-4 {
+  .fs-grid-4,
+  .ops-row,
+  .kpi-row {
     grid-template-columns: 1fr !important;
   }
 
@@ -474,18 +536,22 @@
 
   .fs-drawer,
   #applicantDrawer,
-  #reviewDrawer {
+  #reviewDrawer,
+  [id$="Drawer"],
+  [id$="Panel"] {
     width: 100% !important;
     max-width: 100% !important;
   }
 
   .fs-filter-row,
-  .filter-row {
+  .filter-row,
+  .toolbar {
     flex-direction: column !important;
     gap: 8px !important;
   }
 
-  .fs-page-header {
+  .fs-page-header,
+  .page-header {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 12px !important;
@@ -502,15 +568,32 @@
   input, select, textarea {
     font-size: 16px !important;
   }
+
+  .fs-page-content,
+  .page-content {
+    padding: 12px !important;
+  }
+
+  .fs-sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 299;
+  }
+  body.fs-sidebar-open .fs-sidebar-backdrop {
+    display: block !important;
+  }
 }
 
 @media (max-width: 480px) {
-  .fs-page-content {
-    padding: 12px !important;
-  }
   .kpi-grid,
   .metrics-grid {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr !important;
+  }
+  .fs-tab-bar {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
   }
 }
 

@@ -1,4 +1,4 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -169,7 +169,7 @@
     .mobile-card { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--color-surface); box-shadow: var(--shadow-sm); }
     .sticky-mobile { position: sticky; bottom: 8px; z-index: 10; margin-top: 8px; display: none; }
 
-    /* Quick tab strip & mode tabs â€” pill style */
+    /* Quick tab strip & mode tabs — pill style */
     #quickTabStrip, #modeTabs { display: flex; gap: 4px; flex-wrap: wrap; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 12px; padding: 3px; }
     #quickTabStrip button, #modeTabs button {
       border: none; background: transparent; border-radius: 9px; padding: 6px 14px;
@@ -204,8 +204,6 @@
     @media (max-width: 768px) {
       #tableWrap table thead th:nth-child(4),
       #tableWrap table tbody td:nth-child(4),
-      #tableWrap table thead th:nth-child(5),
-      #tableWrap table tbody td:nth-child(5),
       #tableWrap table thead th:nth-child(8),
       #tableWrap table tbody td:nth-child(8) { display: none; }
     }
@@ -225,7 +223,7 @@
           <select id="quickNotif"><option value="">All Notification</option><option value="SENT">Sent</option><option value="PENDING">Pending</option><option value="FAILED">Failed</option><option value="RETRIED">Retried</option></select>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button class="icon-btn" id="refreshBtnTop" title="Refresh" aria-label="Refresh">â†º</button>
+          <button class="icon-btn" id="refreshBtnTop" title="Refresh" aria-label="Refresh">?</button>
         </div>
       </section>
 
@@ -239,7 +237,7 @@
       </section>
 
       <section class="card">
-        <div class="filter-row fs-action-bar">
+        <div class="filter-row fs-filter-row fs-action-bar">
           <select id="fellowshipFilter"><option value="">All Fellowships</option></select>
           <select id="classFilter"><option value="">All Classes</option></select>
           <select id="batchFilter"><option value="">All Batches</option></select>
@@ -274,7 +272,7 @@
           <button class="fs-btn fs-btn-primary" id="afApplyBtn">Apply Filters</button>
           <button class="fs-btn fs-btn-secondary" id="afResetBtn">Reset</button>
           <button class="fs-btn fs-btn-secondary" id="afSaveBtn">Save Preset</button>
-          <select id="afPresetSelect" style="border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 12px;min-width:140px"><option value="">Load presetâ€¦</option></select>
+          <select id="afPresetSelect" style="border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 12px;min-width:140px"><option value="">Load preset…</option></select>
         </div>
       </section>
       <section class="card" style="margin-top:10px">
@@ -306,14 +304,14 @@
         <div id="bulkBar" style="display:none;padding:10px 14px;background:color-mix(in srgb,var(--primary) 10%,var(--color-surface));border:1px solid color-mix(in srgb,var(--primary) 30%,var(--line));border-radius:var(--radius-lg);margin-bottom:8px;gap:10px;align-items:center;flex-wrap:wrap">
           <span id="bulkCount" style="font-weight:800;font-size:13px;white-space:nowrap;color:var(--primary)">0 selected</span>
           <select id="bulkStatusSelect" style="border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 10px">
-            <option value="">Change Statusâ€¦</option>
+            <option value="">Change Status…</option>
             <option value="PENDING">PENDING</option><option value="ASSIGNED">ASSIGNED</option>
             <option value="WAITLISTED">WAITLISTED</option><option value="REVIEW">REVIEW</option><option value="INACTIVE">INACTIVE</option>
           </select>
-          <select id="bulkClassSelect" style="border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 10px;min-width:160px"><option value="">Change Classâ€¦</option></select>
+          <select id="bulkClassSelect" style="border-radius:10px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:8px 10px;min-width:160px"><option value="">Change Class…</option></select>
           <button class="fs-btn fs-btn-secondary" id="bulkEmailBtn">Send Email</button>
           <button class="fs-btn fs-btn-secondary" id="bulkExportBtn">Export CSV</button>
-          <button class="fs-btn fs-btn-secondary" id="bulkClearBtn">âœ• Clear</button>
+          <button class="fs-btn fs-btn-secondary" id="bulkClearBtn">? Clear</button>
           <div id="bulkProgress" style="display:none;font-size:12px;color:var(--color-text-muted)"></div>
         </div>
         <div class="table-wrap fs-table-wrap" id="tableWrap"></div>
@@ -333,7 +331,7 @@
         </div>
         <div id="drawerSub" class="muted" style="font-size:12px;margin-top:2px"></div>
       </div>
-      <button class="fs-btn fs-btn-secondary" id="closeDrawerBtn" style="flex-shrink:0">âœ• Close</button>
+      <button class="fs-btn fs-btn-secondary" id="closeDrawerBtn" style="flex-shrink:0">? Close</button>
     </div>
     <div class="drawer-body">
       <div class="fs-btns" style="flex-wrap:wrap">
@@ -370,7 +368,7 @@
         <div class="drawer-section-label">Status Override</div>
         <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:6px;align-items:end">
           <select id="statusOverrideSelect" style="border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px;">
-            <option value="">â€” pick status â€”</option>
+            <option value="">— pick status —</option>
             <option value="PENDING">PENDING</option>
             <option value="WAITLISTED">WAITLISTED</option>
             <option value="REVIEW">REVIEW</option>
@@ -409,7 +407,7 @@
       <div id="modalWarnings"></div>
       <div class="field" style="grid-column:1/-1">
         <label for="correctionReason">Reason for Change <span style="color:#b42318">*</span></label>
-        <textarea id="correctionReason" rows="3" style="width:100%;border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px;resize:vertical;min-height:64px;transition:border-color .16s ease,box-shadow .16s ease;" placeholder="Explain why the class is being changed (min 10 characters)â€¦"></textarea>
+        <textarea id="correctionReason" rows="3" style="width:100%;border-radius:12px;border:1px solid var(--line-soft);background:var(--surface-2);color:var(--text);font:inherit;padding:10px 12px;resize:vertical;min-height:64px;transition:border-color .16s ease,box-shadow .16s ease;" placeholder="Explain why the class is being changed (min 10 characters)…"></textarea>
       </div>
       <div class="warn">Safety: if class is full this update is blocked. This flow queues a <code>class_reassignment_notice</code> email and resets Moodle sync.</div>
       <div class="fs-btns" style="justify-content:flex-end">
@@ -429,6 +427,7 @@
 <script type="module" src="../js/applicant-directory.js"></script>
 </body>
 </html>
+
 
 
 

@@ -8,6 +8,48 @@
     return p.includes("/foundation/") ? "/foundation/auth/login.html" : "/auth/login.html";
   }
 
+  function ensureProgressBar() {
+    let bar = document.getElementById("fs-progress-bar");
+    if (bar) return bar;
+    bar = document.createElement("div");
+    bar.id = "fs-progress-bar";
+    bar.style.cssText = "position:fixed;top:0;left:0;height:3px;width:0%;background:#C8102E;z-index:9999;transition:width 0.3s ease,opacity 0.2s ease;border-radius:0 2px 2px 0;opacity:0;";
+    document.body.appendChild(bar);
+    return bar;
+  }
+
+  function completeProgressBar() {
+    const bar = ensureProgressBar();
+    bar.style.opacity = "1";
+    bar.style.width = "100%";
+    window.setTimeout(function () {
+      bar.style.opacity = "0";
+      window.setTimeout(function () {
+        bar.style.width = "0%";
+      }, 200);
+      try { sessionStorage.removeItem("fs_nav_progress_pending"); } catch (_) {}
+    }, 300);
+  }
+
+  function startShellTransition() {
+    const main = document.querySelector(".fs-shell-main, .main, .fs-content");
+    if (main) {
+      main.classList.add("fs-shell-main");
+      main.classList.add("fs-loading");
+    }
+    document.body.classList.add("fs-nav-transitioning");
+    const frame = document.querySelector(".fs-content-frame, .teacher-frame");
+    if (frame) {
+      frame.style.opacity = "0";
+      frame.style.transition = "opacity 0.15s ease";
+      frame.classList.add("fs-content-frame");
+    }
+    const bar = ensureProgressBar();
+    bar.style.opacity = "1";
+    bar.style.width = "70%";
+    try { sessionStorage.setItem("fs_nav_progress_pending", "1"); } catch (_) {}
+  }
+
   function applyTheme() {
     document.documentElement.setAttribute("data-theme", "light");
     document.documentElement.classList.remove("dark");
@@ -171,6 +213,16 @@
     if (window !== window.top) return;
     opts = opts || {};
     document.body.classList.add("fs-force-light");
+    const mainEl = document.querySelector("main") || document.querySelector(".main");
+    if (mainEl) {
+      mainEl.classList.add("fs-shell-main");
+      window.setTimeout(() => mainEl.classList.remove("fs-loading"), 60);
+    }
+    try {
+      if (sessionStorage.getItem("fs_nav_progress_pending") === "1") {
+        completeProgressBar();
+      }
+    } catch (_) {}
     const active = opts.active || inferActiveKey();
     const links = [
       { href: "../teacher/index.html?section=dashboard", label: "Dashboard", key: "dashboard" },
@@ -217,6 +269,23 @@
       `;
       document.body.prepend(nav);
     }
+    let mobileBackdrop = document.getElementById("fs-sidebar-backdrop");
+    if (!mobileBackdrop) {
+      mobileBackdrop = document.createElement("div");
+      mobileBackdrop.id = "fs-sidebar-backdrop";
+      mobileBackdrop.className = "fs-sidebar-backdrop";
+      document.body.prepend(mobileBackdrop);
+    }
+    let mobileHamburger = document.getElementById("fs-hamburger");
+    if (!mobileHamburger) {
+      mobileHamburger = document.createElement("button");
+      mobileHamburger.id = "fs-hamburger";
+      mobileHamburger.setAttribute("aria-label", "Open menu");
+      mobileHamburger.setAttribute("type", "button");
+      mobileHamburger.textContent = "☰";
+      mobileHamburger.style.cssText = "display:none;background:none;border:none;cursor:pointer;padding:8px;color:#4C2A92;font-size:20px;min-height:44px;align-items:center;justify-content:center;position:fixed;top:8px;left:8px;z-index:350;";
+      document.body.prepend(mobileHamburger);
+    }
 
     const themeBtn = document.getElementById("fs-theme-toggle");
     if (themeBtn) themeBtn.style.display = "none";
@@ -242,6 +311,30 @@
     if (opts.enforceAccess !== false) {
       enforceTeacherAccess();
     }
+    mobileHamburger.addEventListener("click", () => {
+      const isOpen = document.body.classList.toggle("fs-sidebar-open");
+      const nav = document.querySelector(".fs-shell-nav");
+      if (nav) nav.classList.toggle("open", isOpen);
+    });
+    mobileBackdrop.addEventListener("click", () => {
+      document.body.classList.remove("fs-sidebar-open");
+      const nav = document.querySelector(".fs-shell-nav");
+      if (nav) nav.classList.remove("open");
+    });
+    document.querySelectorAll(".fs-shell-link").forEach((link) => {
+      link.addEventListener("click", (e) => {
+        const target = e.currentTarget;
+        if (!(target instanceof HTMLAnchorElement)) return;
+        const href = String(target.getAttribute("href") || "");
+        if (!href || href.startsWith("#") || target.target === "_blank") return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        e.preventDefault();
+        startShellTransition();
+        window.setTimeout(() => {
+          window.location.href = href;
+        }, 140);
+      });
+    });
     shellMounted = true;
   };
 

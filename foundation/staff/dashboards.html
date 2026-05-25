@@ -213,7 +213,7 @@
     </section>
 
     <!-- KPI cards -->
-    <div class="kpi-row">
+    <div class="kpi-row kpi-grid">
       <article class="kpi-card">
         <div class="kpi-value" id="kpiEnrolled">-</div>
         <div class="kpi-label">Total Enrolled</div>
@@ -352,7 +352,7 @@
         <table class="fs-table">
           <thead>
             <tr>
-              <th>Class</th><th>Teacher</th><th>Enrolled</th><th>Status</th>
+              <th>Class</th><th>Teacher</th><th>Enrolled</th><th class="hide-mobile">Status</th>
             </tr>
           </thead>
           <tbody id="capacityRows"></tbody>
@@ -571,7 +571,7 @@
         const enrolled = Number(r.enrolled_count || 0);
         const max = Number(r.max_capacity || 0);
         const isFull = max > 0 && enrolled >= max;
-        return `<tr><td>${classLabel}</td><td>${r.teacher_name}</td><td>${enrolled.toLocaleString()}</td><td>${isFull ? '<span class="fs-badge fs-badge-warning">Full</span>' : '<span class="fs-badge fs-badge-success">Active</span>'}</td></tr>`;
+        return `<tr><td>${classLabel}</td><td>${r.teacher_name}</td><td>${enrolled.toLocaleString()}</td><td class="hide-mobile">${isFull ? '<span class="fs-badge fs-badge-warning">Full</span>' : '<span class="fs-badge fs-badge-success">Active</span>'}</td></tr>`;
       }).join("");
       _exportState.capacity = hydratedRows;
       hide("capacityState"); show("capacityWrap");

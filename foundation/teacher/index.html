@@ -63,7 +63,13 @@
     .msg-bad { color:#b42318; background:color-mix(in srgb, #ef4444 10%, white); border-color:color-mix(in srgb, #ef4444 28%, white); }
 
     @media (max-width: 980px) { .summary { grid-template-columns: 1fr 1fr; } }
-    @media (max-width: 640px) { .toolbar { flex-direction:column; align-items:stretch; } .summary { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) {
+      .toolbar { flex-direction:column; align-items:stretch; }
+      .summary { grid-template-columns: 1fr 1fr; }
+      .chips { overflow-x: auto; white-space: nowrap; flex-wrap: nowrap; padding-bottom: 8px; }
+      .chip { flex-shrink: 0; }
+      #classSelect { width: 100%; min-width: 0; }
+    }
   </style>
 </head>
 <body class="fs-shell-mounted">

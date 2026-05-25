@@ -123,6 +123,12 @@
     .fs-modal-close { border:1px solid var(--line); border-radius:999px; background:var(--surface-2); color:var(--text); width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; line-height:1; padding:0; }
     .count-badge { display:inline-flex; align-items:center; justify-content:center; min-width:28px; padding:3px 10px; border-radius:999px; background:#4C2A92; color:#fff; font-size:12px; font-weight:800; }
     @media (max-width: 840px) { .grid { grid-template-columns: 1fr; } .sticky-save{flex-direction:column;align-items:stretch;} #saveBtn{max-width:none;} }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr !important; }
+      #roster .student { width: 100%; }
+      #saveBtn { width: 100%; max-width: none; }
+      .chips { flex-wrap: wrap; }
+    }
     /* Page tabs */
     .tab-bar { display:flex; gap:4px; margin-top:12px; background:var(--surface-2); border:1px solid var(--line); border-radius:14px; padding:4px; }
     .tab-btn { flex:1; border:none; border-radius:10px; background:transparent; color:var(--fs-text-muted); font:inherit; font-size:13px; font-weight:700; padding:8px 16px; cursor:pointer; transition:background .15s,color .15s,box-shadow .15s; }
@@ -1050,8 +1056,11 @@ async function boot() {
   }
   const auth = await requireAuth(["teacher", "principal", "admin", "superadmin"]);
   if (!auth) return;
-  window.FSTeacherShell?.mount({ active: "attendance" });
+  const role = String(auth.profile?.role || "").toLowerCase();
+  const isAdminUser = ["admin", "superadmin", "principal", "regional_secretary", "subgroup_admin", "pastor"].includes(role);
+  window.FSTeacherShell?.mount({ active: "attendance", enforceAccess: !isAdminUser });
   state.auth = auth;
+  state.isAdminUser = isAdminUser;
   window.FSStudentProfile?.init({ supabase, userRole: "teacher" });
   await loadData();
   wire();
