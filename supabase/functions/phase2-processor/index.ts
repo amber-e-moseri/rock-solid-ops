@@ -78,23 +78,80 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const flowTraceId = crypto.randomUUID()
 
   try {
-    const assigned = await assignApplicant(applicant.id, supabase, {
-      mode: 'phase2',
-      applicant,
-      flowTraceId,
-      logSync,
-      insertErrorSubmission,
-    })
-
-    if (assigned.handled === 'error_submission') {
-      return json({ ok: true, handled: 'error_submission' })
+    const fellowshipCode = String(applicant.fellowship_code || "").trim().toUpperCase();
+    if (!fellowshipCode) {
+      await insertErrorSubmission(applicant.id, "Missing fellowship_code", { applicant_id: applicant.id, trace_id: flowTraceId });
+      await logSync("PHASE2_NO_FELLOWSHIP_CODE", `Applicant ${applicant.id} has no fellowship_code`, { trace_id: flowTraceId });
+      return json({ ok: true, handled: "error_submission" });
     }
+
+    const { data: activeBatch } = await supabase
+      .from("batches")
+      .select("batch_id")
+      .or("active.eq.true,registration_open.eq.true")
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const activeBatchId = String(activeBatch?.batch_id || "").trim();
+    if (!activeBatchId) {
+      await insertErrorSubmission(applicant.id, "No active/open batch found", { applicant_id: applicant.id, trace_id: flowTraceId });
+      await logSync("PHASE2_NO_ACTIVE_BATCH", `No active/open batch for applicant ${applicant.id}`, { trace_id: flowTraceId });
+      return json({ ok: true, handled: "error_submission" });
+    }
+
+    const { data: classOptions, error: classErr } = await supabase
+      .from("class_options")
+      .select(`
+        class_option_id,
+        class_slots (
+          class_slot_id,
+          batch_id,
+          current_enrolment,
+          max_capacity,
+          status
+        )
+      `)
+      .contains("fellowship_codes", [fellowshipCode])
+      .eq("active", true)
+      .eq("enrollment_open", true)
+      .is("deleted_at", null);
+    if (classErr) throw classErr;
+
+    const candidates: Array<{ class_option_id: string; current_enrolment: number }> = [];
+    for (const co of classOptions || []) {
+      for (const slot of co.class_slots || []) {
+        if (slot.status !== "Active") continue;
+        if (slot.batch_id !== activeBatchId) continue;
+        if (slot.max_capacity !== null && Number(slot.current_enrolment || 0) >= Number(slot.max_capacity)) continue;
+        candidates.push({
+          class_option_id: String(co.class_option_id),
+          current_enrolment: Number(slot.current_enrolment || 0),
+        });
+      }
+    }
+    candidates.sort((a, b) => a.current_enrolment - b.current_enrolment);
+    const best = candidates[0];
+    if (!best) {
+      await insertErrorSubmission(applicant.id, `No open class for fellowship: ${fellowshipCode} in batch: ${activeBatchId}`, {
+        applicant_id: applicant.id,
+        fellowship_code: fellowshipCode,
+        batch_id: activeBatchId,
+        trace_id: flowTraceId,
+      });
+      await logSync("PHASE2_NO_CLASS_FOUND", `No open class for ${fellowshipCode} in batch ${activeBatchId}`, { trace_id: flowTraceId });
+      return json({ ok: true, handled: "error_submission" });
+    }
+
+    const assigned = await assignApplicant(applicant.id, best.class_option_id, supabase, {
+      batchId: activeBatchId,
+      triggeredBy: "processor",
+    })
 
     await logSync('PHASE2_SUCCESS', `Enrolled ${assigned.studentId || ''}`, {
       trace_id: flowTraceId,
       applicant_id: applicant.id,
       student_id: assigned.studentId,
-      fellowship_code: String(applicant.fellowship_code || '').trim().toUpperCase(),
+      fellowship_code: fellowshipCode,
       class_option_id: assigned.classId,
       batch_id: assigned.batchId
     })

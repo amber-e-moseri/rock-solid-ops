@@ -1,437 +1,221 @@
-export type AssignResult = {
-  status: string;
-  classId: string | null;
-  availabilityStatus: string;
-  batchId?: string | null;
-  classIsFull?: boolean;
-  assignedAt?: string | null;
-  waitlistedAt?: string | null;
-  reviewedAt?: string | null;
-  reviewNotes?: string | null;
-  legacyStatus?: string;
-  groupId?: string | null;
-  subgroupId?: string | null;
-  studentId?: string | null;
-  handled?: string | null;
-};
+﻿export type AssignTriggeredBy = "admin" | "processor" | "waitlist" | "registration";
 
 type AnyClient = any;
-type AnyCtx = Record<string, any>;
 
-function buildApplicantFullName(applicant: Record<string, any>): string {
-  const full = String(applicant?.full_name || "").trim();
-  if (full) return full;
-  const joined = [applicant?.first_name, applicant?.last_name]
-    .map((v) => String(v || "").trim())
-    .filter(Boolean)
-    .join(" ");
+export type AssignResult = {
+  studentId: string;
+  classId: string;
+  batchId: string;
+};
+
+function fullName(applicant: Record<string, any>) {
+  const direct = String(applicant?.full_name || "").trim();
+  if (direct) return direct;
+  const joined = [applicant?.first_name, applicant?.last_name].map((v) => String(v || "").trim()).filter(Boolean).join(" ");
   return joined || "Student";
 }
 
-async function upsertApplicantIntoStudents(
-  db: AnyClient,
-  applicantId: string,
-  classOptionId: string | null,
-  batchId: string | null,
-): Promise<void> {
-  if (!classOptionId) return;
-
-  const { data: applicant, error: applicantErr } = await db
-    .from("applicants")
-    .select("id,full_name,first_name,last_name,email,phone,group_id,subgroup_id,fellowship_code,batch_id,class_option_id")
-    .eq("id", applicantId)
-    .maybeSingle();
-  if (applicantErr || !applicant) {
-    if (applicantErr) throw applicantErr;
-    return;
-  }
-
-  const { data: classRow, error: classErr } = await db
-    .from("class_options")
-    .select("class_option_id,teacher_id,teacher_name")
-    .eq("class_option_id", classOptionId)
-    .maybeSingle();
-  if (classErr) throw classErr;
-
-  let teacherName = String(classRow?.teacher_name || "").trim();
-  if (!teacherName && classRow?.teacher_id) {
-    const { data: teacherRow, error: teacherErr } = await db
-      .from("teachers")
-      .select("teacher_id,full_name")
-      .eq("teacher_id", classRow.teacher_id)
-      .maybeSingle();
-    if (teacherErr) throw teacherErr;
-    teacherName = String(teacherRow?.full_name || "").trim();
-  }
-
-  const payload = {
-    student_id: String(applicant.id),
-    full_name: buildApplicantFullName(applicant),
-    email: String(applicant.email || "").trim(),
-    phone: applicant.phone ?? null,
-    group_id: String(applicant.group_id || "").trim(),
-    subgroup_id: String(applicant.subgroup_id || "").trim(),
-    fellowship_code: String(applicant.fellowship_code || "").trim() || null,
-    batch_id: String(batchId || applicant.batch_id || "").trim() || null,
-    class_option_id: String(classOptionId || applicant.class_option_id || "").trim() || null,
-    teacher_id: String(classRow?.teacher_id || "").trim() || null,
-    teacher_name: teacherName || null,
-    status: "Active",
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data: existing, error: existingErr } = await db
-    .from("students")
-    .select("student_id")
-    .eq("email", payload.email)
-    .maybeSingle();
-  if (existingErr && String(existingErr.code || "") !== "PGRST116") throw existingErr;
-
-  const rowForUpsert = existing?.student_id
-    ? { ...payload, student_id: String(existing.student_id) }
-    : { ...payload, created_at: new Date().toISOString() };
-
-  const { error: upsertErr } = await db
-    .from("students")
-    .upsert(rowForUpsert, { onConflict: "email" });
-  if (upsertErr) throw upsertErr;
-
-  const resolvedStudentId = String(rowForUpsert.student_id || payload.student_id || "").trim();
-  const resolvedClassOptionId = String(payload.class_option_id || "").trim();
-  if (resolvedStudentId && resolvedClassOptionId) {
-    const rosterRow = {
-      id: crypto.randomUUID(),
-      student_id: resolvedStudentId,
-      class_option_id: resolvedClassOptionId,
-      batch_id: payload.batch_id,
-      group_id: payload.group_id || null,
-      subgroup_id: payload.subgroup_id || null,
-      status: "Active",
-      enrolled_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    const { error: rosterUpsertErr } = await db
-      .from("class_roster")
-      .upsert(rosterRow, { onConflict: "student_id,class_option_id" });
-    if (rosterUpsertErr) throw rosterUpsertErr;
-  }
+function firstName(value: string) {
+  return String(value || "Student").split(/\s+/)[0] || "Student";
 }
 
-async function resolveActiveBatchId(db: AnyClient): Promise<string> {
-  const { data: activeBatch, error: batchErr } = await db
+async function resolveClassSlot(db: AnyClient, classOptionId: string, batchId: string) {
+  const { data, error } = await db
+    .from("class_slots")
+    .select("class_slot_id,current_enrolment,max_capacity,status,batch_id")
+    .eq("class_option_id", classOptionId)
+    .eq("batch_id", batchId)
+    .eq("status", "Active")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+
+async function findActiveBatchId(db: AnyClient): Promise<string> {
+  const { data, error } = await db
     .from("batches")
     .select("batch_id")
     .or("active.eq.true,registration_open.eq.true")
-    .eq("archived", false)
     .order("start_date", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (batchErr) throw batchErr;
-  return String(activeBatch?.batch_id || "").trim();
+  if (error) throw error;
+  const batchId = String(data?.batch_id || "").trim();
+  if (!batchId) throw new Error("No active batch found");
+  return batchId;
 }
 
-async function assignForRegistration(applicantId: string, db: AnyClient, ctx: AnyCtx): Promise<AssignResult> {
-  const nowIso = String(ctx.nowIso || new Date().toISOString());
-  let batch_id = String(ctx.batch_id || "").trim() || null;
-  const class_option_id = String(ctx.class_option_id || "").trim() || null;
-  const availability = String(ctx.availability || "").trim() || null;
-  const canAutoAssign = Boolean(ctx.canAutoAssign);
-  const isDuplicate = Boolean(ctx.isDuplicate);
-  const duplicateCount = Number(ctx.duplicateCount || 0);
-
-  let registrationStatus = "PENDING";
-  let availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-  let classIsFull = false;
-  let assignedAt: string | null = null;
-  let waitlistedAt: string | null = null;
-  let reviewedAt: string | null = null;
-  let reviewNotes: string | null = null;
-
-  if (isDuplicate) {
-    registrationStatus = "DUPLICATE";
-    availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-    reviewedAt = nowIso;
-    reviewNotes = `Duplicate registration detected. This email has submitted ${duplicateCount} times.`;
-  } else if (!canAutoAssign) {
-    registrationStatus = "REVIEW";
-    availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-    reviewedAt = nowIso;
-    reviewNotes = "Auto-assignment deferred for manual review.";
-  } else if (class_option_id) {
-    const { data: classOptionRow, error: classOptionError } = await db
-      .from("class_options")
-      .select("class_option_id,max_capacity,active,enrollment_open")
-      .eq("class_option_id", class_option_id)
-      .maybeSingle();
-
-    if (classOptionError) {
-      console.error("REGISTRATION_PROCESSOR_CLASS_OPTION_LOAD_ERROR", classOptionError);
-      registrationStatus = "REVIEW";
-      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-      reviewedAt = nowIso;
-      reviewNotes = "Could not safely validate selected class option.";
-    } else if (!classOptionRow) {
-      registrationStatus = "REVIEW";
-      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-      reviewedAt = nowIso;
-      reviewNotes = "Selected class option no longer exists.";
-    } else {
-      const maxCapacity = Number(classOptionRow.max_capacity || 0);
-      const { count: assignedCount, error: assignedCountError } = await db
-        .from("applicants")
-        .select("*", { count: "exact", head: true })
-        .eq("class_option_id", class_option_id)
-        .eq("registration_status", "ASSIGNED");
-
-      if (assignedCountError) {
-        console.error("REGISTRATION_PROCESSOR_CAPACITY_COUNT_ERROR", assignedCountError);
-        registrationStatus = "REVIEW";
-        availabilityStatus = "MANUAL_REVIEW_REQUIRED";
-        reviewedAt = nowIso;
-        reviewNotes = "Could not validate class capacity safely.";
-      } else {
-        classIsFull = maxCapacity > 0 && Number(assignedCount || 0) >= maxCapacity;
-        if (classIsFull) {
-          registrationStatus = "WAITLISTED";
-          availabilityStatus = "CLASS_FULL";
-          waitlistedAt = nowIso;
-        } else {
-          registrationStatus = "ASSIGNED";
-          availabilityStatus = "CLASS_ASSIGNED";
-          assignedAt = nowIso;
-          if (!batch_id && class_option_id) {
-            const activeBatchId = await resolveActiveBatchId(db);
-            if (!activeBatchId) {
-              console.warn("REGISTRATION_PROCESSOR_NO_ACTIVE_BATCH_FOUND");
-            } else {
-              const { data: slotRow } = await db
-                .from("class_slots")
-                .select("batch_id")
-                .eq("class_option_id", class_option_id)
-                .eq("batch_id", activeBatchId)
-                .eq("status", "Active")
-                .maybeSingle();
-              if (slotRow?.batch_id) batch_id = slotRow.batch_id;
-            }
-          }
-        }
-      }
-    }
-  } else if (availability) {
-    registrationStatus = "PENDING";
-    availabilityStatus = "NO_MATCHING_TIME";
-  } else {
-    registrationStatus = "WAITLISTED";
-    availabilityStatus = "NO_CLASS_AVAILABLE";
-    waitlistedAt = nowIso;
-  }
-
-  const legacyStatus =
-    registrationStatus === "ASSIGNED"
-      ? "Enrolled"
-      : registrationStatus === "WAITLISTED"
-      ? "Waitlisted"
-      : registrationStatus === "DUPLICATE"
-      ? "Duplicate"
-      : registrationStatus === "REVIEW"
-      ? "Review"
-      : "Pending";
-
-  if (registrationStatus === "ASSIGNED" && class_option_id) {
-    await upsertApplicantIntoStudents(db, applicantId, class_option_id, batch_id);
-  }
-
-  return {
-    status: registrationStatus,
-    classId: class_option_id,
-    availabilityStatus,
-    batchId: batch_id,
-    classIsFull,
-    assignedAt,
-    waitlistedAt,
-    reviewedAt,
-    reviewNotes,
-    legacyStatus,
-  };
+async function insertAudit(db: AnyClient, payload: Record<string, unknown>) {
+  const { error } = await db.from("audit_logs").insert(payload);
+  if (!error) return;
+  await db.from("audit_log").insert({
+    action: payload.action,
+    entity_type: payload.entity_type,
+    entity_id: payload.entity_id,
+    changed_by: payload.actor_email,
+    notes: JSON.stringify(payload.details || {}),
+  });
 }
 
-async function assignForPhase2(applicantId: string, db: AnyClient, ctx: AnyCtx): Promise<AssignResult> {
-  const applicant = ctx.applicant || {};
-  const traceId = String(ctx.flowTraceId || "").trim();
-  const logSync = ctx.logSync as ((phase: string, message: string, details?: Record<string, unknown>) => Promise<void>) | undefined;
-  const insertErrorSubmission = ctx.insertErrorSubmission as ((sourceId: string, message: string, raw: Record<string, unknown>) => Promise<void>) | undefined;
+export async function assignApplicant(
+  applicantId: string,
+  classOptionId: string,
+  db: AnyClient,
+  context: {
+    batchId?: string;
+    triggeredBy: AssignTriggeredBy;
+    actorEmail?: string;
+  },
+): Promise<AssignResult> {
+  const applicantIdClean = String(applicantId || "").trim();
+  const classOptionIdClean = String(classOptionId || "").trim();
+  if (!applicantIdClean) throw new Error("Missing applicantId");
+  if (!classOptionIdClean) throw new Error("Missing classOptionId");
 
-  const activeBatchId = await resolveActiveBatchId(db);
-  if (!activeBatchId) {
-    if (insertErrorSubmission) {
-      await insertErrorSubmission(
-        applicantId,
-        "No active or open batch found",
-        { applicant_id: applicantId, email: applicant.email, trace_id: traceId },
-      );
-    }
-    if (logSync) await logSync("PHASE2_NO_ACTIVE_BATCH", `No active/open batch for applicant ${applicantId}`, { trace_id: traceId });
-    return { status: "WAITLISTED", classId: null, availabilityStatus: "NO_CLASS_AVAILABLE", handled: "error_submission" };
-  }
-
-  const fellowshipCode = String(applicant.fellowship_code ?? "").trim().toUpperCase();
-  if (!fellowshipCode) {
-    if (insertErrorSubmission) {
-      await insertErrorSubmission(
-        applicantId,
-        "Missing fellowship_code",
-        { applicant_id: applicantId, email: applicant.email, trace_id: traceId },
-      );
-    }
-    if (logSync) await logSync("PHASE2_NO_FELLOWSHIP_CODE", `Applicant ${applicantId} has no fellowship_code`, { trace_id: traceId });
-    return { status: "WAITLISTED", classId: null, availabilityStatus: "NO_CLASS_AVAILABLE", handled: "error_submission" };
-  }
-
-  const { data: fellowship, error: fmErr } = await db
-    .from("fellowship_map")
-    .select("fellowship_code, campus_name, group_id, subgroup_id")
-    .eq("fellowship_code", fellowshipCode)
-    .eq("active", true)
-    .single();
-
-  if (fmErr || !fellowship) {
-    if (insertErrorSubmission) {
-      await insertErrorSubmission(
-        applicantId,
-        `Fellowship not found: ${fellowshipCode}`,
-        { applicant_id: applicantId, fellowship_code: fellowshipCode, trace_id: traceId },
-      );
-    }
-    if (logSync) await logSync("PHASE2_FELLOWSHIP_NOT_FOUND", `No active fellowship: ${fellowshipCode}`, { trace_id: traceId });
-    return { status: "WAITLISTED", classId: null, availabilityStatus: "NO_CLASS_AVAILABLE", handled: "error_submission" };
-  }
-
-  const groupId = fellowship.group_id;
-  const subgroupId = fellowship.subgroup_id;
-  const { data: classOptions, error: coErr } = await db
-    .from("class_options")
-    .select(`
-      class_option_id,
-      teacher_id,
-      teacher_name,
-      class_slots (
-        class_slot_id,
-        batch_id,
-        current_enrolment,
-        max_capacity,
-        status
-      )
-    `)
-    .contains("fellowship_codes", [fellowshipCode])
-    .eq("active", true)
-    .eq("enrollment_open", true)
-    .is("deleted_at", null);
-  if (coErr) throw coErr;
-
-  const candidates: Array<{ class_option_id: string; teacher_name: string | null; class_slot_id: string; batch_id: string; current_enrolment: number }> = [];
-  for (const co of classOptions ?? []) {
-    for (const slot of co.class_slots ?? []) {
-      if (slot.status !== "Active") continue;
-      if (slot.batch_id !== activeBatchId) continue;
-      if (slot.max_capacity !== null && slot.current_enrolment >= slot.max_capacity) continue;
-      candidates.push({
-        class_option_id: co.class_option_id,
-        teacher_name: co.teacher_name,
-        class_slot_id: slot.class_slot_id,
-        batch_id: slot.batch_id,
-        current_enrolment: slot.current_enrolment,
-      });
-    }
-  }
-  candidates.sort((a, b) => a.current_enrolment - b.current_enrolment);
-  const best = candidates[0];
-
-  if (!best) {
-    if (insertErrorSubmission) {
-      await insertErrorSubmission(
-        applicantId,
-        `No open class for fellowship: ${fellowshipCode} in batch: ${activeBatchId}`,
-        { applicant_id: applicantId, fellowship_code: fellowshipCode, group_id: groupId, batch_id: activeBatchId, trace_id: traceId },
-      );
-    }
-    if (logSync) await logSync("PHASE2_NO_CLASS_FOUND", `No open class for ${fellowshipCode} in batch ${activeBatchId}`, { trace_id: traceId });
-    return { status: "WAITLISTED", classId: null, availabilityStatus: "NO_CLASS_AVAILABLE", handled: "error_submission" };
-  }
-
-  const { error: updateApplicantErr } = await db
+  const { data: applicant, error: applicantErr } = await db
     .from("applicants")
-    .update({
-      group_id: groupId,
-      class_option_id: best.class_option_id,
-      batch_id: activeBatchId,
-      status: "Approved",
-    })
-    .eq("id", applicantId);
-  if (updateApplicantErr) throw updateApplicantErr;
+    .select("id,full_name,first_name,last_name,email,phone,group_id,subgroup_id,fellowship_code,batch_id,class_option_id,registration_status")
+    .eq("id", applicantIdClean)
+    .maybeSingle();
+  if (applicantErr) throw applicantErr;
+  if (!applicant) throw new Error(`Applicant not found: ${applicantIdClean}`);
 
-  const { count: existingCount, error: countErr } = await db
-    .from("students")
-    .select("*", { count: "exact", head: true })
-    .like("student_id", `FS-${groupId}-%`);
-  if (countErr) throw countErr;
+  const { data: classOption, error: classErr } = await db
+    .from("class_options")
+    .select("class_option_id,teacher_id,teacher_name,group_id,subgroup_id,active,enrollment_open")
+    .eq("class_option_id", classOptionIdClean)
+    .maybeSingle();
+  if (classErr) throw classErr;
+  if (!classOption) throw new Error(`Invalid class option: ${classOptionIdClean}`);
 
-  const seq = (existingCount ?? 0) + 1;
-  const studentId = `FS-${groupId}-${String(seq).padStart(5, "0")}`;
-  const fullName = [applicant.first_name, applicant.last_name].filter(Boolean).join(" ");
+  const batchId = String(context?.batchId || applicant.batch_id || "").trim() || await findActiveBatchId(db);
 
-  const { error: studentErr } = await db
-    .from("students")
-    .insert({
-      student_id: studentId,
-      full_name: fullName,
-      email: applicant.email,
-      phone: applicant.phone ?? null,
-      group_id: groupId,
-      subgroup_id: subgroupId,
-      fellowship_code: fellowshipCode,
-      batch_id: best.batch_id,
-      class_option_id: best.class_option_id,
-      teacher_name: best.teacher_name ?? null,
-      status: "Active",
-      eligible_for_fs: false,
-    });
+  const slot = await resolveClassSlot(db, classOptionIdClean, batchId);
+  if (slot?.max_capacity !== null && Number(slot.current_enrolment || 0) >= Number(slot.max_capacity)) {
+    throw new Error(`Class is full for class_option_id=${classOptionIdClean} batch_id=${batchId}`);
+  }
+
+  const assignedAt = new Date().toISOString();
+  const updateApplicantPayload = {
+    registration_status: "ASSIGNED",
+    status: "Enrolled",
+    availability_status: "CLASS_ASSIGNED",
+    class_option_id: classOptionIdClean,
+    batch_id: batchId,
+    group_id: String(applicant.group_id || classOption.group_id || "").trim() || null,
+    subgroup_id: String(applicant.subgroup_id || classOption.subgroup_id || "").trim() || null,
+    assigned_at: assignedAt,
+    updated_at: assignedAt,
+  };
+  const { error: updateAppErr } = await db.from("applicants").update(updateApplicantPayload).eq("id", applicantIdClean);
+  if (updateAppErr) throw updateAppErr;
+
+  const studentId = String(applicant.id);
+  const studentPayload = {
+    student_id: studentId,
+    full_name: fullName(applicant),
+    email: String(applicant.email || "").trim().toLowerCase(),
+    phone: applicant.phone || null,
+    group_id: updateApplicantPayload.group_id,
+    subgroup_id: updateApplicantPayload.subgroup_id,
+    fellowship_code: String(applicant.fellowship_code || "").trim() || null,
+    batch_id: batchId,
+    class_option_id: classOptionIdClean,
+    teacher_id: String(classOption.teacher_id || "").trim() || null,
+    teacher_name: String(classOption.teacher_name || "").trim() || null,
+    status: "Active",
+    updated_at: assignedAt,
+  };
+
+  const { error: studentErr } = await db.from("students").upsert({ ...studentPayload, created_at: assignedAt }, { onConflict: "student_id" });
   if (studentErr) throw studentErr;
 
-  const { error: rosterErr } = await db
-    .from("class_roster")
-    .insert({
-      student_id: studentId,
-      class_option_id: best.class_option_id,
-      batch_id: best.batch_id,
-      group_id: groupId,
-      subgroup_id: subgroupId,
-      status: "Active",
-    });
+  const rosterPayload = {
+    student_id: studentId,
+    class_option_id: classOptionIdClean,
+    batch_id: batchId,
+    group_id: updateApplicantPayload.group_id,
+    subgroup_id: updateApplicantPayload.subgroup_id,
+    status: "Active",
+    enrolled_at: assignedAt,
+    updated_at: assignedAt,
+    created_at: assignedAt,
+  };
+  const { error: rosterErr } = await db.from("class_roster").upsert(rosterPayload, { onConflict: "student_id,class_option_id,batch_id" });
   if (rosterErr) throw rosterErr;
 
-  await db
-    .from("class_slots")
-    .update({ current_enrolment: best.current_enrolment + 1 })
-    .eq("class_slot_id", best.class_slot_id);
+  const dedupeKey = `moodle-enroll:${applicantIdClean}`;
+  const moodlePayload = {
+    dedupe_key: dedupeKey,
+    applicant_id: applicantIdClean,
+    registration_id: applicantIdClean,
+    student_id: studentId,
+    email: String(applicant.email || "").trim().toLowerCase(),
+    full_name: fullName(applicant),
+    batch_id: batchId,
+    class_option_id: classOptionIdClean,
+    registration_status: "ASSIGNED",
+    sync_status: "PENDING",
+    status: "PENDING",
+    payload: {
+      applicant_id: applicantIdClean,
+      class_option_id: classOptionIdClean,
+      batch_id: batchId,
+      triggered_by: context.triggeredBy,
+    },
+    retry_requested_at: assignedAt,
+    updated_at: assignedAt,
+  };
+  const { error: moodleErr } = await db.from("moodle_enrollment_sync").upsert(moodlePayload, { onConflict: "dedupe_key" });
+  if (moodleErr) throw moodleErr;
 
-  await upsertApplicantIntoStudents(db, applicantId, best.class_option_id, best.batch_id);
+  const emailPayload = {
+    recipient_email: String(applicant.email || "").trim().toLowerCase(),
+    recipient_name: fullName(applicant),
+    template_key: "foundation_welcome",
+    subject: "Welcome to Foundation School",
+    status: "Pending",
+    payload: {
+      first_name: firstName(fullName(applicant)),
+      full_name: fullName(applicant),
+      email: String(applicant.email || "").trim().toLowerCase(),
+      class_option_id: classOptionIdClean,
+      batch_id: batchId,
+      teacher_name: studentPayload.teacher_name,
+    },
+    created_at: assignedAt,
+  };
+  const { error: emailErr } = await db.from("email_queue").insert(emailPayload);
+  if (emailErr) throw emailErr;
+
+  if (slot?.class_slot_id) {
+    const { error: slotErr } = await db
+      .from("class_slots")
+      .update({ current_enrolment: Number(slot.current_enrolment || 0) + 1, updated_at: assignedAt })
+      .eq("class_slot_id", slot.class_slot_id);
+    if (slotErr) throw slotErr;
+  }
+
+  await insertAudit(db, {
+    actor_email: context.actorEmail || `${context.triggeredBy}@system`,
+    action: "APPLICANT_ASSIGNED",
+    entity_type: "applicant",
+    entity_id: applicantIdClean,
+    status: "SUCCESS",
+    details: {
+      applicant_id: applicantIdClean,
+      student_id: studentId,
+      class_option_id: classOptionIdClean,
+      batch_id: batchId,
+      triggered_by: context.triggeredBy,
+    },
+    logged_at: assignedAt,
+  });
 
   return {
-    status: "ASSIGNED",
-    classId: best.class_option_id,
-    availabilityStatus: "CLASS_ASSIGNED",
-    batchId: activeBatchId,
-    groupId,
-    subgroupId,
     studentId,
+    classId: classOptionIdClean,
+    batchId,
   };
-}
-
-export async function assignApplicant(applicantId: string, supabaseClient: AnyClient, auditContext: AnyCtx): Promise<AssignResult> {
-  const mode = String(auditContext?.mode || "").trim().toLowerCase();
-  if (mode === "phase2") {
-    return assignForPhase2(applicantId, supabaseClient, auditContext);
-  }
-  return assignForRegistration(applicantId, supabaseClient, auditContext);
 }

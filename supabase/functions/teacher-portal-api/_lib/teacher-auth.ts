@@ -33,16 +33,26 @@ export async function safeLogAudit(db: any, input: WriteAuditInput) {
   await writeAudit(db, input);
 }
 
-export async function resolveAuthContext(req: Request, dbService: any) {
+export async function resolveAuthContext(
+  req: Request,
+  dbService: any,
+  deps?: {
+    createAuthClient?: typeof createClient;
+    withTimeoutFn?: typeof withTimeout;
+  },
+) {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const token = getBearerToken(req);
 
-  const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const createAuthClient = deps?.createAuthClient || createClient;
+  const withTimeoutFn = deps?.withTimeoutFn || withTimeout;
+
+  const authClient = createAuthClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
 
-  const userRes = await withTimeout(authClient.auth.getUser(), "auth.getUser");
+  const userRes = await withTimeoutFn(authClient.auth.getUser(), "auth.getUser");
   if (userRes.error || !userRes.data?.user) {
     throw new ApiError("UNAUTHORIZED", "Session is invalid or expired", 401);
   }
@@ -51,7 +61,7 @@ export async function resolveAuthContext(req: Request, dbService: any) {
   const email = safeLower(user.email);
   if (!email) throw new ApiError("INVALID_TEACHER_MAPPING", "Authenticated user email is missing", 403);
 
-  const profileRes = await withTimeout(
+  const profileRes = await withTimeoutFn(
     dbService
       .from("profiles")
       .select("role,is_active")
@@ -78,7 +88,7 @@ export async function resolveAuthContext(req: Request, dbService: any) {
     throw new ApiError("UNAUTHORIZED", "Forbidden", 403);
   }
 
-  const linkedTeachersRes = await withTimeout(
+  const linkedTeachersRes = await withTimeoutFn(
     dbService
       .from("teachers")
       .select("teacher_id,full_name,email,active,status,deleted_at,teacher_user_id")
@@ -106,7 +116,7 @@ export async function resolveAuthContext(req: Request, dbService: any) {
   let teacher = linkedTeachers[0] || null;
 
   if (!teacher) {
-    const teacherRes = await withTimeout(
+    const teacherRes = await withTimeoutFn(
       dbService
         .from("teachers")
         .select("teacher_id,full_name,email,active,status,deleted_at,teacher_user_id")

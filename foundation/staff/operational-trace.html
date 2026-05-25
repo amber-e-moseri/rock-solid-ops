@@ -1,0 +1,485 @@
+﻿<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Operational Trace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/tokens.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <style>
+    body { margin: 0; font-family: "Manrope", system-ui, sans-serif; background: #f5f5f7; }
+    .trace-actions { display:flex; gap:8px; flex-wrap: wrap; }
+    .trace-card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    .search-row { display:grid; grid-template-columns: 1fr auto auto; gap:10px; align-items:center; }
+    .search-wrap { position:relative; }
+    .search-input { width:100%; height:48px; border:1px solid #e5e7eb; border-radius:12px; padding:0 40px 0 14px; font-size:15px; }
+    .clear-btn { position:absolute; right:8px; top:8px; width:32px; height:32px; border:0; border-radius:999px; background:#f3f4f6; cursor:pointer; display:none; }
+    .summary-row { display:grid; grid-template-columns:repeat(7,minmax(140px,1fr)); gap:10px; }
+    .summary-kpi { border-left:4px solid #4C2A92; padding:12px; border:1px solid #e5e7eb; border-radius:12px; background:#fff; }
+    .summary-kpi .label { font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:#6b7280; font-weight:700; }
+    .summary-kpi .value { margin-top:4px; font-weight:800; font-size:14px; color:#1a1a2e; }
+    .status-badge { display:inline-flex; align-items:center; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:700; }
+    .status-assigned { background:#dcfce7; color:#166534; }
+    .status-waitlisted { background:#dbeafe; color:#1d4ed8; }
+    .status-pending, .status-review { background:#fef3c7; color:#92400e; }
+    .status-duplicate, .status-failed { background:#fee2e2; color:#991b1b; }
+    .controls-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .chip-row { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip { border:1px solid #e5e7eb; background:#fff; border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; }
+    .chip.active { background:#4C2A92; color:#fff; border-color:#4C2A92; }
+    .empty { text-align:center; padding:36px 16px; color:#6b7280; }
+    .timeline { position:relative; margin-top:12px; padding-left:26px; }
+    .timeline::before { content:""; position:absolute; left:9px; top:0; bottom:0; width:2px; background:#e5e7eb; }
+    .event-card { position:relative; background:#fff; border:1px solid #e5e7eb; border-left-width:4px; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,.06); padding:16px; margin-bottom:12px; }
+    .event-dot { position:absolute; left:-22px; top:18px; width:12px; height:12px; border-radius:999px; border:2px solid #fff; box-shadow:0 0 0 2px #e5e7eb; }
+    .event-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+    .event-title { font-size:14px; font-weight:800; display:flex; gap:8px; align-items:center; }
+    .event-time { font-size:12px; color:#6b7280; }
+    .event-desc { margin-top:8px; font-size:14px; color:#1a1a2e; }
+    .event-meta { margin-top:8px; font-size:12px; color:#6b7280; display:flex; gap:12px; flex-wrap:wrap; }
+    .trace-chip { display:inline-flex; align-items:center; gap:6px; border-radius:999px; background:#f3f4f6; padding:4px 10px; font:700 11px/1 monospace; }
+    .details-toggle { margin-top:10px; border:0; background:transparent; color:#4C2A92; font-weight:700; cursor:pointer; padding:0; }
+    .details-pane { display:none; margin-top:8px; }
+    .details-pane.open { display:block; }
+    .json-view { margin:0; background:#0f172a; color:#e5e7eb; border-radius:10px; padding:10px; overflow:auto; font-size:12px; }
+    .error-box { border:1px solid #fecaca; background:#fff1f2; color:#991b1b; border-radius:10px; padding:10px 12px; }
+    .skeleton { height:108px; border-radius:12px; border:1px solid #e5e7eb; background:linear-gradient(90deg,#f3f4f6,#eceef2,#f3f4f6); background-size:200% 100%; animation:pulse 1.1s ease-in-out infinite; margin-bottom:12px; }
+    @keyframes pulse { 0%{background-position:200% 0;}100%{background-position:-200% 0;} }
+    .hidden { display:none !important; }
+    @media (max-width: 1024px) { .summary-row { grid-template-columns:repeat(3,minmax(140px,1fr)); } }
+    @media (max-width: 768px) {
+      .search-row { grid-template-columns:1fr; }
+      .summary-row { display:flex; overflow-x:auto; gap:10px; padding-bottom:4px; }
+      .summary-kpi { min-width:180px; }
+      .timeline { padding-left:0; }
+      .timeline::before, .event-dot { display:none; }
+      .trace-actions { width:100%; }
+      .trace-actions .fs-btn { flex:1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <div class="fs-page-header">
+      <div>
+        <h1 class="fs-page-title">Operational Trace</h1>
+        <p class="fs-page-subtitle">Full lifecycle view for any student or applicant</p>
+      </div>
+      <div class="trace-actions">
+        <button id="exportJsonBtn" class="fs-btn fs-btn-secondary" type="button">Export JSON</button>
+        <button id="exportCsvBtn" class="fs-btn fs-btn-secondary" type="button">Export CSV</button>
+      </div>
+    </div>
+
+    <section class="trace-card" style="padding:14px;">
+      <div class="search-row">
+        <div class="search-wrap">
+          <input id="traceLookup" class="search-input" placeholder="Search by email, applicant ID or trace ID..." />
+          <button id="clearSearchBtn" class="clear-btn" type="button" aria-label="Clear search">×</button>
+        </div>
+        <button id="runTraceBtn" class="fs-btn fs-btn-primary" type="button" style="background:#4C2A92;border-color:#4C2A92;">Search</button>
+        <button id="retryBtn" class="fs-btn fs-btn-secondary hidden" type="button">Retry</button>
+      </div>
+      <div id="traceState" class="hidden" style="margin-top:10px;"></div>
+      <div id="sourceErrors" class="hidden" style="margin-top:8px;"></div>
+    </section>
+
+    <section id="summaryWrap" class="trace-card hidden" style="padding:12px;margin-top:12px;">
+      <div id="traceSummary" class="summary-row"></div>
+    </section>
+
+    <section id="timelineCard" class="trace-card" style="padding:12px;margin-top:12px;">
+      <div class="controls-row">
+        <button id="sortToggleBtn" class="fs-btn fs-btn-secondary" type="button">Newest first</button>
+        <div class="chip-row" id="filterChips"></div>
+      </div>
+      <div id="emptyState" class="empty">
+        <div style="font-size:28px;line-height:1;">🔎</div>
+        <div style="margin-top:8px;font-weight:700;color:#374151;">Search for a student to view their trace</div>
+      </div>
+      <div id="loadingState" class="hidden" style="margin-top:12px;">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+      <div id="timeline" class="timeline hidden"></div>
+      <div id="loadMoreWrap" class="hidden" style="text-align:center;padding:10px 0;">
+        <div id="loadMoreMeta" style="font-size:12px;color:#6b7280;margin-bottom:8px;"></div>
+        <button id="loadMoreBtn" class="fs-btn fs-btn-secondary" type="button">Load more</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/admin-shell.js"></script>
+  <script type="module">
+    import { supabase, requireAuth } from "../auth/auth-client.js";
+
+    window.FSAdminShell?.mount({ active: "trace", title: "Rock Solid Admin" });
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>\"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const PAGE_SIZE = 50;
+
+    const FILTERS = [
+      { key: "all", label: "All", types: [] },
+      { key: "emails", label: "Emails", types: ["email", "notification"] },
+      { key: "moodle", label: "Moodle", types: ["moodle"] },
+      { key: "attendance", label: "Attendance", types: ["attendance"] },
+      { key: "milestones", label: "Milestones", types: ["milestone"] },
+      { key: "errors", label: "Errors", types: ["error"] },
+      { key: "manual", label: "Manual", types: ["manual"] },
+    ];
+
+    const state = {
+      events: [],
+      sortedDesc: true,
+      filter: "all",
+      shown: PAGE_SIZE,
+      context: null,
+      sourceErrors: [],
+    };
+
+    const EVENT_STYLES = {
+      registration: { icon: "📝", color: "#4C2A92", label: "Registration" },
+      assignment: { icon: "✅", color: "#16a34a", label: "Assignment" },
+      email: { icon: "📧", color: "#7c3aed", label: "Email" },
+      moodle: { icon: "🔄", color: "#0891b2", label: "Moodle Sync" },
+      error: { icon: "⚠️", color: "#C8102E", label: "Error" },
+      manual: { icon: "👤", color: "#6b7280", label: "Manual Action" },
+      attendance: { icon: "📊", color: "#d97706", label: "Attendance" },
+      milestone: { icon: "🏆", color: "#ca8a04", label: "Milestone" },
+      notification: { icon: "🔔", color: "#0ea5e9", label: "Notification" },
+    };
+
+    function setState(message, kind = "info") {
+      const el = $("traceState");
+      if (!message) {
+        el.className = "hidden";
+        el.textContent = "";
+        return;
+      }
+      el.className = kind === "error" ? "error-box" : "fs-banner fs-banner-info";
+      el.textContent = message;
+    }
+
+    function relTime(ts) {
+      if (!ts) return "-";
+      const diff = Date.now() - new Date(ts).getTime();
+      const min = Math.floor(diff / 60000);
+      if (min < 1) return "just now";
+      if (min < 60) return `${min} minutes ago`;
+      const hr = Math.floor(min / 60);
+      if (hr < 24) return `${hr} hours ago`;
+      return `${Math.floor(hr / 24)} days ago`;
+    }
+
+    function absTime(ts) {
+      if (!ts) return "-";
+      const d = new Date(ts);
+      return Number.isNaN(d.getTime()) ? String(ts) : d.toLocaleString();
+    }
+
+    function statusBadge(status) {
+      const s = String(status || "").toUpperCase();
+      const cls = s.includes("ASSIGNED") ? "status-assigned" : s.includes("WAIT") ? "status-waitlisted" : s.includes("PENDING") || s.includes("REVIEW") ? "status-pending" : s.includes("DUP") || s.includes("FAIL") || s.includes("ERROR") ? "status-duplicate" : "status-pending";
+      return `<span class="status-badge ${cls}">${esc(s || "UNKNOWN")}</span>`;
+    }
+
+    function renderFilters() {
+      const wrap = $("filterChips");
+      wrap.innerHTML = FILTERS.map((f) => `<button class="chip ${state.filter === f.key ? "active" : ""}" data-filter="${f.key}" type="button">${f.label}</button>`).join("");
+      wrap.querySelectorAll("[data-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.filter = btn.getAttribute("data-filter") || "all";
+          state.shown = PAGE_SIZE;
+          renderFilters();
+          renderTimeline();
+        });
+      });
+    }
+
+    async function safeSource(label, run) {
+      try { return await run(); } catch (err) { state.sourceErrors.push(`${label}: ${String(err?.message || err)}`); return null; }
+    }
+
+    async function resolveLookup(q) {
+      const lookup = String(q || "").trim();
+      const isEmail = lookup.includes("@");
+      let applicant = null;
+      let email = isEmail ? lookup.toLowerCase() : "";
+
+      if (isEmail) {
+        const byEmail = await safeSource("applicants", () => supabase.from("applicants").select("id,email,first_name,last_name,registration_status,class_option_id,created_at,updated_at,batch_id").ilike("email", lookup).order("updated_at", { ascending: false }).limit(1).maybeSingle());
+        applicant = byEmail?.data || null;
+      } else {
+        const byId = await safeSource("applicants", () => supabase.from("applicants").select("id,email,first_name,last_name,registration_status,class_option_id,created_at,updated_at,batch_id").eq("id", lookup).maybeSingle());
+        applicant = byId?.data || null;
+        if (!applicant) {
+          const byTrace = await safeSource("email_queue", () => supabase.from("email_queue").select("recipient_email").eq("id", lookup).maybeSingle());
+          if (byTrace?.data?.recipient_email) email = String(byTrace.data.recipient_email).toLowerCase();
+        }
+      }
+      if (!email && applicant?.email) email = String(applicant.email).toLowerCase();
+      return { lookup, email, applicant };
+    }
+
+    function event(type, ts, description, details, extra = {}) {
+      return { type, ts, description, details: details || {}, traceId: extra.traceId || "", actor: extra.actor || "system", source: extra.source || "", status: extra.status || "" };
+    }
+
+    async function fetchEvents(ctx) {
+      const events = [];
+      const applicantId = ctx.applicant?.id ? String(ctx.applicant.id) : "";
+      const email = String(ctx.email || "");
+
+      if (ctx.applicant) {
+        events.push(event("registration", ctx.applicant.created_at, "Registration submitted", ctx.applicant, { source: "applicants", status: ctx.applicant.registration_status || "PENDING" }));
+        events.push(event("assignment", ctx.applicant.updated_at, "Applicant status/class updated", ctx.applicant, { source: "applicants", status: ctx.applicant.registration_status || "UNKNOWN" }));
+      }
+
+      if (email) {
+        const emails = await safeSource("email_queue", () => supabase.from("email_queue").select("id,template_key,recipient_email,subject,status,sent_at,error_message,created_at,updated_at,metadata,payload").ilike("recipient_email", email).order("created_at", { ascending: false }).limit(500));
+        for (const row of (emails?.data || [])) {
+          const t = String(row.status || "").toUpperCase() === "FAILED" ? "error" : "email";
+          events.push(event(t, row.sent_at || row.updated_at || row.created_at, `${row.template_key || "email"} ${row.status || "Pending"}`, row, { source: "email_queue", status: row.status || "PENDING", traceId: row.id }));
+        }
+      }
+
+      const moodle = await safeSource("moodle_enrollment_sync", () => supabase.from("moodle_enrollment_sync").select("id,email,sync_status,error_message,moodle_course_id,batch_id,class_option_id,synced_at,created_at,updated_at").or(email ? `email.ilike.${email}` : `id.eq.${ctx.lookup}`).order("updated_at", { ascending: false }).limit(500));
+      for (const row of (moodle?.data || [])) {
+        const t = ["FAILED", "RETRYING", "PERMANENTLY_FAILED"].includes(String(row.sync_status || "").toUpperCase()) ? "error" : "moodle";
+        events.push(event(t, row.synced_at || row.updated_at || row.created_at, `Moodle sync ${row.sync_status || "UNKNOWN"}`, row, { source: "moodle_enrollment_sync", status: row.sync_status || "UNKNOWN", traceId: row.id }));
+      }
+
+      const students = email ? await safeSource("students", () => supabase.from("students").select("student_id,email,class_option_id,full_name").ilike("email", email).limit(20)) : null;
+      const studentIds = (students?.data || []).map((r) => String(r.student_id || "")).filter(Boolean);
+
+      if (studentIds.length) {
+        const attendance = await safeSource("attendance_log", () => supabase.from("attendance_log").select("attendance_id,student_id,class_option_id,class_number,class_date,present,made_up,submission_date,logged_at,submitted_by_teacher").in("student_id", studentIds).order("class_date", { ascending: false }).limit(500));
+        for (const row of (attendance?.data || [])) {
+          events.push(event("attendance", row.submission_date || row.class_date || row.logged_at, `Class ${row.class_number || "?"}: ${row.present ? "Present" : row.made_up ? "Made up" : "Absent"}`, row, { source: "attendance_log", status: row.present ? "PRESENT" : row.made_up ? "MAKEUP" : "ABSENT", traceId: row.attendance_id, actor: row.submitted_by_teacher ? "teacher" : "system" }));
+        }
+
+        const roster = await safeSource("class_roster", () => supabase.from("class_roster").select("id,student_id,class_option_id,batch_id,status,enrolled_at,created_at,updated_at").in("student_id", studentIds).order("created_at", { ascending: false }).limit(500));
+        for (const row of (roster?.data || [])) {
+          events.push(event("assignment", row.enrolled_at || row.created_at || row.updated_at, `Class roster ${row.status || "Active"}`, row, { source: "class_roster", status: row.status || "ACTIVE", traceId: row.id }));
+        }
+      }
+
+      if (applicantId) {
+        const milestones = await safeSource("student_milestone_status", () => supabase.from("student_milestone_status").select("id,applicant_id,milestone_code,completed,updated_at,created_at,updated_by").eq("applicant_id", applicantId).order("updated_at", { ascending: false }).limit(500));
+        for (const row of (milestones?.data || [])) {
+          if (!row.completed) continue;
+          events.push(event("milestone", row.updated_at || row.created_at, `Milestone completed: ${row.milestone_code || "Unknown"}`, row, { source: "student_milestone_status", status: "COMPLETED", traceId: row.id, actor: row.updated_by || "system" }));
+        }
+
+        const audits = await safeSource("audit_logs", () => supabase.from("audit_logs").select("id,created_at,action,actor_email,entity_type,entity_id,status,details").eq("entity_id", applicantId).order("created_at", { ascending: false }).limit(500));
+        for (const row of (audits?.data || [])) {
+          events.push(event("manual", row.created_at, `Audit: ${row.action || "Action"}`, row, { source: "audit_logs", status: row.status || "AUDIT", traceId: row.id, actor: row.actor_email || "system" }));
+        }
+      }
+
+      if (email) {
+        const scheduled = await safeSource("scheduled_notifications", () => supabase.from("scheduled_notifications").select("id,event_type,recipient_email,status,scheduled_for,sent_at,updated_at,payload,dedupe_key,created_at").ilike("recipient_email", email).order("created_at", { ascending: false }).limit(500));
+        for (const row of (scheduled?.data || [])) {
+          events.push(event("notification", row.sent_at || row.updated_at || row.scheduled_for || row.created_at, `Scheduled notification: ${row.event_type || "event"}`, row, { source: "scheduled_notifications", status: row.status || "PENDING", traceId: row.dedupe_key || row.id }));
+        }
+      }
+
+      return { events, applicant: ctx.applicant, email, studentIds };
+    }
+
+    function summarize(result) {
+      const wrap = $("traceSummary");
+      const events = result.events || [];
+      const app = result.applicant || null;
+      const emailsSent = events.filter((e) => e.source === "email_queue" && String(e.status || "").toUpperCase() === "SENT").length;
+      const moodle = events.find((e) => e.source === "moodle_enrollment_sync");
+      const attendance = events.filter((e) => e.type === "attendance" && e.ts).sort((a,b) => new Date(b.ts) - new Date(a.ts));
+      const milestones = events.filter((e) => e.type === "milestone").length;
+
+      const items = [
+        ["Registration Date", app?.created_at ? absTime(app.created_at) : "-", "#4C2A92"],
+        ["Current Status", statusBadge(app?.registration_status || "-"), "#16a34a"],
+        ["Class Assigned", app?.class_option_id || "-", "#0891b2"],
+        ["Emails Sent", String(emailsSent), "#7c3aed"],
+        ["Moodle Status", statusBadge(moodle?.status || "-"), "#0ea5e9"],
+        ["Last Attendance", attendance[0]?.ts ? absTime(attendance[0].ts) : "-", "#d97706"],
+        ["Milestones", `${milestones}/5`, "#ca8a04"],
+      ];
+
+      wrap.innerHTML = items.map(([label, value, color]) => `<article class="summary-kpi" style="border-left-color:${color}"><div class="label">${label}</div><div class="value">${value}</div></article>`).join("");
+      $("summaryWrap").classList.remove("hidden");
+    }
+
+    function filteredEvents() {
+      let rows = [...state.events];
+      if (state.filter !== "all") {
+        const rule = FILTERS.find((f) => f.key === state.filter);
+        rows = rows.filter((r) => rule?.types.includes(r.type));
+      }
+      rows.sort((a, b) => state.sortedDesc ? (new Date(b.ts || 0) - new Date(a.ts || 0)) : (new Date(a.ts || 0) - new Date(b.ts || 0)));
+      return rows;
+    }
+
+    function renderSourceErrors() {
+      const box = $("sourceErrors");
+      if (!state.sourceErrors.length) {
+        box.className = "hidden";
+        box.innerHTML = "";
+        return;
+      }
+      box.className = "error-box";
+      box.innerHTML = `<strong>Failed to load trace data</strong><ul style="margin:8px 0 0;padding-left:18px;">${state.sourceErrors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>`;
+      $("retryBtn").classList.remove("hidden");
+    }
+
+    function renderTimeline() {
+      const all = filteredEvents();
+      const visible = all.slice(0, state.shown);
+      const timeline = $("timeline");
+      const empty = $("emptyState");
+
+      if (!all.length) {
+        timeline.classList.add("hidden");
+        timeline.innerHTML = "";
+        empty.classList.remove("hidden");
+        empty.innerHTML = state.context
+          ? `<div style="font-weight:700;color:#374151;">No events found for ${esc(state.context.lookup)}</div><div style="margin-top:6px;">Check the email address and try again</div>`
+          : `<div style="font-size:28px;line-height:1;">🔎</div><div style="margin-top:8px;font-weight:700;color:#374151;">Search for a student to view their trace</div>`;
+        $("loadMoreWrap").classList.add("hidden");
+        return;
+      }
+
+      empty.classList.add("hidden");
+      timeline.classList.remove("hidden");
+      timeline.innerHTML = visible.map((e, idx) => {
+        const style = EVENT_STYLES[e.type] || EVENT_STYLES.manual;
+        return `<article class="event-card" style="border-left-color:${style.color}">
+          <span class="event-dot" style="background:${style.color};"></span>
+          <div class="event-head">
+            <div class="event-title" style="color:${style.color};"><span>${style.icon}</span><span>${esc(style.label)}</span></div>
+            <span class="event-time" title="${esc(absTime(e.ts))}">${esc(relTime(e.ts))}</span>
+          </div>
+          <div class="event-desc">${esc(e.description)}</div>
+          <div class="event-meta">
+            <span>Actor: ${esc(e.actor || "system")}</span>
+            ${e.traceId ? `<span class="trace-chip">${esc(e.traceId)} <button class="fs-btn fs-btn-secondary fs-btn-sm" data-copy="${esc(e.traceId)}" type="button">Copy</button></span>` : ""}
+          </div>
+          <button class="details-toggle" type="button" data-toggle="d-${idx}">View details ▼</button>
+          <div id="d-${idx}" class="details-pane"><pre class="json-view">${esc(JSON.stringify(e.details || {}, null, 2))}</pre></div>
+        </article>`;
+      }).join("");
+
+      timeline.querySelectorAll("[data-copy]").forEach((btn) => btn.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(btn.getAttribute("data-copy") || ""); } catch (_) {}
+      }));
+      timeline.querySelectorAll("[data-toggle]").forEach((btn) => btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-toggle");
+        const pane = document.getElementById(id);
+        const open = pane.classList.toggle("open");
+        btn.textContent = open ? "Hide details ▲" : "View details ▼";
+      }));
+
+      const loadWrap = $("loadMoreWrap");
+      if (visible.length < all.length) {
+        loadWrap.classList.remove("hidden");
+        $("loadMoreMeta").textContent = `Showing ${visible.length} of ${all.length} events`;
+      } else {
+        loadWrap.classList.add("hidden");
+      }
+    }
+
+    function exportJson() {
+      const blob = new Blob([JSON.stringify({ context: state.context, events: filteredEvents() }, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "operational-trace.json"; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function exportCsv() {
+      const header = ["timestamp","event_type","description","status","source","actor","trace_id"];
+      const rows = filteredEvents().map((e) => [e.ts,e.type,e.description,e.status,e.source,e.actor,e.traceId]);
+      const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v ?? "").replaceAll('"','""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "operational-trace.csv"; a.click(); URL.revokeObjectURL(url);
+    }
+
+    async function runTrace() {
+      const lookup = String($("traceLookup").value || "").trim();
+      if (!lookup) return setState("Enter an email, applicant ID or trace ID.");
+
+      setState("");
+      state.sourceErrors = [];
+      state.shown = PAGE_SIZE;
+      $("retryBtn").classList.add("hidden");
+      $("loadingState").classList.remove("hidden");
+      $("timeline").classList.add("hidden");
+      $("summaryWrap").classList.add("hidden");
+
+      const ctx = await resolveLookup(lookup);
+      const result = await fetchEvents(ctx);
+      state.context = ctx;
+      state.events = result.events;
+
+      $("loadingState").classList.add("hidden");
+      summarize(result);
+      renderSourceErrors();
+      renderTimeline();
+    }
+
+    async function boot() {
+      if (window.location.protocol === "file:") {
+        setState("Please access this page through the admin portal.", "error");
+        return;
+      }
+
+      try {
+        const auth = await requireAuth(["admin", "superadmin", "regional_secretary"]);
+        if (!auth) {
+          setState("Please access this page through the admin portal.", "error");
+          return;
+        }
+      } catch (_) {
+        setState("Please access this page through the admin portal.", "error");
+        return;
+      }
+
+      renderFilters();
+      const input = $("traceLookup");
+      input.addEventListener("input", () => {
+        const hasText = String(input.value || "").trim().length > 0;
+        $("clearSearchBtn").style.display = hasText ? "inline-flex" : "none";
+      });
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") runTrace(); });
+      $("clearSearchBtn").addEventListener("click", () => {
+        input.value = "";
+        $("clearSearchBtn").style.display = "none";
+        state.events = [];
+        state.context = null;
+        $("summaryWrap").classList.add("hidden");
+        renderTimeline();
+      });
+
+      $("runTraceBtn").addEventListener("click", runTrace);
+      $("retryBtn").addEventListener("click", runTrace);
+      $("sortToggleBtn").addEventListener("click", () => {
+        state.sortedDesc = !state.sortedDesc;
+        $("sortToggleBtn").textContent = state.sortedDesc ? "Newest first" : "Oldest first";
+        renderTimeline();
+      });
+      $("loadMoreBtn").addEventListener("click", () => { state.shown += PAGE_SIZE; renderTimeline(); });
+      $("exportJsonBtn").addEventListener("click", exportJson);
+      $("exportCsvBtn").addEventListener("click", exportCsv);
+    }
+
+    boot().catch((err) => setState(`Please access this page through the admin portal. (${String(err?.message || err)})`, "error"));
+  </script>
+</body>
+</html>

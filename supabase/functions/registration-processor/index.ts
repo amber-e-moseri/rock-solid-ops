@@ -257,17 +257,71 @@ Deno.serve(async (req) => {
       v === true || String(v ?? "").toLowerCase() === "true";
 
     const canAutoAssign = !normalizeBool(body.assignment_deferred) && !normalizeBool(body.manual_review_required);
-    const assignment = await assignApplicant(applicantId, db, {
-      mode: "registration",
-      nowIso,
-      batch_id,
-      class_option_id,
-      availability,
-      canAutoAssign,
-      isDuplicate,
-      duplicateCount,
-    });
-    let registrationStatus = String(assignment.status || "PENDING") as
+    let registrationStatus = "PENDING";
+    let availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+    let classIsFull = false;
+    let assignedAt: string | null = null;
+    let waitlistedAt: string | null = null;
+    let reviewedAt: string | null = null;
+    let reviewNotes: string | null = null;
+
+    if (isDuplicate) {
+      registrationStatus = "DUPLICATE";
+      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+      reviewedAt = nowIso;
+      reviewNotes = `Duplicate registration detected. This email has submitted ${duplicateCount} times.`;
+    } else if (!canAutoAssign) {
+      registrationStatus = "REVIEW";
+      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+      reviewedAt = nowIso;
+      reviewNotes = "Auto-assignment deferred for manual review.";
+    } else if (class_option_id) {
+      const { data: classOptionRow, error: classOptionError } = await db
+        .from("class_options")
+        .select("class_option_id,max_capacity,active,enrollment_open")
+        .eq("class_option_id", class_option_id)
+        .maybeSingle();
+
+      if (classOptionError || !classOptionRow) {
+        registrationStatus = "REVIEW";
+        availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+        reviewedAt = nowIso;
+        reviewNotes = classOptionError ? "Could not safely validate selected class option." : "Selected class option no longer exists.";
+      } else {
+        const maxCapacity = Number(classOptionRow.max_capacity || 0);
+        const { count: assignedCount, error: assignedCountError } = await db
+          .from("applicants")
+          .select("*", { count: "exact", head: true })
+          .eq("class_option_id", class_option_id)
+          .eq("registration_status", "ASSIGNED");
+        if (assignedCountError) {
+          registrationStatus = "REVIEW";
+          availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+          reviewedAt = nowIso;
+          reviewNotes = "Could not validate class capacity safely.";
+        } else {
+          classIsFull = maxCapacity > 0 && Number(assignedCount || 0) >= maxCapacity;
+          if (classIsFull) {
+            registrationStatus = "WAITLISTED";
+            availabilityStatus = "CLASS_FULL";
+            waitlistedAt = nowIso;
+          } else {
+            registrationStatus = "ASSIGNED";
+            availabilityStatus = "CLASS_ASSIGNED";
+            assignedAt = nowIso;
+          }
+        }
+      }
+    } else if (availability) {
+      registrationStatus = "PENDING";
+      availabilityStatus = "NO_MATCHING_TIME";
+    } else {
+      registrationStatus = "WAITLISTED";
+      availabilityStatus = "NO_CLASS_AVAILABLE";
+      waitlistedAt = nowIso;
+    }
+
+    let registrationStatusTyped = String(registrationStatus || "PENDING") as
       | "PENDING"
       | "ASSIGNED"
       | "WAITLISTED"
@@ -275,23 +329,21 @@ Deno.serve(async (req) => {
       | "REVIEW"
       | "INACTIVE"
       | "COMPLETED";
-    let availabilityStatus = String(assignment.availabilityStatus || "MANUAL_REVIEW_REQUIRED") as
+    let availabilityStatusTyped = String(availabilityStatus || "MANUAL_REVIEW_REQUIRED") as
       | "CLASS_ASSIGNED"
       | "NO_MATCHING_TIME"
       | "CLASS_FULL"
       | "MANUAL_REVIEW_REQUIRED"
       | "NO_CLASS_AVAILABLE";
-    const classIsFull = Boolean(assignment.classIsFull);
-    const assignedAt = assignment.assignedAt ?? null;
-    const waitlistedAt = assignment.waitlistedAt ?? null;
-    const reviewedAt = assignment.reviewedAt ?? null;
-    let reviewNotes = assignment.reviewNotes ?? null;
-    const legacyStatus = String(assignment.legacyStatus || "Pending");
-    batch_id = assignment.batchId ?? batch_id;
+    const legacyStatus =
+      registrationStatusTyped === "ASSIGNED" ? "Enrolled" :
+      registrationStatusTyped === "WAITLISTED" ? "Waitlisted" :
+      registrationStatusTyped === "DUPLICATE" ? "Duplicate" :
+      registrationStatusTyped === "REVIEW" ? "Review" : "Pending";
 
     if (forceDuplicateByBatch) {
-      registrationStatus = "DUPLICATE";
-      availabilityStatus = "MANUAL_REVIEW_REQUIRED";
+      registrationStatusTyped = "DUPLICATE";
+      availabilityStatusTyped = "MANUAL_REVIEW_REQUIRED";
       reviewNotes = duplicateGuardReason === "existing_duplicate_in_same_batch"
         ? "Duplicate registration rejected: email already has DUPLICATE status in this batch."
         : "Duplicate registration rejected: email already registered in this batch.";
@@ -323,13 +375,13 @@ Deno.serve(async (req) => {
       batch_id: batch_id || null,
       availability,
       status: legacyStatus,
-      registration_status: registrationStatus,
-      availability_status: availabilityStatus,
+      registration_status: registrationStatusTyped,
+      availability_status: availabilityStatusTyped,
       assigned_at: assignedAt,
       waitlisted_at: waitlistedAt,
       reviewed_at: reviewedAt,
       review_notes: reviewNotes,
-      retry_assignment: registrationStatus === "WAITLISTED",
+      retry_assignment: registrationStatusTyped === "WAITLISTED",
       assignment_attempts: 1,
       source: "registration_processor",
       raw_payload: body,
@@ -338,7 +390,7 @@ Deno.serve(async (req) => {
     const applicantInsertWithDuplicateFlags = {
       ...applicantInsertBase,
       duplicate_count: duplicateCount,
-      needs_admin_review: isDuplicate || registrationStatus === "REVIEW",
+      needs_admin_review: isDuplicate || registrationStatusTyped === "REVIEW",
       admin_note: reviewNotes,
     };
 
@@ -451,15 +503,14 @@ Deno.serve(async (req) => {
     }
 
     let templateKey = "";
-    if (registrationStatus === "ASSIGNED") templateKey = "foundation_welcome";
-    if (registrationStatus === "DUPLICATE") templateKey = "duplicate_registration";
-    if (registrationStatus === "PENDING" && availabilityStatus === "NO_MATCHING_TIME") templateKey = "no_suitable_times";
-    if (registrationStatus === "WAITLISTED" && (availabilityStatus === "CLASS_FULL" || availabilityStatus === "NO_CLASS_AVAILABLE")) templateKey = "no_class_available";
+    if (registrationStatusTyped === "DUPLICATE") templateKey = "duplicate_registration";
+    if (registrationStatusTyped === "PENDING" && availabilityStatusTyped === "NO_MATCHING_TIME") templateKey = "no_suitable_times";
+    if (registrationStatusTyped === "WAITLISTED" && (availabilityStatusTyped === "CLASS_FULL" || availabilityStatusTyped === "NO_CLASS_AVAILABLE")) templateKey = "no_class_available";
 
     console.log("EMAIL_TEMPLATE_SELECTED", {
       email,
-      registrationStatus,
-      availabilityStatus,
+      registrationStatus: registrationStatusTyped,
+      availabilityStatus: availabilityStatusTyped,
       templateKey,
     });
 
@@ -487,8 +538,8 @@ Deno.serve(async (req) => {
         email,
         phone,
         duplicate_count: duplicateCount,
-        registration_status: registrationStatus,
-        availability_status: availabilityStatus,
+        registration_status: registrationStatusTyped,
+        availability_status: availabilityStatusTyped,
         fellowship_code,
         class_option_id,
         batch_id,
@@ -556,62 +607,21 @@ Deno.serve(async (req) => {
     }
 
     let moodleSyncRowId = "";
-    if (registrationStatus === "ASSIGNED") {
+    if (registrationStatusTyped === "ASSIGNED") {
+      const assigned = await assignApplicant(String(insertedApplicant?.id || ""), String(class_option_id || ""), db, {
+        batchId: batch_id || undefined,
+        triggeredBy: "registration",
+        actorEmail: "registration-processor@system",
+      });
+      batch_id = assigned.batchId;
       try {
-        const moodleBaseRow = {
-          dedupe_key: `moodle-enroll:${String(insertedApplicant?.id || "")}`,
-          trace_id: flowTraceId,
-          registration_id: insertedApplicant?.id || null,
-          applicant_id: insertedApplicant?.id || null,
-          email,
-          full_name,
-          batch_id: batch_id || null,
-          class_option_id: class_option_id || null,
-          registration_status: registrationStatus,
-          sync_status: "PENDING",
-          status: "PENDING",
-          payload: {
-            trace_id: flowTraceId,
-            applicant_id: insertedApplicant?.id,
-            email,
-            full_name,
-            batch_id,
-            class_option_id,
-            registration_status: registrationStatus,
-          },
-        };
-
-        let moodleUpsertErr: unknown = null;
-        let moodleRow: { id?: string } | null = null;
-
-        ({ data: moodleRow, error: moodleUpsertErr } = await db
+        const { data: moodleRow } = await db
           .from("moodle_enrollment_sync")
-          .upsert(moodleBaseRow, { onConflict: "dedupe_key" })
           .select("id")
-          .single());
-
-        if (moodleUpsertErr) {
-          const moodleMsg = JSON.stringify(moodleUpsertErr);
-          if (moodleMsg.includes("trace_id")) {
-            const moodleLegacyRow = { ...moodleBaseRow };
-            delete (moodleLegacyRow as Record<string, unknown>).trace_id;
-            const legacyPayload = { ...(moodleLegacyRow.payload as Record<string, unknown>) };
-            delete legacyPayload.trace_id;
-            moodleLegacyRow.payload = legacyPayload;
-
-            ({ data: moodleRow, error: moodleUpsertErr } = await db
-              .from("moodle_enrollment_sync")
-              .upsert(moodleLegacyRow, { onConflict: "dedupe_key" })
-              .select("id")
-              .single());
-          }
-        }
-
-        if (moodleUpsertErr) throw moodleUpsertErr;
+          .eq("dedupe_key", `moodle-enroll:${String(insertedApplicant?.id || "")}`)
+          .maybeSingle();
         moodleSyncRowId = String(moodleRow?.id || "");
-      } catch (moodleSyncInsertErr) {
-        console.error("REGISTRATION_PROCESSOR_MOODLE_SYNC_INSERT_ERROR", moodleSyncInsertErr);
-      }
+      } catch (_) {}
 
       try {
         await db
@@ -632,7 +642,7 @@ Deno.serve(async (req) => {
                 email,
                 batch_id,
                 class_option_id,
-                registration_status: registrationStatus,
+                registration_status: "ASSIGNED",
               },
             },
             { onConflict: "dedupe_key" },
@@ -668,8 +678,8 @@ Deno.serve(async (req) => {
       class_option_id,
       batch_id,
       availability,
-      registration_status: registrationStatus,
-      availability_status: availabilityStatus,
+      registration_status: registrationStatusTyped,
+      availability_status: availabilityStatusTyped,
       class_is_full: classIsFull,
       template_key: templateKey,
       debug_trail: debugTrail,
@@ -680,7 +690,7 @@ Deno.serve(async (req) => {
       "SUCCESS",
       commonAuditDetails,
     );
-    if (registrationStatus === "ASSIGNED") {
+    if (registrationStatusTyped === "ASSIGNED") {
       await writeAudit("REGISTRATION_ASSIGNED", "SUCCESS", commonAuditDetails);
       if (moodleSyncRowId) {
         await writeAudit("MOODLE_SYNC_QUEUED", "SUCCESS", {
@@ -688,9 +698,9 @@ Deno.serve(async (req) => {
           moodle_sync_id: moodleSyncRowId,
         });
       }
-    } else if (registrationStatus === "WAITLISTED") {
+    } else if (registrationStatusTyped === "WAITLISTED") {
       await writeAudit("REGISTRATION_WAITLISTED", "SUCCESS", commonAuditDetails);
-    } else if (registrationStatus === "INACTIVE") {
+    } else if (registrationStatusTyped === "INACTIVE") {
       await writeAudit("REGISTRATION_INACTIVE", "SUCCESS", commonAuditDetails);
       // Fire-and-forget: decrement slot and check waitlist for next eligible student
       if (class_option_id && batch_id) {
@@ -707,9 +717,9 @@ Deno.serve(async (req) => {
           }),
         }).catch(() => {});
       }
-    } else if (registrationStatus === "DUPLICATE") {
+    } else if (registrationStatusTyped === "DUPLICATE") {
       await writeAudit("REGISTRATION_DUPLICATE", "SUCCESS", commonAuditDetails);
-    } else if (registrationStatus === "REVIEW") {
+    } else if (registrationStatusTyped === "REVIEW") {
       await writeAudit("REGISTRATION_REVIEW", "SUCCESS", commonAuditDetails);
     }
 
@@ -717,8 +727,8 @@ Deno.serve(async (req) => {
       ok: true,
       data: {
         applicant_id: String(applicant?.id || ""),
-        registration_status: registrationStatus,
-        availability_status: availabilityStatus,
+        registration_status: registrationStatusTyped,
+        availability_status: availabilityStatusTyped,
         template_key: templateKey,
         debug_trail: debugTrail,
         message: "Registration processed",

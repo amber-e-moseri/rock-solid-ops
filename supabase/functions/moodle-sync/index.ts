@@ -264,6 +264,10 @@ function hasCredentialPayload(payload: { moodle_url: string; moodle_username: st
   );
 }
 
+export function onlyAssignedSyncJobs(rows: Array<Record<string, unknown>>) {
+  return (rows || []).filter((row) => String(row?.registration_status || "").toUpperCase() === "ASSIGNED");
+}
+
 async function resolveCourseId(db: ReturnType<typeof createClient>, row: Record<string, unknown>) {
   // moodle_course_id is the written column name; course_id is a legacy alias — check both
   const explicit = String(row.course_id || row.moodle_course_id || "").trim();
@@ -382,7 +386,7 @@ Deno.serve(async (req) => {
 
     if (rowsError) throw rowsError;
 
-    const jobs = (rows || []) as Array<Record<string, unknown>>;
+    const jobs = onlyAssignedSyncJobs((rows || []) as Array<Record<string, unknown>>);
     if (!jobs.length) {
       return json({ ok: true, processed: 0, message: "No moodle enrollment jobs pending" });
     }

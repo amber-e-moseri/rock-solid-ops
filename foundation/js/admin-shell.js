@@ -85,6 +85,7 @@
       label: "System",
       items: [
         { key: "teachers", label: "Teachers", href: "teacher-management.html", icon: "TM", roles: OPERATIONAL_ROLES },
+        { key: "trace", label: "Operational Trace", href: "operational-trace.html", icon: "OT", roles: ["admin", "superadmin", "regional_secretary"] },
         { key: "fellowships", label: "Fellowships", href: "fellowship-management.html", icon: "FG", roles: SYSTEM_ADMIN_ROLES },
         { key: "clickupmanagement", label: "ClickUp Management", href: "clickup-management.html", icon: "AM", roles: SYSTEM_ADMIN_ROLES },
         { key: "failedsyncs", label: "Failed Syncs", href: "failed-sync-retry-center.html", icon: "FS", roles: SYSTEM_ADMIN_ROLES },
@@ -258,6 +259,7 @@
     if (p.includes("baptism-report")) return "baptismreport";
     if (p.includes("reports")) return "reports";
     if (p.includes("teacher-management")) return "teachers";
+    if (p.includes("operational-trace")) return "trace";
     if (p.includes("admin-activity")) return "adminactivity";
     if (p.includes("role-audit")) return "roleaudit";
     if (p.includes("waitlist")) return "waitlist";
