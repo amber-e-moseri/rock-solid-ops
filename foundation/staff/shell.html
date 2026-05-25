@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Solid - Admin Shell</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../ui/premium-theme.css" />
+  <link rel="stylesheet" href="../ui/components.css" />
+  <link rel="stylesheet" href="../ui/layout.css" />
+  <link rel="stylesheet" href="../ui/admin-shell.css" />
+  <link rel="stylesheet" href="../ui/primitives.css" />
+</head>
+<body>
+  <main class="main fs-content fs-shell-main fs-frame-shell">
+    <iframe
+      id="fs-content-frame"
+      class="fs-content-frame"
+      src=""
+      title="Content"
+      style="width:100%;height:100%;border:none;flex:1;"
+    ></iframe>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/config-helper.js"></script>
+  <script src="../js/admin-shell.js?v=20260518"></script>
+  <script type="module">
+    import { requireAuth } from "../auth/auth-client.js";
+
+    async function boot() {
+      const auth = await requireAuth(["superadmin", "admin", "regional_secretary", "pastor", "subgroup_admin", "principal"]);
+      if (!auth) return;
+      window.FSAdminShell?.mount({
+        active: "dashboard",
+        pageTitle: "Shell",
+        role: auth.profile?.role || "",
+        profileName: auth.profile?.full_name || auth.profile?.email || "Admin",
+      });
+    }
+
+    boot();
+  </script>
+</body>
+</html>

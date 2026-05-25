@@ -1,4 +1,13 @@
 (function () {
+  const Shell = (window.FSAdminShell = window.FSAdminShell || {});
+  if (window.self !== window.top) {
+    Shell.mount = Shell.mount || (async function () {});
+    Shell.setProfile = Shell.setProfile || function () {};
+    Shell.setPageTitle = Shell.setPageTitle || function () {};
+    Shell.setBadge = Shell.setBadge || function () {};
+    return;
+  }
+
   const BOOT_STYLE_ID = "fs-shell-boot-opacity-style";
   const existingBootStyle = document.getElementById(BOOT_STYLE_ID);
   if (!existingBootStyle) {
@@ -16,7 +25,6 @@
   const COLLAPSE_KEY = "fs_admin_sidebar_collapsed";
   const REGIONAL_MODE_KEY = "fs_regional_secretary_mode";
   const TEACHER_MODE_ELIGIBLE_ROLES = new Set(["regional_secretary", "admin", "superadmin"]);
-  const Shell = (window.FSAdminShell = window.FSAdminShell || {});
   const OPERATIONAL_ROLES = ["regional_secretary", "principal", "subgroup_admin", "pastor", "admin", "superadmin"];
   const SYSTEM_ADMIN_ROLES = ["admin", "superadmin"];
 
@@ -414,6 +422,7 @@
       if (!mainEl.classList.contains("fs-shell-main")) mainEl.classList.add("fs-shell-main");
       window.setTimeout(function () { mainEl.classList.remove("fs-loading"); }, 60);
     }
+    document.body.classList.remove("fs-nav-transitioning");
     try {
       if (sessionStorage.getItem("fs_nav_progress_pending") === "1") {
         completeProgressBar();
@@ -496,6 +505,52 @@
         window.location.href = resolveLoginPath();
       }
     });
+    const frame = document.getElementById("fs-content-frame");
+    const iframeShell = frame instanceof HTMLIFrameElement;
+    const navByKey = new Map();
+    sidebar.querySelectorAll(".sb-link[data-key]").forEach((a) => {
+      if (!(a instanceof HTMLAnchorElement)) return;
+      const key = String(a.dataset.key || "").trim();
+      const href = String(a.getAttribute("href") || "").trim();
+      if (key && href) navByKey.set(key, href);
+    });
+
+    function updateActiveNav(key) {
+      sidebar.querySelectorAll(".sb-link[data-key]").forEach((a) => {
+        const isActive = String(a.getAttribute("data-key") || "") === String(key || "");
+        a.classList.toggle("active", isActive);
+      });
+    }
+
+    function navigateTo(url, key, replaceState) {
+      if (!iframeShell || !frame) {
+        startShellTransition();
+        window.setTimeout(function () {
+          window.location.href = url;
+        }, 140);
+        return;
+      }
+      startShellTransition();
+      frame.style.transition = "opacity 0.15s ease";
+      frame.style.opacity = "0";
+      window.setTimeout(function () {
+        frame.onload = function () {
+          frame.style.opacity = "1";
+          const main = document.querySelector(".fs-shell-main, .fs-content.main, main.main, main");
+          if (main) main.classList.remove("fs-loading");
+          document.body.classList.remove("fs-nav-transitioning");
+          updateActiveNav(key);
+          completeProgressBar();
+          if (key) {
+            const urlObj = new URL(window.location.href);
+            urlObj.searchParams.set("page", key);
+            const method = replaceState ? "replaceState" : "pushState";
+            history[method]({ key, url }, "", urlObj.toString());
+          }
+        };
+        frame.src = url;
+      }, 150);
+    }
 
     sidebar.querySelectorAll(".sb-link").forEach(function (link) {
       link.addEventListener("click", function (e) {
@@ -503,15 +558,39 @@
         if (!(target instanceof HTMLAnchorElement)) return;
         if (target.id === "fs-admin-logout") return;
         const href = String(target.getAttribute("href") || "");
+        const key = String(target.dataset.key || "");
         if (!href || href.startsWith("#") || target.target === "_blank") return;
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
         e.preventDefault();
-        startShellTransition();
-        window.setTimeout(function () {
-          window.location.href = href;
-        }, 140);
+        navigateTo(href, key, false);
       });
     });
+
+    if (iframeShell && frame) {
+      const params = new URLSearchParams(window.location.search);
+      const pageKey = params.get("page") || active || "dashboard";
+      const initialUrl = navByKey.get(pageKey) || navByKey.get("dashboard");
+      if (initialUrl) navigateTo(initialUrl, pageKey, true);
+
+      window.addEventListener("popstate", function (e) {
+        const stateData = e.state || {};
+        if (stateData.url && stateData.key) {
+          navigateTo(String(stateData.url), String(stateData.key), true);
+          return;
+        }
+        const p = new URLSearchParams(window.location.search).get("page");
+        const url = p ? navByKey.get(p) : null;
+        if (url) navigateTo(url, p, true);
+      });
+
+      window.addEventListener("message", function (ev) {
+        const payload = ev.data || {};
+        if (payload.type !== "navigate") return;
+        const key = String(payload.key || "").trim();
+        const url = key ? navByKey.get(key) : null;
+        if (url) navigateTo(url, key, false);
+      });
+    }
 
     // Regional secretary teacher-mode scope: persist linked teacher identity for staff teacher pages.
     (async function () {

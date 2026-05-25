@@ -22,6 +22,7 @@ const state = {
   selectedScope: "INDIVIDUAL",
   selectedGroupId: "",
   selectedSubgroupId: "",
+  isTeacher: false,
 };
 
 async function api(action, params = {}) {
@@ -75,7 +76,7 @@ function renderConversations() {
   const wrap = $("conversationList");
   if (!wrap) return;
   if (!state.conversations.length) {
-    wrap.innerHTML = `<div class="empty">No conversations yet.</div>`;
+    wrap.innerHTML = `<div class="empty">${state.isTeacher ? "No messages yet. Your admin will reach out here." : "No conversations yet."}</div>`;
     return;
   }
 
@@ -157,7 +158,7 @@ function filterOptionsByRole(scopeKey) {
 function renderScopeOptions() {
   const wrap = $("scopeOptions");
   if (!wrap) return;
-  const isTeacher = String(state.profile?.role || "") === "teacher";
+  const isTeacher = state.isTeacher;
   const choices = isTeacher
     ? [{ key: "MESSAGE_ADMIN", label: "Message Admin" }, { key: "INDIVIDUAL", label: "Search other teachers" }]
     : SCOPE_CHOICES;
@@ -232,7 +233,7 @@ function renderSelectedRecipients() {
 }
 
 async function runSearch() {
-  const isTeacher = String(state.profile?.role || "") === "teacher";
+  const isTeacher = state.isTeacher;
   const searchWrap = $("recipientSearchResults");
   const step = $("searchStep");
   if (!searchWrap || !step) return;
@@ -343,13 +344,28 @@ async function loadRecipientOptions() {
 
 async function boot() {
   state.profile = await getCurrentProfile();
+  state.isTeacher = String(state.profile?.role || "") === "teacher";
   await loadRecipientOptions();
+
+  if (state.isTeacher) {
+    const title = $("messagesHeroTitle");
+    const sub = $("messagesHeroSub");
+    if (title) title.textContent = "Messages from Admin";
+    if (sub) sub.textContent = "No messages yet. Your admin will reach out here.";
+    $("composeBtn")?.setAttribute("style", "display:none");
+    const subjectInput = $("subjectInput");
+    if (subjectInput) {
+      subjectInput.style.display = "none";
+      subjectInput.value = "";
+    }
+  }
 
   renderScopeOptions();
   renderScopeExtras();
   renderSelectedRecipients();
 
   $("composeBtn")?.addEventListener("click", () => {
+    if (state.isTeacher) return;
     showComposeStatus("");
     openComposeModal();
     runSearch().catch(() => {});

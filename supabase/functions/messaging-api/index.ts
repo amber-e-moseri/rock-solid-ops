@@ -235,6 +235,10 @@ async function listConversations(db: any, auth: AuthContext) {
 
 async function getRecipientOptions(db: any, auth: AuthContext) {
   const role = auth.profile.role;
+  if (role === "teacher") {
+    return { recipients: [], groupedByRole: {} };
+  }
+
   const staffRoles = ["teacher", "subgroup_admin", "pastor", "regional_secretary", "principal", "admin", "superadmin"];
   const { data: profiles, error: pErr } = await db
     .from("profiles")
@@ -289,10 +293,9 @@ async function getRecipientOptions(db: any, auth: AuthContext) {
     }
   }
 
+  const adminLikeRoles = new Set(["admin", "superadmin", "regional_secretary", "pastor", "principal", "subgroup_admin"]);
   let recipients = allRows;
-  if (role === "teacher") {
-    recipients = allRows.filter((r: any) => r.role === "teacher" || adminRoles.has(r.role));
-  } else if (role === "pastor" || role === "subgroup_admin") {
+  if (role === "pastor" || role === "subgroup_admin") {
     const admins = allRows.filter((r: any) => adminRoles.has(r.role));
     const scopedTeachers = allRows.filter((r: any) => {
       if (r.role !== "teacher") return false;
@@ -302,6 +305,30 @@ async function getRecipientOptions(db: any, auth: AuthContext) {
     });
     const map = new Map<string, any>();
     [...admins, ...scopedTeachers].forEach((r: any) => map.set(r.user_id, r));
+    recipients = [...map.values()];
+  } else if (adminLikeRoles.has(role)) {
+    const { data: teacherRows, error: tErr } = await db
+      .from("teachers")
+      .select("teacher_user_id,full_name,email")
+      .eq("active", true)
+      .not("teacher_user_id", "is", null)
+      .is("deleted_at", null)
+      .order("full_name", { ascending: true });
+    if (tErr) throw tErr;
+    const map = new Map<string, any>();
+    for (const row of recipients) map.set(String(row.user_id), row);
+    for (const row of teacherRows || []) {
+      const userId = clean(row.teacher_user_id);
+      if (!userId) continue;
+      map.set(userId, {
+        user_id: userId,
+        email: clean(row.email).toLowerCase(),
+        full_name: clean(row.full_name),
+        role: "teacher",
+        group_id: null,
+        subgroup_id: null,
+      });
+    }
     recipients = [...map.values()];
   }
 
@@ -408,6 +435,10 @@ async function sendMessage(db: any, auth: AuthContext, params: any) {
     throw new Error("recipientUserIds is required when creating a conversation");
   }
 
+  if (auth.profile.role === "teacher" && !conversationId) {
+    throw new Error("Teachers cannot start new conversations");
+  }
+
   if (!conversationId) {
     const defaultScope = auth.profile.role === "regional_secretary" || auth.profile.role === "admin" || auth.profile.role === "superadmin"
       ? "CANADA"
@@ -441,6 +472,15 @@ async function sendMessage(db: any, auth: AuthContext, params: any) {
   } else {
     const conv = await getConversationForUser(db, auth, conversationId);
     if (!conv) throw new Error("Conversation not found");
+    if (auth.profile.role === "teacher") {
+      const { data: participant } = await db
+        .from("message_participants")
+        .select("conversation_id")
+        .eq("conversation_id", conversationId)
+        .eq("user_id", auth.user.id)
+        .maybeSingle();
+      if (!participant) throw new Error("Teachers can only reply in existing conversations");
+    }
     if (recipientUserIds.length) {
       await ensureParticipants(db, conversationId, recipientUserIds, auth.profile.role);
     }

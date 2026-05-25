@@ -10,3 +10,16 @@ foundation/js/runtime-config*.js
 
 # Local Netlify folder
 .netlify
+
+# Binaries
+*.exe
+supabase.exe
+
+# Temp files
+.tmp_e2e_*.sql
+*.tmp
+*.bak
+*.log
+
+# Local config overrides
+foundation/js/config.local.js
