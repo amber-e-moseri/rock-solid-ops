@@ -52,7 +52,7 @@ async function notifyClassNowAvailable(slot: Slot, classInfo: ClassInfo, results
     .from("applicants")
     .select("id,full_name,email,fellowship_code,batch_id,availability,availability_status")
     .eq("batch_id", slot.batch_id)
-    .eq("availability_status", "NO_SUITABLE_TIME")
+    .eq("availability_status", "NO_MATCHING_TIME")
     .in("fellowship_code", fellowshipCodes)
     .limit(500);
 
@@ -101,7 +101,7 @@ async function notifyClassNowAvailable(slot: Slot, classInfo: ClassInfo, results
       .from("applicants")
       .update({ availability_status: "CLASS_AVAILABLE", updated_at: new Date().toISOString() })
       .eq("id", app.id)
-      .eq("availability_status", "NO_SUITABLE_TIME");
+      .eq("availability_status", "NO_MATCHING_TIME");
 
     await safeLogAudit(sb, {
       actor_email: "waitlist-processor@system",

@@ -279,7 +279,7 @@
       visibleItems.forEach(function (item) {
         const isActive = item.key === active;
         const badge = bc[item.key] ? `<span class="sb-badge" style="background:var(--amber)">${bc[item.key]}</span>` : "";
-        nav += `<a class="sb-link${isActive ? " active" : ""}" href="${item.href}" data-key="${item.key}"><span class="sb-icon">${item.icon}</span> ${item.label}${badge}</a>`;
+        nav += `<a class="sb-link${isActive ? " active" : ""}" href="${item.href}" data-key="${item.key}">${item.label}${badge}</a>`;
       });
     });
     return nav;

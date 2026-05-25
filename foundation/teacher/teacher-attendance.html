@@ -306,6 +306,7 @@ const esc = (v) => String(v ?? "").replace(/[&<>'"]/g, (c) => ({ "&":"&amp;","<"
 
 const state = {
   auth: null,
+  isAdminUser: false,
   assignments: [],
   classes: [],
   applicants: [],
@@ -635,9 +636,25 @@ async function loadData() {
   const [{ data: classes, error: cErr }, defsRes, assignmentsResponse] = await Promise.all([
     supabase.from("class_options").select("*").limit(1000),
     invokeTeacherPortalAction("getMilestoneDefinitions", {}),
-    invokeTeacherPortalAction("getTeacherActiveClassOptions", { teacherId }),
+    state.isAdminUser
+      ? Promise.resolve({ ok: true, data: [] })
+      : invokeTeacherPortalAction("getTeacherActiveClassOptions", { teacherId }),
   ]);
-  state.assignments = assignmentsResponse?.data || [];
+  let assignments = assignmentsResponse?.data || [];
+  // Admins with no teacher mapping see all active class options
+  if (state.isAdminUser && !assignments.length) {
+    assignments = (classes || [])
+      .filter((c) => c.active !== false && !c.deleted_at)
+      .map((c) => ({
+        classOptionId: c.class_option_id,
+        class_option_id: c.class_option_id,
+        day: c.day || "",
+        class_time: c.class_time || "",
+        fellowship_codes: Array.isArray(c.fellowship_codes) ? c.fellowship_codes : [],
+        fellowship: (c.fellowship_codes || [])[0] || "",
+      }));
+  }
+  state.assignments = assignments;
   state.milestoneDefs = (defsRes?.data || []).filter((m) => {
     const code = normalizeMilestoneCode(m.code);
     if (!ALLOWED_MILESTONE_CODES.has(code)) return false;
@@ -1054,10 +1071,29 @@ async function boot() {
     flash("Supabase config missing in foundation/auth/auth-client.js.", "bad");
     return;
   }
-  const auth = await requireAuth(["teacher", "principal", "admin", "superadmin"]);
+  const auth = await requireAuth([
+    "teacher",
+    "admin",
+    "superadmin",
+    "regional_secretary",
+    "pastor",
+    "subgroup_admin",
+    "principal",
+  ]);
   if (!auth) return;
   const role = String(auth.profile?.role || "").toLowerCase();
-  const isAdminUser = ["admin", "superadmin", "principal", "regional_secretary", "subgroup_admin", "pastor"].includes(role);
+  let teacherModeScopeRole = "";
+  try {
+    const raw = sessionStorage.getItem("fs_teacher_mode_scope");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (String(parsed?.mode || "").toLowerCase() === "teacher") {
+        teacherModeScopeRole = String(parsed?.role || "").toLowerCase();
+      }
+    }
+  } catch (_) {}
+  const effectiveRole = teacherModeScopeRole || role;
+  const isAdminUser = ["admin", "superadmin", "principal", "regional_secretary", "subgroup_admin", "pastor"].includes(effectiveRole);
   window.FSTeacherShell?.mount({ active: "attendance", enforceAccess: !isAdminUser });
   state.auth = auth;
   state.isAdminUser = isAdminUser;

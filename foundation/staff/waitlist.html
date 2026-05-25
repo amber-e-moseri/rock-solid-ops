@@ -97,7 +97,7 @@
         <input class="fs-input" id="searchInput" type="search" placeholder="Search name or email…" style="min-width:200px;max-width:300px" />
         <select class="fs-select" id="statusFilter">
           <option value="">All statuses</option>
-          <option value="NO_SUITABLE_TIME">No Suitable Time</option>
+          <option value="NO_MATCHING_TIME">No Suitable Time</option>
           <option value="WAITLISTED">Capacity Waitlist</option>
         </select>
         <select class="fs-select" id="fellowshipFilter"><option value="">All Fellowships</option></select>
@@ -236,7 +236,7 @@
       return state.students.filter((s) => {
         if (batchF  && s.batch_id       !== batchF)  return false;
         if (fellowF && String(s.fellowship_code || "").toUpperCase() !== fellowF) return false;
-        if (statusF === "NO_SUITABLE_TIME" && s.availability_status !== "NO_SUITABLE_TIME") return false;
+        if (statusF === "NO_MATCHING_TIME" && s.availability_status !== "NO_MATCHING_TIME") return false;
         if (statusF === "WAITLISTED"       && s.registration_status !== "WAITLISTED")       return false;
         if (search) {
           const hay = `${s.full_name || ""} ${s.email || ""}`.toLowerCase();
@@ -260,7 +260,7 @@
         const sinceDate = s.waitlisted_at || s.created_at;
         const days = daysSince(sinceDate) ?? 0;
         const daysCls = days > 14 ? "days-crit" : days > 7 ? "days-warn" : "days-ok";
-        const reasonPill = s.availability_status === "NO_SUITABLE_TIME"
+        const reasonPill = s.availability_status === "NO_MATCHING_TIME"
           ? `<span class="pill pill-amber">No Suitable Time</span>`
           : s.availability_status === "CLASS_FULL"
             ? `<span class="pill pill-red">Class Full</span>`
@@ -330,7 +330,7 @@
       const [studentsRes, slotsRes, batchesRes] = await Promise.all([
         supabase.from("applicants")
           .select("id,full_name,email,fellowship_code,batch_id,availability,availability_status,registration_status,waitlisted_at,created_at,class_option_id")
-          .or("availability_status.eq.NO_SUITABLE_TIME,registration_status.eq.WAITLISTED")
+          .or("availability_status.eq.NO_MATCHING_TIME,registration_status.eq.WAITLISTED")
           .not("availability_status", "eq", "NO_CLASS_AVAILABLE")
           .order("created_at", { ascending: true })
           .limit(500),

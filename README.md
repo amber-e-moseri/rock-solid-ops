@@ -57,6 +57,7 @@ Data:
 11. [Tech Debt Register (Summary)](#tech-debt-register-summary)
 12. [Security Rules](#security-rules)
 13. [Legacy Archive](#legacy-archive)
+14. [Latest Updates (May 2026)](#latest-updates-may-2026)
 
 ---
 
@@ -141,6 +142,11 @@ Located at `foundation/staff/`, using `admin-shell.js`.
 
 Key pages include: `admin-dashboard.html`, `admin-review.html`, `applicant-directory.html`, `batch-management.html`, `class-editor.html`, `teacher-management.html`, `waitlist.html`, `notification-center.html`, `messages.html`, `failed-sync-retry-center.html`, `system-health.html`, `audit-log.html`, `reports.html`, `dashboards.html`.
 
+Shell UX:
+- Mobile hamburger + backdrop sidebar behavior
+- Smooth page transitions with top progress bar during nav
+- Teacher-mode switch for eligible admin roles (`regional_secretary`, `admin`, `superadmin`)
+
 ### 3. Teacher Portal
 
 Located at `foundation/teacher/`, using `teacher-shell.js`.
@@ -153,6 +159,10 @@ Located at `foundation/teacher/`, using `teacher-shell.js`.
 - In-app messaging section via `index.html?section=messages`
 
 Teacher actions are routed through `teacher-portal-api`.
+
+Shell UX:
+- Mobile hamburger + backdrop sidebar behavior
+- Smooth page transitions with top progress bar during nav
 
 ### 4. Batch and Class Management
 
@@ -409,6 +419,17 @@ Never:
 ## Legacy Archive
 
 `archive/apps-script-legacy/` is read-only historical reference and not part of runtime.
+
+---
+
+## Latest Updates (May 2026)
+
+- Shell navigation now uses smooth transition states (fade + subtle lift) for both admin and teacher portals.
+- Top loading progress bar added during cross-page navigation in both shells.
+- Mobile shell behavior standardized: slide-in sidebar + backdrop + body lock class (`fs-sidebar-open`).
+- Shared responsive utility rules in `foundation/ui/primitives.css` expanded for tables, drawers, modals, and KPI grids.
+- Help guide hardened for public access (works without auth config) with optional role filtering when session/config is available.
+- `scheduled_notifications` dedupe writes moved away from `ON CONFLICT (dedupe_key)` pattern to explicit dedupe lookup + insert where needed.
 
 ---
 

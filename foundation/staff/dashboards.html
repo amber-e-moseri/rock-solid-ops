@@ -27,15 +27,17 @@
       border-left: 3px solid var(--color-primary, #4C2A92);
       background: var(--color-surface, #fff);
       border-radius: 12px;
-      padding: 16px 18px;
+      padding: 20px;
       box-shadow: 0 1px 4px rgba(0,0,0,.06);
     }
     .kpi-card .kpi-value {
-      font-size: 1.9rem;
+      font-size: 2rem;
       font-weight: 800;
       color: var(--color-primary, #4C2A92);
       line-height: 1.1;
     }
+    .kpi-card.kpi-grey  { border-left-color: #6b7280; }
+    .kpi-card.kpi-grey .kpi-value  { color: #6b7280; }
     .kpi-card .kpi-label {
       margin-top: 4px;
       font-size: 11px;
@@ -182,7 +184,7 @@
   <main class="main">
     <div class="fs-page-header">
       <div>
-        <h1 class="fs-page-title">Operational Dashboards</h1>
+        <h1 class="fs-page-title">Operational Dashboard</h1>
         <p style="margin:2px 0 0;font-size:var(--fs-meta);color:var(--color-text-muted);">Live registration and delivery summary</p>
       </div>
       <div class="fs-page-actions">
@@ -206,11 +208,7 @@
       <a href="applicant-directory.html" class="fs-btn fs-btn-sm fs-btn-secondary" style="margin-left:12px;">View Applicants</a>
     </div>
 
-    <!-- Batch quick-switch -->
-    <section class="card" style="margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Quick Batch Switch</div>
-      <div id="batchSwitcher" class="batch-switcher"></div>
-    </section>
+    <div id="batchSwitcher" style="display:none"></div>
 
     <!-- KPI cards -->
     <div class="kpi-row kpi-grid">
@@ -219,17 +217,17 @@
         <div class="kpi-label">Total Enrolled</div>
         <div class="kpi-stamp" data-stamp="kpiEnrolled">as of -</div>
       </article>
-      <article class="kpi-card">
+      <article class="kpi-card kpi-warn">
         <div class="kpi-value" id="kpiWaitlisted">-</div>
         <div class="kpi-label">Waitlisted</div>
         <div class="kpi-stamp" data-stamp="kpiWaitlisted">as of -</div>
       </article>
-      <article class="kpi-card fs-metric" title="Applicants currently in REVIEW status">
+      <article class="kpi-card kpi-danger fs-metric" title="Applicants currently in REVIEW status">
         <div class="kpi-value fs-metric-value" id="kpiPendingReview">-</div>
         <div class="kpi-label fs-metric-label">Pending Review</div>
         <div class="kpi-stamp" data-stamp="kpiPendingReview">as of -</div>
       </article>
-      <article class="kpi-card fs-metric" title="Applicants currently marked DUPLICATE">
+      <article class="kpi-card kpi-grey fs-metric" title="Applicants currently marked DUPLICATE">
         <div class="kpi-value fs-metric-value" id="kpiDuplicates">-</div>
         <div class="kpi-label fs-metric-label">Duplicates</div>
         <div class="kpi-stamp" data-stamp="kpiDuplicates">as of -</div>
@@ -432,7 +430,9 @@
     const show = (id) => $(id)?.classList.remove("hidden");
     const hide = (id) => $(id)?.classList.add("hidden");
     const setState = (id, msg) => { if ($(id)) { $(id).textContent = msg; show(id); } };
-    const fmtDate = (v) => v ? (isNaN(new Date(v)) ? String(v) : new Date(v).toLocaleDateString()) : "-";
+    const parseLocalDate = (v) => { const s = String(v || ""); return s.length === 10 ? new Date(s + "T00:00:00") : new Date(s); };
+    const fmtDate = (v) => { if (!v) return "-"; const d = parseLocalDate(v); return isNaN(d) ? String(v) : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); };
+    const fmtDateShort = (v) => { if (!v) return ""; const d = parseLocalDate(v); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
     const fmtTime = (v) => v ? (isNaN(new Date(v)) ? String(v) : new Date(v).toLocaleString()) : "-";
     const statusBadge = (s) => `<span class="fs-badge ${STATUS_BADGE[String(s||"").toUpperCase()] || "fs-badge-neutral"}>${s || "-"}</span>`;
     const getParams = () => ({ p_batch_id: _batchId || null, p_subgroups: _scope.subgroups || null });
@@ -485,7 +485,8 @@
         const batchName = b.name || b.batch_name || b.batch_id;
         const opt = document.createElement("option");
         opt.value = b.batch_id;
-        opt.textContent = `${b.active ? "[A] " : ""}${batchName}`;
+        const dateRange = (b.start_date && b.end_date) ? ` — ${fmtDateShort(b.start_date)} – ${fmtDate(b.end_date)}` : "";
+        opt.textContent = `${b.active ? "[A] " : ""}${batchName}${dateRange}`;
         sel.appendChild(opt);
         const btn = document.createElement("button");
         btn.type = "button";
